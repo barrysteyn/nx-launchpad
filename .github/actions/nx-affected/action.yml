@@ -1,0 +1,164 @@
+name: "Nx affected projects summary"
+description: "Computes Nx affected projects, emits outputs per project, writes Step Summary, and outputs markdown for PR comments."
+
+inputs:
+  nx_command:
+    description: "Command that outputs a JSON array of affected project names"
+    required: false
+    default: "npx nx show projects --affected --json"
+  require_shas:
+    description: "Fail if NX_BASE/NX_HEAD are not set (recommended)."
+    required: false
+    default: "true"
+  summary_title:
+    description: "Markdown heading/title to use in the summary output"
+    required: false
+    default: "## 🧭 Nx affected projects"
+
+outputs:
+  count:
+    description: "Number of affected projects"
+    value: ${{ steps.affected.outputs.count }}
+  json:
+    description: "JSON array of affected projects"
+    value: ${{ steps.affected.outputs.json }}
+  csv:
+    description: "Comma-separated list of affected projects"
+    value: ${{ steps.affected.outputs.csv }}
+  matrix_json:
+    description: "JSON array of objects for GitHub Actions matrix/planning"
+    value: ${{ steps.affected.outputs.matrix_json }}
+  needs_python:
+    description: "Whether any affected project requires Python"
+    value: ${{ steps.affected.outputs.needs_python }}
+  needs_uv:
+    description: "Whether any affected project requires uv"
+    value: ${{ steps.affected.outputs.needs_uv }}
+  needs_java:
+    description: "Whether any affected project requires Java"
+    value: ${{ steps.affected.outputs.needs_java }}
+  needs_maven:
+    description: "Whether any affected project requires Maven"
+    value: ${{ steps.affected.outputs.needs_maven }}
+  summary_md:
+    description: "Markdown summary (suitable for GITHUB_STEP_SUMMARY or PR comments)"
+    value: ${{ steps.affected.outputs.summary_md }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Show and calculate affected projects
+      id: affected
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [[ "${{ inputs.require_shas }}" == "true" ]]; then
+          if [[ -z "${NX_BASE:-}" || -z "${NX_HEAD:-}" ]]; then
+            echo "::error title=Nx SHAs not set::NX_BASE and/or NX_HEAD are missing. This action requires the base and head SHAs to compute Nx affected projects. Add the following step earlier in the job (and ensure checkout fetch-depth is 0):"
+            echo "::error::"
+            echo "::error::  - uses: actions/checkout@v4"
+            echo "::error::    with:"
+            echo "::error::      fetch-depth: 0"
+            echo "::error::"
+            echo "::error::  - uses: nrwl/nx-set-shas@v4"
+            echo "::error::"
+            echo "::error::Alternatively, set NX_BASE and NX_HEAD explicitly before running this action."
+            echo "::error::Event: ${GITHUB_EVENT_NAME:-<unknown>}, Ref: ${GITHUB_REF:-<unknown>}, SHA: ${GITHUB_SHA:-<unknown>}"
+            exit 1
+          fi
+        fi
+
+        echo "NX_BASE=${NX_BASE:-<unset>}"
+        echo "NX_HEAD=${NX_HEAD:-<unset>}"
+
+        AFFECTED="$(${{ inputs.nx_command }})"
+        count="$(echo "$AFFECTED" | jq 'length')"
+
+        echo "::group::🧭 Nx affected projects"
+        if [ "$count" -eq 0 ]; then
+          echo -e "\033[33mℹ️  No affected projects\033[0m"
+        else
+          echo -e "\033[32m✅ Affected projects ($count):\033[0m"
+          echo "$AFFECTED" | jq -r '.[]' | while read -r proj; do
+            [ -n "$proj" ] || continue
+            echo -e "  \033[36m•\033[0m \033[1m$proj\033[0m"
+            echo "${proj}=true" >> "$GITHUB_OUTPUT"
+          done
+        fi
+        echo "::endgroup::"
+
+        MATRIX_FILE="$(mktemp)"
+        echo "[]" > "$MATRIX_FILE"
+
+        needs_python=false
+        needs_uv=false
+        needs_java=false
+        needs_maven=false
+
+        if [ "$count" -gt 0 ]; then
+          while IFS= read -r proj; do
+            [ -n "$proj" ] || continue
+
+            PROJECT_JSON="$(npx nx show project "$proj" --json)"
+            PROFILE="$(echo "$PROJECT_JSON" | jq -r '.metadata.ci.profile // "default"')"
+
+            case "$PROFILE" in
+              python-uv)
+                needs_python=true
+                needs_uv=true
+                ;;
+              java-maven)
+                needs_java=true
+                needs_maven=true
+                ;;
+            esac
+
+            tmp="$(mktemp)"
+            jq \
+              --arg project "$proj" \
+              --arg profile "$PROFILE" \
+              '. + [{project: $project, profile: $profile}]' \
+              "$MATRIX_FILE" > "$tmp"
+            mv "$tmp" "$MATRIX_FILE"
+          done < <(echo "$AFFECTED" | jq -r '.[]')
+        fi
+
+        MATRIX_JSON="$(cat "$MATRIX_FILE")"
+
+        SUMMARY_FILE="$(mktemp)"
+        {
+          echo "${{ inputs.summary_title }}"
+          echo
+          echo "**Count:** $count"
+          echo
+          if [ "$count" -eq 0 ]; then
+            echo "_No affected projects._"
+          else
+            echo "$MATRIX_JSON" | jq -r '.[] | "- ✅ **\(.project)** (`\(.profile)`) "' 2>/dev/null \
+              || echo "$AFFECTED" | jq -r '.[] | "- ✅ **\(.)**"'
+          fi
+        } > "$SUMMARY_FILE"
+
+        cat "$SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+        AFFECTED_CSV="$(echo "$AFFECTED" | jq -r '.[] | select(length > 0)' | paste -sd ',' -)"
+
+        {
+          echo "count=$count"
+          echo "csv=${AFFECTED_CSV}"
+          echo "needs_python=$needs_python"
+          echo "needs_uv=$needs_uv"
+          echo "needs_java=$needs_java"
+          echo "needs_maven=$needs_maven"
+          echo "json<<EOF"
+          echo "$AFFECTED"
+          echo "EOF"
+          echo "matrix_json<<EOF"
+          echo "$MATRIX_JSON"
+          echo "EOF"
+          echo "summary_md<<EOF"
+          cat "$SUMMARY_FILE"
+          echo
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
