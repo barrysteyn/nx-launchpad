@@ -1,0 +1,127 @@
+name: CI (Lint, Test, Build)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NX_DAEMON: "false"
+  NX_NO_CLOUD: "true"
+  NX_SKIP_NX_CACHE: "false"
+
+jobs:
+  plan:
+    name: Plan affected projects
+    runs-on: ubuntu-latest
+    outputs:
+      count: ${{ steps.affected.outputs.count }}
+      json: ${{ steps.affected.outputs.json }}
+      csv: ${{ steps.affected.outputs.csv }}
+      matrix_json: ${{ steps.affected.outputs.matrix_json }}
+      needs_python: ${{ steps.affected.outputs.needs_python }}
+      needs_uv: ${{ steps.affected.outputs.needs_uv }}
+      needs_java: ${{ steps.affected.outputs.needs_java }}
+      needs_maven: ${{ steps.affected.outputs.needs_maven }}
+      summary_md: ${{ steps.affected.outputs.summary_md }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: Compute affected projects + summary
+        id: affected
+        uses: ./.github/actions/nx-affected
+        with:
+          summary_title: "## 🧭 Nx affected projects (CI)"
+
+  ci:
+    name: Lint, Format, Test & Build
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: Set up Java
+        if: needs.plan.outputs.needs_java == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Set up Python
+        if: needs.plan.outputs.needs_python == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        if: needs.plan.outputs.needs_uv == 'true'
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Validate terraform
+        run: |
+          npx nx affected -t tf-fmt tf-validate
+
+      - name: Run lint, format, test, and build on affected projects
+        run: |
+          npx nx affected -t lint format test build --parallel --maxParallel=2
+
+  comment:
+    name: Comment affected projects on PR
+    needs: plan
+    if: github.event_name == 'pull_request' && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Comment affected projects on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: nx-affected
+          message: ${{ needs.plan.outputs.summary_md }}
