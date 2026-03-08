@@ -27,3 +27,24 @@ Examples:
 - `docs: update README with setup instructions`
 
 This is required for the GitHub PR checks to pass.
+
+## Project CI Profile (`project.json` convention)
+
+The CI pipeline (`.github/actions/nx-affected`) reads `metadata.ci.profile` from each project to determine what tooling to install. Every `project.json` must include this key.
+
+```json
+{
+  "metadata": {
+    "ci": {
+      "profile": "<profile>"
+    }
+  }
+}
+```
+
+Valid profiles:
+- `default` — Node/TypeScript only (no extra tooling)
+- `python-uv` — sets up Python 3.11 and uv
+- `java-maven` — sets up Java 21 (Temurin) and Maven
+
+If `metadata.ci.profile` is absent, the pipeline defaults to `"default"`. Always set it explicitly so the project's requirements are clear.
