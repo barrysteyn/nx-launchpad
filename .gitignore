@@ -1,15 +1,107 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ------------------------------------------------------------
+# Nx / build / generated output
+# ------------------------------------------------------------
+dist/
+tmp/
+out/
+out-tsc/
+coverage/
+test-output/
 
-# compiled output
-dist
-tmp
-out-tsc
+# Nx local cache and workspace metadata
+.nx/cache/
+.nx/workspace-data/
 
-# dependencies
-node_modules
+# Nx graph output
+project-graph.html
+project-graph.json
+nx-graph.html
+static/
 
-# IDEs and editors
-/.idea
+# ------------------------------------------------------------
+# App-specific generated data
+# ------------------------------------------------------------
+crawled_pages/
+apps/falcon-iq-analyzer/results/
+apps/falcon-iq-analyzer/crawled_sites/
+.falcon/
+
+# ------------------------------------------------------------
+# Node / TypeScript
+# ------------------------------------------------------------
+node_modules/
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Transpiled JS artifacts in libs (TS source is canonical)
+libs/**/*.js
+libs/**/*.js.map
+libs/**/*.d.ts
+libs/**/*.d.ts.map
+
+# Keep intentionally committed Jest config JS files
+!libs/**/jest.preset.js
+!libs/**/jest.config.js
+
+# ------------------------------------------------------------
+# Python / uv
+# ------------------------------------------------------------
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Note:
+# uv.lock is intentionally NOT ignored.
+# It should usually be committed for reproducible environments.
+
+# ------------------------------------------------------------
+# Environment / secrets
+# ------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ------------------------------------------------------------
+# Vite / Cloudflare
+# ------------------------------------------------------------
+.vite/
+.wrangler/
+
+# ------------------------------------------------------------
+# Terraform
+# ------------------------------------------------------------
+**/infra/.terraform/
+**/infra/*.tfstate
+**/infra/*.tfstate.backup
+**/infra/.terraform.tfstate.lock.info
+**/infra/terraform.tfvars
+**/infra/*.tfvars
+
+# Note:
+# .terraform.lock.hcl is intentionally NOT ignored.
+# It should usually be committed for provider version consistency.
+
+# ------------------------------------------------------------
+# Java / Rust / generic build dirs
+# ------------------------------------------------------------
+target/
+
+# ------------------------------------------------------------
+# IDEs / editors
+# ------------------------------------------------------------
+.idea/
 .project
 .classpath
 .c9/
@@ -17,26 +109,37 @@ node_modules
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
+# VS Code: keep shared repo settings, ignore personal ones
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
+# ------------------------------------------------------------
+# Local AI / assistant tooling state
+# ------------------------------------------------------------
+.claude/
+
+# Uncomment these only if they are truly local-only and should
+# never be shared as part of the template repo:
+# .cursor/
+# .github/instructions/
+
+# ------------------------------------------------------------
+# Misc
+# ------------------------------------------------------------
+.sass-cache/
+connect.lock
+libpeerconnection.log
 npm-debug.log
+pnpm-debug.log
 yarn-error.log
 testem.log
-/typings
+typings/
 
-# System Files
+# ------------------------------------------------------------
+# OS files
+# ------------------------------------------------------------
 .DS_Store
 Thumbs.db
-
-.nx/cache
-.nx/workspace-data

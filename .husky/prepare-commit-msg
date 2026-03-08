@@ -1,0 +1,14 @@
+# Check if a rebase is in progress
+if [ -d ".git/rebase-apply" ] || [ -d ".git/rebase-merge" ]; then
+  # Skip the hook during rebase
+  exit 0
+fi
+
+# echo "🚀 Don't forget that linters are run in the GitHub Actions"
+# echo "If you want to run them locally to test:"
+# echo "🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲"
+# echo "npx --yes nx run-many --parallel -t lint test --configuration development"
+# echo "🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲"
+# echo "✨✨✨✨✨"
+
+exec < /dev/tty && npx cz --hook || true
