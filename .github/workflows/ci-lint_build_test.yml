@@ -28,8 +28,7 @@ jobs:
       json: ${{ steps.affected.outputs.json }}
       csv: ${{ steps.affected.outputs.csv }}
       matrix_json: ${{ steps.affected.outputs.matrix_json }}
-      needs_python: ${{ steps.affected.outputs.needs_python }}
-      needs_uv: ${{ steps.affected.outputs.needs_uv }}
+      needs_python_uv: ${{ steps.affected.outputs.needs_python_uv }}
       needs_java: ${{ steps.affected.outputs.needs_java }}
       needs_maven: ${{ steps.affected.outputs.needs_maven }}
       summary_md: ${{ steps.affected.outputs.summary_md }}
@@ -107,14 +106,8 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Set up Python
-        if: needs.plan.outputs.needs_python == 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Set up uv
-        if: needs.plan.outputs.needs_uv == 'true'
+      - name: Set up Python and uv
+        if: needs.plan.outputs.needs_python_uv == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true

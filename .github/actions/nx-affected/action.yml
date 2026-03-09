@@ -28,12 +28,9 @@ outputs:
   matrix_json:
     description: "JSON array of objects for GitHub Actions matrix/planning"
     value: ${{ steps.affected.outputs.matrix_json }}
-  needs_python:
-    description: "Whether any affected project requires Python"
-    value: ${{ steps.affected.outputs.needs_python }}
-  needs_uv:
-    description: "Whether any affected project requires uv"
-    value: ${{ steps.affected.outputs.needs_uv }}
+  needs_python_uv:
+    description: "Whether any affected project requires Python and uv"
+    value: ${{ steps.affected.outputs.needs_python_uv }}
   needs_java:
     description: "Whether any affected project requires Java"
     value: ${{ steps.affected.outputs.needs_java }}
@@ -91,8 +88,7 @@ runs:
         MATRIX_FILE="$(mktemp)"
         echo "[]" > "$MATRIX_FILE"
 
-        needs_python=false
-        needs_uv=false
+        needs_python_uv=false
         needs_java=false
         needs_maven=false
 
@@ -105,8 +101,7 @@ runs:
 
             case "$PROFILE" in
               python-uv)
-                needs_python=true
-                needs_uv=true
+                needs_python_uv=true
                 ;;
               java-maven)
                 needs_java=true
@@ -147,8 +142,7 @@ runs:
         {
           echo "count=$count"
           echo "csv=${AFFECTED_CSV}"
-          echo "needs_python=$needs_python"
-          echo "needs_uv=$needs_uv"
+          echo "needs_python_uv=$needs_python_uv"
           echo "needs_java=$needs_java"
           echo "needs_maven=$needs_maven"
           echo "json<<EOF"
