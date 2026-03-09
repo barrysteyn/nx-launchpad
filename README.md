@@ -6,6 +6,24 @@
 # Getting Started
 For supplementary reading regarding UV, see [uv is the best thing to happen to the Python ecosystem in a decade](https://emily.space/posts/251023-uv).
 
+## DO THIS FIRST AFTER FORKING THIS REPO
+### GitHub Plugins
+Install [Cocogitto-bot](https://github.com/cocogitto/cocogitto-bot). This will ensure conventional commits
+
+### Terraform State (One-time AWS Bootstrap)
+
+Before running any Terraform commands, an S3 bucket for remote state must be manually created in AWS. This is a one-time step per AWS account.
+
+```bash
+aws s3api create-bucket --bucket your-bucket-name --region us-east-1
+aws s3api put-bucket-versioning --bucket your-bucket-name \
+  --versioning-configuration Status=Enabled
+```
+
+Versioning is required — it allows state recovery if something goes wrong.
+
+Once created, update `libs/infra/backend.hcl` with the bucket name. This file is the single source of truth for remote state configuration across the entire monorepo.
+
 ## Prerequisites
 
 This project supports Java (Maven), Python (uv) and Node.js.
@@ -65,20 +83,6 @@ git config user.email "your.name@project.com"
 ```
 
 </details>
-
-## Terraform State (One-time AWS Bootstrap)
-
-Before running any Terraform commands, an S3 bucket for remote state must be manually created in AWS. This is a one-time step per AWS account.
-
-```bash
-aws s3api create-bucket --bucket your-bucket-name --region us-east-1
-aws s3api put-bucket-versioning --bucket your-bucket-name \
-  --versioning-configuration Status=Enabled
-```
-
-Versioning is required — it allows state recovery if something goes wrong.
-
-Once created, update `libs/infra/backend.hcl` with the bucket name. This file is the single source of truth for remote state configuration across the entire monorepo.
 
 ## Python Dependencies
 
