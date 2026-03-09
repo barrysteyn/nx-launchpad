@@ -113,6 +113,30 @@
           "cwd": "{projectRoot}/infra/environments/production"
         }
       }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "configurations": {
+        "staging": {
+          "cwd": "{projectRoot}/infra/environments/staging",
+          "commands": [
+            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "terraform plan",
+            "terraform apply"
+          ],
+          "parallel": false
+        },
+        "production": {
+          "cwd": "{projectRoot}/infra/environments/production",
+          "commands": [
+            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "terraform plan",
+            "terraform apply"
+          ],
+          "parallel": false
+        }
+      }
     }
   }
 }

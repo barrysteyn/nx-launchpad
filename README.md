@@ -80,6 +80,17 @@ Versioning is required — it allows state recovery if something goes wrong.
 
 Once created, update `libs/infra/backend.hcl` with the bucket name. This file is the single source of truth for remote state configuration across the entire monorepo.
 
+## Python Dependencies
+
+To add a dependency to a Python project, run `uv add` from the project root (where `pyproject.toml` lives):
+
+```bash
+cd apps/my-python-app
+uv add <package>
+```
+
+This updates `pyproject.toml` and `uv.lock`. Both files must be committed. The `requirements.txt` is generated automatically by the `build` target and is intentionally gitignored.
+
 ## Environment Variables
 
 Nx loads `.env` files automatically for every task. Create a root-level `.env` for workspace-wide defaults and a `{projectRoot}/.env` for project-specific overrides. Use `.env.local` for personal values that should never be committed.
