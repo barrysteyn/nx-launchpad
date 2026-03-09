@@ -49,6 +49,25 @@ Valid profiles:
 
 If `metadata.ci.profile` is absent, the pipeline defaults to `"default"`. Always set it explicitly so the project's requirements are clear.
 
+## Generating Apps
+
+Use the `@nx-launchpad/tools` generators to scaffold new applications. Never create app scaffolding by hand.
+
+### Python (uv)
+
+```bash
+npx nx generate @nx-launchpad/tools:python-app <app-name>
+```
+
+The generator handles:
+- Python app scaffold (`src/`, `tests/`, `pyproject.toml`, `.python-version`)
+- `project.json` with all standard targets (`lint`, `format`, `test`, `build`, `serve`, and all `tf-*` / `deploy` targets if infra was selected)
+- Lambda Terraform infra for staging and production (optional)
+- API Gateway wired to the Lambda (optional)
+- Runs `uv sync` automatically to generate `uv.lock`
+
+After generating, commit `pyproject.toml` and `uv.lock`. Do not commit `requirements.txt` (it is gitignored).
+
 ## Python Dependencies
 
 To add a dependency to a Python project, use `uv add` directly — do not create an Nx target for this:

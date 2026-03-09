@@ -103,3 +103,67 @@ Nx loads `.env` files automatically for every task. Create a root-level `.env` f
 | `{projectRoot}/.env` | No | Project-specific overrides |
 
 See the [Nx docs](https://nx.dev/docs/guides/tips-n-tricks/define-environment-variables) for the full loading order.
+
+
+# Generating Apps
+
+This workspace includes generators to scaffold new applications with sensible defaults. All generators are available via the `@nx-launchpad/tools` package.
+
+## Python (uv)
+
+Generates a Python application with uv, pytest, ruff, and optional AWS Lambda infrastructure (Terraform + API Gateway).
+
+**Via command line:**
+```bash
+npx nx generate @nx-launchpad/tools:python-app <app-name>
+```
+
+**Via Claude Code:** If you are using Claude Code, type `/generate-python-app` and Claude will ask the right questions and run the full generation + verification flow for you.
+
+You will be prompted for:
+
+| Prompt | Description | Default |
+|---|---|---|
+| Description | Short description of the app | — |
+| Python version | Python version to use | `3.12.3` |
+| Include infrastructure? | Whether to scaffold Terraform infra | `yes` |
+| Infrastructure type | `lambda` or `ecs` | `lambda` |
+| Include API Gateway? | Add HTTP API Gateway in front of Lambda | `yes` |
+
+The generator creates:
+
+```
+apps/<app-name>/
+  src/<app_name>/
+    __init__.py
+    main.py          # includes handler() for Lambda and main() for CLI
+  tests/
+    __init__.py
+    test_main.py
+  pyproject.toml
+  .python-version
+  uv.lock            # generated automatically by uv sync
+  infra/             # only if infrastructure was selected
+    environments/
+      staging/
+        main.tf      # Lambda (+ API Gateway if selected)
+        backend.tf
+        providers.tf
+        variables.tf
+      production/
+        (same)
+```
+
+After generation, the following Nx targets are available:
+
+| Target | Command | Description |
+|---|---|---|
+| `lint` | `npx nx run <app>:lint` | Lint with ruff |
+| `format` | `npx nx run <app>:format` | Check formatting with ruff |
+| `test` | `npx nx run <app>:test` | Run pytest |
+| `build` | `npx nx run <app>:build` | Export `requirements.txt` |
+| `serve` | `npx nx run <app>:serve` | Run the app locally |
+| `tf-init` | `npx nx run <app>:tf-init --configuration=staging` | Initialise Terraform backend |
+| `tf-plan` | `npx nx run <app>:tf-plan --configuration=staging` | Plan Terraform changes |
+| `tf-apply` | `npx nx run <app>:tf-apply --configuration=staging` | Apply Terraform changes |
+| `deploy` | `npx nx run <app>:deploy --configuration=staging` | Init + plan + apply in one step |

@@ -124,7 +124,8 @@ target/
 # ------------------------------------------------------------
 # Local AI / assistant tooling state
 # ------------------------------------------------------------
-.claude/
+.claude/*
+!.claude/commands/
 
 # Uncomment these only if they are truly local-only and should
 # never be shared as part of the template repo:
