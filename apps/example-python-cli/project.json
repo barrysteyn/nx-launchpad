@@ -34,7 +34,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv export --no-dev --no-hashes -o requirements.txt",
+        "command": "uv export --no-dev --no-hashes --no-emit-project -o requirements.txt",
         "cwd": "{projectRoot}"
       }
     },
