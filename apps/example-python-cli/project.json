@@ -1,0 +1,49 @@
+{
+  "name": "example-python-cli",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "apps/example-python-cli",
+  "sourceRoot": "apps/example-python-cli/src",
+  "metadata": {
+    "ci": {
+      "profile": "python-uv"
+    }
+  },
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check .",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff format --check .",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run pytest",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv build",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run example-python-cli",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
