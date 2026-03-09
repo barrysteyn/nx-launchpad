@@ -13,7 +13,7 @@ inputs:
   summary_title:
     description: "Markdown heading/title to use in the summary output"
     required: false
-    default: "## 🧭 Nx affected projects"
+    default: "## 🧭 Affected projects"
 
 outputs:
   count:
@@ -72,7 +72,7 @@ runs:
         AFFECTED="$(${{ inputs.nx_command }})"
         count="$(echo "$AFFECTED" | jq 'length')"
 
-        echo "::group::🧭 Nx affected projects"
+        echo "::group::🧭 Affected projects"
         if [ "$count" -eq 0 ]; then
           echo -e "\033[33mℹ️  No affected projects\033[0m"
         else
