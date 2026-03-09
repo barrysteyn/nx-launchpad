@@ -1,0 +1,27 @@
+{
+  "name": "infra",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "root": "libs/infra",
+  "metadata": {
+    "ci": {
+      "profile": "default"
+    }
+  },
+  "targets": {
+    "tf-fmt": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "terraform fmt -recursive",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "tf-validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "terraform validate",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
