@@ -1,3 +1,18 @@
+module "api_gateway" {
+  source = "../../../../../libs/infra/modules/aws/api-gateway"
+
+  name                 = "example-python-cli-production"
+  description          = "Example Python CLI - Production"
+  lambda_invoke_arn    = module.lambda.invoke_arn
+  lambda_function_name = module.lambda.function_name
+
+  tags = {
+    environment = "production"
+    app         = "example-python-cli"
+    managed_by  = "terraform"
+  }
+}
+
 module "lambda" {
   source = "../../../../../libs/infra/modules/aws/lambda"
 
