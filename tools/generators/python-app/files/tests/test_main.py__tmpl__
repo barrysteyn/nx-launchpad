@@ -1,0 +1,7 @@
+from <%= moduleName %>.main import main
+
+
+def test_main(capsys: object) -> None:
+    main()
+    captured = capsys.readouterr()
+    assert captured.out == "Hello from <%= name %>!\n"

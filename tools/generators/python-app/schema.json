@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "id": "python-app",
+  "title": "Generate a Python Application",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Application name in kebab-case (e.g. my-python-app)",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What is the application name? (kebab-case)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short human-readable description of the application",
+      "default": "",
+      "x-prompt": "Short description of the application?"
+    },
+    "pythonVersion": {
+      "type": "string",
+      "description": "Python version (e.g. 3.12.3)",
+      "default": "3.12.3",
+      "x-prompt": "Python version?"
+    },
+    "includeInfra": {
+      "type": "boolean",
+      "description": "Include AWS infrastructure (Terraform)?",
+      "default": true,
+      "x-prompt": "Include AWS infrastructure (Terraform)?"
+    },
+    "infrastructureType": {
+      "type": "string",
+      "description": "Type of AWS infrastructure to provision",
+      "enum": ["lambda", "ecs"],
+      "default": "lambda",
+      "x-prompt": {
+        "message": "Infrastructure type?",
+        "type": "list",
+        "items": [
+          { "value": "lambda", "label": "Lambda" },
+          { "value": "ecs", "label": "ECS" }
+        ]
+      }
+    },
+    "includeApiGateway": {
+      "type": "boolean",
+      "description": "Include API Gateway (HTTP API) in front of the Lambda?",
+      "default": true,
+      "x-prompt": "Include API Gateway?"
+    }
+  },
+  "required": ["name"]
+}

@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "python-app": {
+      "factory": "./generators/python-app/generator",
+      "schema": "./generators/python-app/schema.json",
+      "description": "Generate a new Python application with optional AWS infrastructure"
+    }
+  }
+}
