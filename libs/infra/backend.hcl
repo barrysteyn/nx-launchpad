@@ -1,4 +1,4 @@
-bucket         = "your-terraform-state-bucket"
-region         = "us-east-1"
-dynamodb_table = "terraform-state-lock"
-encrypt        = true
+bucket       = "terraform-state-nx-launchpad-randomstringhere"
+region       = "us-east-1"
+use_lockfile = true
+encrypt      = true

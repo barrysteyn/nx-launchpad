@@ -66,6 +66,20 @@ git config user.email "your.name@project.com"
 
 </details>
 
+## Terraform State (One-time AWS Bootstrap)
+
+Before running any Terraform commands, an S3 bucket for remote state must be manually created in AWS. This is a one-time step per AWS account.
+
+```bash
+aws s3api create-bucket --bucket your-bucket-name --region us-east-1
+aws s3api put-bucket-versioning --bucket your-bucket-name \
+  --versioning-configuration Status=Enabled
+```
+
+Versioning is required — it allows state recovery if something goes wrong.
+
+Once created, update `libs/infra/backend.hcl` with the bucket name. This file is the single source of truth for remote state configuration across the entire monorepo.
+
 ## Environment Variables
 
 Nx loads `.env` files automatically for every task. Create a root-level `.env` for workspace-wide defaults and a `{projectRoot}/.env` for project-specific overrides. Use `.env.local` for personal values that should never be committed.
