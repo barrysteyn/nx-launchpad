@@ -123,7 +123,7 @@
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
             "terraform plan",
-            "terraform apply"
+            "terraform apply -auto-approve"
           ],
           "parallel": false
         },
@@ -132,7 +132,7 @@
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
             "terraform plan",
-            "terraform apply"
+            "terraform apply -auto-approve"
           ],
           "parallel": false
         }
