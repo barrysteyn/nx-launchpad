@@ -68,6 +68,41 @@ The generator handles:
 
 After generating, commit `pyproject.toml` and `uv.lock`. Do not commit `requirements.txt` (it is gitignored).
 
+## Terraform Infra Structure
+
+When infra is generated, it follows this layout:
+
+```
+infra/
+  environments/
+    staging/
+      main.tf        ← calls ../../services with environment="staging", memory_size=128
+      backend.tf     ← S3 state key (env-specific, do not move)
+      providers.tf   ← AWS provider config
+      variables.tf   ← aws_region variable
+    production/
+      main.tf        ← calls ../../services with environment="production", memory_size=256
+      backend.tf
+      providers.tf
+      variables.tf
+  services/
+    main.tf          ← Lambda + API Gateway modules, parameterised by var.environment / var.memory_size
+    variables.tf     ← declares environment, memory_size, timeout
+```
+
+- All service definitions (Lambda, API Gateway) live in `services/` — edit there, not in the environment directories.
+- `environments/*/backend.tf`, `providers.tf`, and `variables.tf` are per-root-module Terraform boilerplate and must stay duplicated — this is the standard Terraform pattern.
+- `title(var.environment)` is used for capitalised descriptions (e.g. `"My App - Staging"`).
+
+### Useful Terraform targets
+
+```bash
+npx nx run <app>:tf-init-local       # init both envs without backend (for local validation)
+npx nx run <app>:tf-validate         # validate both envs (runs tf-init-local first)
+npx nx run <app>:tf-plan:staging     # plan staging
+npx nx run <app>:deploy:staging      # init + plan + apply staging
+```
+
 ## Python Dependencies
 
 To add a dependency to a Python project, use `uv add` directly — do not create an Nx target for this:
