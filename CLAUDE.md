@@ -103,6 +103,58 @@ npx nx run <app>:tf-plan:staging     # plan staging
 npx nx run <app>:deploy:staging      # init + plan + apply staging
 ```
 
+## React (Vite + Tailwind) Apps
+
+### Generating
+
+There is no generator yet — scaffold manually following `apps/example-react-webapp` as the reference.
+
+### Structure
+
+```
+apps/<name>/
+  src/
+    main.tsx
+    App.tsx
+    App.test.tsx
+    test-setup.ts
+    index.css          ← @import 'tailwindcss'
+  index.html
+  vite.config.ts       ← includes Tailwind v4 Vite plugin + Vitest config
+  tsconfig.json        ← references tsconfig.app.json + tsconfig.node.json
+  tsconfig.app.json
+  tsconfig.node.json
+  wrangler.toml        ← CF Workers config; staging is the default env
+  eslint.config.js
+  package.json         ← standalone; run npm install inside the app dir
+  .node-version
+  project.json
+```
+
+### Dependency management
+
+Each React app has its own `package.json` and `node_modules` (not part of the root npm workspace). Install deps inside the app directory:
+
+```bash
+cd apps/<name>
+npm install
+npm install <package>   # add a runtime dep
+npm install -D <package> # add a dev dep
+```
+
+### Deployment (Cloudflare Workers)
+
+Deploys use `wrangler` via the `deploy` Nx target:
+
+```bash
+npx nx run <name>:deploy:staging
+npx nx run <name>:deploy:production
+```
+
+`wrangler deploy` requires the `CLOUDFLARE_API_TOKEN` environment variable to be set. In CI, add it as a repository secret. Locally, either export it in your shell or use `wrangler login` for interactive auth.
+
+The `wrangler.toml` defines both environments — staging is the default (no `--env` flag), production uses `--env production`.
+
 ## Python Dependencies
 
 To add a dependency to a Python project, use `uv add` directly — do not create an Nx target for this:

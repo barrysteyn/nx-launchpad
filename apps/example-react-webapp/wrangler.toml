@@ -1,0 +1,9 @@
+name = "example-react-webapp-staging"
+compatibility_date = "2026-01-01"
+
+[assets]
+directory = "./dist"
+html_handling = "single-page-application"
+
+[env.production]
+name = "example-react-webapp-production"
