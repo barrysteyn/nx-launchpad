@@ -126,20 +126,37 @@ apps/<name>/
   tsconfig.node.json
   wrangler.toml        ← CF Workers config; staging is the default env
   eslint.config.js
-  package.json         ← standalone; run npm install inside the app dir
+  package.json         ← workspace member; only name/version/type needed by default
   .node-version
   project.json
 ```
 
 ### Dependency management
 
-Each React app has its own `package.json` and `node_modules` (not part of the root npm workspace). Install deps inside the app directory:
+All Node/JS apps are part of the root npm workspace (`apps/*` is listed in root `package.json` `workspaces`). Shared deps (React, Vite, Tailwind, testing libs, Wrangler, etc.) live in the root `package.json` and are available to all apps via workspace hoisting.
+
+An app's `package.json` only needs identity fields by default:
+
+```json
+{
+  "name": "<app-name>",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module"
+}
+```
+
+To add a dep shared across all apps, add it to the root:
 
 ```bash
-cd apps/<name>
-npm install
-npm install <package>   # add a runtime dep
-npm install -D <package> # add a dev dep
+npm install <package>           # runtime dep
+npm install -D <package>        # dev dep
+```
+
+To add a dep specific to one app (or to override a root version), add it to that app's `package.json` only:
+
+```bash
+npm install <package> -w apps/<name>
 ```
 
 ### Deployment (Cloudflare Workers)
