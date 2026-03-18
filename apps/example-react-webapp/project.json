@@ -66,18 +66,18 @@
     "deploy": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
+      "options": {
+        "cwd": "{projectRoot}"
+      },
       "configurations": {
         "preview": {
-          "command": "npx wrangler deploy --env preview",
-          "cwd": "{projectRoot}"
+          "command": "npx wrangler deploy --env preview"
         },
         "staging": {
-          "command": "npx wrangler deploy --env staging",
-          "cwd": "{projectRoot}"
+          "command": "npx wrangler deploy --env staging"
         },
         "production": {
-          "command": "npx wrangler deploy --env production",
-          "cwd": "{projectRoot}"
+          "command": "npx wrangler deploy --env production"
         }
       }
     }
