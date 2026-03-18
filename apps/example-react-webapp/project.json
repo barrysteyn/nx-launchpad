@@ -45,6 +45,9 @@
         "cwd": "{projectRoot}"
       },
       "configurations": {
+        "preview": {
+          "command": "npx vite build --mode staging"
+        },
         "staging": {
           "command": "npx vite build --mode staging"
         },
@@ -62,26 +65,18 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "configurations": {
         "preview": {
-          "commands": [
-            "npx vite build --mode staging",
-            "npx wrangler deploy --env preview"
-          ],
+          "command": "npx wrangler deploy --env preview",
           "cwd": "{projectRoot}"
         },
         "staging": {
-          "commands": [
-            "npx vite build --mode staging",
-            "npx wrangler deploy --env staging"
-          ],
+          "command": "npx wrangler deploy --env staging",
           "cwd": "{projectRoot}"
         },
         "production": {
-          "commands": [
-            "npx vite build --mode production",
-            "npx wrangler deploy --env production"
-          ],
+          "command": "npx wrangler deploy --env production",
           "cwd": "{projectRoot}"
         }
       }
