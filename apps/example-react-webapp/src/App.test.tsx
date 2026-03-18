@@ -6,6 +6,8 @@ import { createAppRouter } from './router.tsx';
 describe('App', () => {
   it('renders heading', async () => {
     render(<RouterProvider router={createAppRouter()} />);
-    await waitFor(() => expect(screen.getByRole('heading')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('heading')).toBeInTheDocument(),
+    );
   });
 });
