@@ -1,0 +1,77 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: preview-deploy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  NX_DAEMON: "false"
+  NX_NO_CLOUD: "true"
+  NX_SKIP_NX_CACHE: "false"
+
+jobs:
+  deploy:
+    name: Deploy previews
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci --legacy-peer-deps
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: Deploy all affected Cloudflare apps
+        id: deploy
+        run: |
+          set -euo pipefail
+
+          npx nx affected run-many -t deploy --configuration=preview 2>&1 | tee deploy-output.txt
+
+          # Extract all workers.dev preview URLs and format as bullet list
+          COMMENT_BODY=$(grep -oE 'https://[a-zA-Z0-9._-]+\.workers\.dev[^ ]*' deploy-output.txt \
+            | sort -u \
+            | sed 's|.*|- &|')
+
+          if [ -z "$COMMENT_BODY" ]; then
+            COMMENT_BODY="_No preview URLs captured._"
+          fi
+
+          {
+            echo "comment_body<<EOF"
+            echo "$COMMENT_BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment PR with preview URLs
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-deploy
+          message: |
+            ## 🚀 Preview Deployments
+
+            ${{ steps.deploy.outputs.comment_body }}
