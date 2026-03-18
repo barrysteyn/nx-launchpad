@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { RouterProvider } from '@tanstack/react-router';
-import { createAppRouter } from './router.tsx';
+import { createAppRouter } from '../src/router.tsx';
 
 describe('App', () => {
   it('renders heading', async () => {
