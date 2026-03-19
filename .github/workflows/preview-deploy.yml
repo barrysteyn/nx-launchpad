@@ -52,10 +52,16 @@ jobs:
 
           npx nx affected -t deploy --configuration=preview 2>&1 | tee deploy-output.txt
 
-          # Extract all workers.dev preview URLs and format as bullet list
-          COMMENT_BODY=$(grep -oE 'https://[a-zA-Z0-9._-]+\.workers\.dev[^ ]*' deploy-output.txt \
-            | sort -u \
-            | sed 's|.*|- &|')
+          # Strip ANSI escape codes so regexes match reliably
+          sed 's/\x1b\[[0-9;]*m//g' deploy-output.txt > deploy-clean.txt
+
+          # Extract project names paired with their version-specific preview URLs
+          COMMENT_BODY=$(awk '
+            match($0, /nx run ([^:]+):deploy/, a) { proj = a[1] }
+            match($0, /PREVIEW_URL=(https:\/\/[a-f0-9][^ ]+)/, u) {
+              if (proj != "") { print "- **" proj "**: " u[1]; proj = "" }
+            }
+          ' deploy-clean.txt)
 
           if [ -z "$COMMENT_BODY" ]; then
             COMMENT_BODY="_No preview URLs captured._"
