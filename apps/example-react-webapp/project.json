@@ -4,7 +4,6 @@
   "projectType": "application",
   "root": "apps/example-react-webapp",
   "sourceRoot": "apps/example-react-webapp/src",
-  "tags": ["deploy:cloudflare"],
   "metadata": {
     "ci": {
       "profile": "default"
