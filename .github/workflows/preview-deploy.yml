@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          npx nx affected -t deploy --configuration=preview --projects=tag:deploy:cloudflare 2>&1 | tee deploy-output.txt
+          npx nx affected -t deploy --configuration=preview 2>&1 | tee deploy-output.txt
 
           # Extract all workers.dev preview URLs and format as bullet list
           COMMENT_BODY=$(grep -oE 'https://[a-zA-Z0-9._-]+\.workers\.dev[^ ]*' deploy-output.txt \
