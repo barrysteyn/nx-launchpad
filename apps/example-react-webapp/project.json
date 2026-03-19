@@ -71,7 +71,15 @@
       },
       "configurations": {
         "preview": {
-          "command": "npx wrangler deploy --env preview"
+          "command": [
+            "WRANGLER_OUT=$(npx wrangler deploy --env preview 2>&1);",
+            "VERSION_ID=$(echo \"$WRANGLER_OUT\" | grep -m1 'Current Version ID' | awk '{print $NF}');",
+            "[ -n \"$VERSION_ID\" ] || { echo 'Failed to extract Version ID' >&2; exit 1; };",
+            "SHORT_ID=$(echo \"$VERSION_ID\" | cut -d'-' -f1);",
+            "BASE_DOMAIN=$(echo \"$WRANGLER_OUT\" | grep -oE 'https://[a-zA-Z0-9._-]+\\.workers\\.dev' | head -1 | sed 's|https://||');",
+            "[ -n \"$BASE_DOMAIN\" ] || { echo 'Failed to extract base domain' >&2; exit 1; };",
+            "echo PREVIEW_URL=https://$SHORT_ID-$BASE_DOMAIN"
+          ]
         },
         "staging": {
           "command": "npx wrangler deploy --env staging"
