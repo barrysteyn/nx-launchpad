@@ -130,7 +130,7 @@ runs:
           if [ "$count" -eq 0 ]; then
             echo "_No affected projects._"
           else
-            echo "$MATRIX_JSON" | jq -r '.[] | "- ✅ **\(.project)** (`\(.profile | if . == "default" then "Node/JavaScript" elif . == "python-uv" then "Python (uv)" elif . == "java-maven" then "Java (Maven)" else . end)`) "' 2>/dev/null \
+            echo "$MATRIX_JSON" | jq -r '.[] | "- ✅ **\(.project)** (`\(.profile | if . == "default" then "Node/JavaScript" else (gsub("-"; " ") | split(" ") | map(. as $w | ($w[0:1] | ascii_upcase) + $w[1:]) | join(" ")) end)`) "' 2>/dev/null \
               || echo "$AFFECTED" | jq -r '.[] | "- ✅ **\(.)**"'
           fi
         } > "$SUMMARY_FILE"
