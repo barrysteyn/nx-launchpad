@@ -74,6 +74,9 @@ function buildBaseTargets(appName: string) {
         command: 'uv export --no-dev --no-hashes --no-emit-project -o requirements.txt',
         cwd: '{projectRoot}',
       },
+      configurations: {
+        preview: { command: "echo 'No preview build for Python apps'" },
+      },
     },
     serve: {
       executor: 'nx:run-commands',
@@ -144,6 +147,7 @@ function buildInfraTargets() {
       executor: 'nx:run-commands',
       dependsOn: ['build'],
       configurations: {
+        preview: { command: "echo 'No preview deploy for Python apps'" },
         staging: {
           cwd: '{projectRoot}/infra/environments/staging',
           commands: [

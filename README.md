@@ -117,12 +117,15 @@ This workspace includes generators to scaffold new applications with sensible de
 
 Generates a Python application with uv, pytest, ruff, and optional AWS Lambda infrastructure (Terraform + API Gateway).
 
-**Via command line:**
+### Via command line
+
 ```bash
 npx nx generate @nx-launchpad/tools:python-app <app-name>
 ```
 
-**Via Claude Code:** If you are using Claude Code, type `/generate-python-app` and Claude will ask the right questions and run the full generation + verification flow for you.
+### Via Claude Code
+
+Type `/generate-python-app` in Claude Code. Claude will prompt you for all options, run the generator, verify the scaffold, and run lint/format/test/build to confirm everything works — no manual steps required.
 
 You will be prompted for:
 
