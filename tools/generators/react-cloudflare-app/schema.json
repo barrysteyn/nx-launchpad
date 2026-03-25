@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "id": "react-cloudflare-app",
+  "title": "Generate a React Cloudflare Workers Application",
+  "description": "Scaffolds a React + Vite + TanStack Router SPA deployed on Cloudflare Workers",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Application name in kebab-case (e.g. my-react-app)",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What is the application name? (kebab-case)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short human-readable description of the application",
+      "default": "",
+      "x-prompt": "Short description of the application?"
+    },
+    "stagingDomain": {
+      "type": "string",
+      "description": "Custom domain for the staging environment (e.g. staging.example.com). Leave blank to skip.",
+      "default": "",
+      "x-prompt": "Staging custom domain? (leave blank to skip)"
+    },
+    "productionDomain": {
+      "type": "string",
+      "description": "Custom domain for the production environment (e.g. example.com). Leave blank to skip.",
+      "default": "",
+      "x-prompt": "Production custom domain? (leave blank to skip)"
+    }
+  },
+  "required": ["name"]
+}

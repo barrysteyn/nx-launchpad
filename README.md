@@ -174,3 +174,66 @@ After generation, the following Nx targets are available:
 | `tf-plan` | `npx nx run <app>:tf-plan --configuration=staging` | Plan Terraform changes |
 | `tf-apply` | `npx nx run <app>:tf-apply --configuration=staging` | Apply Terraform changes |
 | `deploy` | `npx nx run <app>:deploy --configuration=staging` | Init + plan + apply in one step |
+
+## React (Cloudflare Workers)
+
+Generates a React + Vite + TanStack Router SPA deployed on Cloudflare Workers as a static asset site. Includes Tailwind CSS v4, Vitest, ESLint, Prettier, and full preview/staging/production Cloudflare environments.
+
+### Via command line
+
+```bash
+npx nx generate @nx-launchpad/tools:react-cloudflare-app <app-name>
+```
+
+### Via Claude Code
+
+Type `/generate-react-cloudflare-app` in Claude Code. Claude will prompt you for all options, run the generator, verify the scaffold, and run lint/format/typecheck/test/build to confirm everything works — no manual steps required.
+
+You will be prompted for:
+
+| Prompt | Description | Default |
+|---|---|---|
+| Description | Short description of the app | — |
+| Staging domain | Custom Cloudflare domain for staging (e.g. `staging.example.com`) | blank (skipped) |
+| Production domain | Custom Cloudflare domain for production (e.g. `example.com`) | blank (skipped) |
+
+The generator creates:
+
+```
+apps/<app-name>/
+  src/
+    main.tsx
+    app/App.tsx
+    router.tsx
+    routes/__root.tsx      # RootLayout with NavBar
+    routes/index.tsx       # HomePage
+    routes/about.tsx       # AboutPage
+    components/nav/NavBar.tsx
+    providers/index.tsx
+    services/api.ts
+    types/api.ts
+    styles/index.css       # imports shared Tailwind globals
+  tests/
+    App.test.tsx
+    test-setup.ts
+  index.html
+  vite.config.ts
+  wrangler.jsonc           # preview / staging / production CF environments
+  tsconfig.json + tsconfig.app.json + tsconfig.node.json + tsconfig.test.json
+  eslint.config.js
+  package.json
+  .node-version
+  project.json
+```
+
+After generation, the following Nx targets are available:
+
+| Target | Command | Description |
+|---|---|---|
+| `lint` | `npx nx run <app>:lint` | Lint with ESLint |
+| `format` | `npx nx run <app>:format` | Check formatting with Prettier |
+| `typecheck` | `npx nx run <app>:typecheck` | Type-check with tsc |
+| `test` | `npx nx run <app>:test` | Run Vitest |
+| `build` | `npx nx run <app>:build` | Vite build (staging mode by default) |
+| `serve` | `npx nx run <app>:serve` | Run Vite dev server locally |
+| `deploy` | `npx nx run <app>:deploy --configuration=staging` | Deploy to Cloudflare Workers |
