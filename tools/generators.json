@@ -4,6 +4,11 @@
       "factory": "./generators/python-app/generator",
       "schema": "./generators/python-app/schema.json",
       "description": "Generate a new Python application with optional AWS infrastructure"
+    },
+    "react-cloudflare-app": {
+      "factory": "./generators/react-cloudflare-app/generator",
+      "schema": "./generators/react-cloudflare-app/schema.json",
+      "description": "Generate a React + Vite + TanStack Router SPA deployed on Cloudflare Workers"
     }
   }
 }

@@ -109,7 +109,21 @@ npx nx run <app>:deploy:staging      # init + plan + apply staging
 
 ### Generating
 
-There is no generator yet — scaffold manually following `apps/example-react-webapp` as the reference.
+```bash
+npx nx generate @nx-launchpad/tools:react-cloudflare-app <app-name>
+```
+
+Or use the `/generate-react-cloudflare-app` skill in Claude Code — it will prompt for all options, run the generator, verify the scaffold, and run lint/format/typecheck/test/build to confirm everything works — no manual steps required.
+
+You will be prompted for:
+
+| Prompt | Description | Default |
+|---|---|---|
+| Description | Short description of the app | — |
+| Staging domain | Custom domain for staging (e.g. `staging.example.com`) | blank (skipped) |
+| Production domain | Custom domain for production (e.g. `example.com`) | blank (skipped) |
+
+The generator creates the full scaffold and configures `wrangler.jsonc` with `preview`, `staging`, and `production` Cloudflare environments. Custom domains are optional — leave blank and add them to `wrangler.jsonc` later.
 
 ### Structure
 
@@ -117,18 +131,31 @@ There is no generator yet — scaffold manually following `apps/example-react-we
 apps/<name>/
   src/
     main.tsx
-    App.tsx
+    app/App.tsx
+    router.tsx
+    routes/__root.tsx
+    routes/index.tsx
+    routes/about.tsx
+    components/nav/NavBar.tsx
+    components/shared/    ← placeholder
+    hooks/                ← placeholder
+    providers/index.tsx
+    services/api.ts
+    types/api.ts
+    styles/index.css      ← @import tailwindcss via libs/styles/globals.css
+    vite-env.d.ts
+  tests/
     App.test.tsx
     test-setup.ts
-    index.css          ← @import 'tailwindcss'
   index.html
-  vite.config.ts       ← includes Tailwind v4 Vite plugin + Vitest config
-  tsconfig.json        ← references tsconfig.app.json + tsconfig.node.json
+  vite.config.ts          ← Tailwind v4 Vite plugin + Vitest config
+  wrangler.jsonc          ← CF Workers config; preview/staging/production envs
+  tsconfig.json
   tsconfig.app.json
   tsconfig.node.json
-  wrangler.toml        ← CF Workers config; staging is the default env
+  tsconfig.test.json
   eslint.config.js
-  package.json         ← workspace member; only name/version/type needed by default
+  package.json            ← workspace member; identity fields only
   .node-version
   project.json
 ```
@@ -172,7 +199,7 @@ npx nx run <name>:deploy:production
 
 `wrangler deploy` requires the `CLOUDFLARE_API_TOKEN` environment variable to be set. In CI, add it as a repository secret. Locally, either export it in your shell or use `wrangler login` for interactive auth.
 
-The `wrangler.toml` defines both environments — staging is the default (no `--env` flag), production uses `--env production`.
+The `wrangler.jsonc` defines three environments — `preview` (with `preview_urls: true` for version-specific Cloudflare URLs), `staging`, and `production`.
 
 ## Python Dependencies
 

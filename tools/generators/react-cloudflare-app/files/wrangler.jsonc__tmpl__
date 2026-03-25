@@ -1,0 +1,37 @@
+{
+  "name": "<%= name %>",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "preview": {
+      "vars": {
+        "NODE_ENV": "staging"
+      },
+      "preview_urls": true
+    },
+    "staging": {
+      "vars": {
+        "NODE_ENV": "staging"
+      }<% if (stagingDomain) { %>,
+      "route": {
+        "pattern": "<%= stagingDomain %>",
+        "custom_domain": true
+      }<% } %>
+    },
+    "production": {
+      "vars": {
+        "NODE_ENV": "production"
+      }<% if (productionDomain) { %>,
+      "route": {
+        "pattern": "<%= productionDomain %>",
+        "custom_domain": true
+      }<% } %>
+    }
+  }
+}
