@@ -59,6 +59,8 @@ Use the `@nx-launchpad/tools` generators to scaffold new applications. Never cre
 npx nx generate @nx-launchpad/tools:python-app <app-name>
 ```
 
+Or use the `/generate-python-app` skill in Claude Code — it will prompt for all options and run the full generation and verification flow automatically.
+
 The generator handles:
 - Python app scaffold (`src/`, `tests/`, `pyproject.toml`, `.python-version`)
 - `project.json` with all standard targets (`lint`, `format`, `test`, `build`, `serve`, and all `tf-*` / `deploy` targets if infra was selected)
