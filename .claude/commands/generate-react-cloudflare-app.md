@@ -31,9 +31,19 @@ Follow these steps:
    npx nx run <app-name>:build
    ```
 
-5. **Commit the result** using two commits:
+5. **Verify and fix the lock file** — the new `package.json` added by the generator changes the workspace manifest. Run:
+   ```
+   npm ci --legacy-peer-deps
+   ```
+   If this fails with a lock file sync error, regenerate it:
+   ```
+   npm install --legacy-peer-deps
+   ```
+   Then re-run `npm ci --legacy-peer-deps` to confirm it passes.
+
+6. **Commit the result** using two commits:
    - One for the generated app files
-   - One for any changes to `package-lock.json` if present
+   - One for `package-lock.json` if it changed
 
 **Conventions to enforce:**
 - App name must be kebab-case
