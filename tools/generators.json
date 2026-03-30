@@ -9,6 +9,11 @@
       "factory": "./generators/react-cloudflare-app/generator",
       "schema": "./generators/react-cloudflare-app/schema.json",
       "description": "Generate a React + Vite + TanStack Router SPA deployed on Cloudflare Workers"
+    },
+    "node-app": {
+      "factory": "./generators/node-app/generator",
+      "schema": "./generators/node-app/schema.json",
+      "description": "Generate a Node.js/TypeScript CLI app deployable as an AWS Lambda"
     }
   }
 }

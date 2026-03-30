@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "id": "node-app",
+  "title": "Generate a Node.js Application",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Application name in kebab-case (e.g. my-node-app)",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What is the application name? (kebab-case)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short human-readable description of the application",
+      "default": "",
+      "x-prompt": "Short description of the application?"
+    },
+    "includeInfra": {
+      "type": "boolean",
+      "description": "Include AWS infrastructure (Terraform)?",
+      "default": true,
+      "x-prompt": "Include AWS infrastructure (Terraform)?"
+    },
+    "includeApiGateway": {
+      "type": "boolean",
+      "description": "Include API Gateway (HTTP API) in front of the Lambda?",
+      "default": true,
+      "x-prompt": "Include API Gateway?"
+    }
+  },
+  "required": ["name"]
+}
