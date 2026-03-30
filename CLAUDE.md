@@ -70,6 +70,61 @@ The generator handles:
 
 After generating, commit `pyproject.toml` and `uv.lock`. Do not commit `requirements.txt` (it is gitignored).
 
+### Node.js (TypeScript)
+
+```bash
+npx nx generate @nx-launchpad/tools:node-app <app-name>
+```
+
+Or use the `/generate-node-app` skill in Claude Code — it will prompt for all options, run the generator, verify the scaffold, and run lint/format/typecheck/test/build to confirm everything works — no manual steps required.
+
+The generator handles:
+- Node.js/TypeScript app scaffold (`src/main.ts`, `tests/main.test.ts`, `tsconfig.json`, `.node-version`)
+- `project.json` with all standard targets (`lint`, `format`, `typecheck`, `test`, `build`, `serve`, and all `tf-*` / `deploy` targets if infra was selected)
+- Lambda Terraform infra for staging and production (optional)
+- API Gateway wired to the Lambda (optional)
+- Runs `npm install --legacy-peer-deps` automatically to keep the lock file in sync
+
+You will be prompted for:
+
+| Prompt | Description | Default |
+|---|---|---|
+| Name | App name in kebab-case | — |
+| Description | Short description of the app | — |
+| Include infra | Include AWS Terraform infrastructure | yes |
+| Include API Gateway | Include API Gateway in front of the Lambda | yes |
+
+### Node.js App Structure
+
+```
+apps/<name>/
+  src/
+    main.ts               ← Lambda handler + main() entry point
+  tests/
+    main.test.ts
+  tsconfig.json           ← CJS target ("module": "commonjs"), types: ["node"]
+  vitest.config.ts
+  eslint.config.js        ← CJS flat config (no "type": "module")
+  package.json            ← workspace member; identity fields only (no "type" field)
+  .node-version
+  project.json
+  infra/                  ← present if infra was selected
+    services/
+      main.tf             ← Lambda (nodejs22.x, handler: main.handler) + API Gateway
+      variables.tf
+    environments/
+      staging/
+      production/
+```
+
+Key details:
+- **Runtime:** `nodejs22.x` Lambda
+- **Handler:** `main.handler` — the compiled `dist/main.js` exports a named `handler` function
+- **Build:** `npx tsc` compiles to `dist/`; the Lambda `source_path` points to `dist/`
+- **Serve:** builds first (`dependsOn: ["build"]`), then runs `node dist/main.js`
+- **No `"type": "module"`** in `package.json` — the app is CommonJS to match the compiled output
+- **`@types/node`** is installed at the root workspace and referenced via `"types": ["node"]` in `tsconfig.json`
+
 ## Terraform Infra Structure
 
 When infra is generated, it follows this layout:
