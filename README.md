@@ -73,7 +73,7 @@ brew install maven
 **Node modules:**
 
 ```bash
-npm ci
+npm ci --legacy-peer-deps
 ```
 
 **VSCode extensions:**
