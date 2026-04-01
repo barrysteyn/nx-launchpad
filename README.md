@@ -1,7 +1,10 @@
 # NxLaunchpad
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+[![NX](https://img.shields.io/badge/NX-143055?style=flat&logo=nx&logoColor=white)](https://nx.dev)
+![Terraform](https://img.shields.io/badge/terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
+[![Cloudflare Wrangler](https://img.shields.io/badge/Wrangler-F38020?style=flat&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/wrangler/)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+
 
 A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeScript), and React (Cloudflare Workers) apps — with generators, AWS Lambda infrastructure, and Claude Code skills included.
 
@@ -10,7 +13,7 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 > [!IMPORTANT]
 > ### One-Time Setup — Delete This Section When Done
 >
-> Complete each step below after forking this repo, then **delete everything between the `---` lines** before your first real commit.
+> Complete each step below after forking this repo, then **delete this entire callout block** before your first real commit.
 >
 > - [ ] **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
 >
@@ -22,14 +25,17 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   ```
 >   Versioning is required — it allows state recovery if something goes wrong.
 >   Once created, update `libs/infra/backend.hcl` with your bucket name.
-
+>
+> - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
+>
+> - [ ] **Cloudflare API Token to GitHub secrets** — add *CLOUDFLARE_API_TOKEN* to GitHub secrets (for Wrangler).
 ---
 
 ## Getting Started
 
 ### Prerequisites
 
-This project supports Java (Maven), Python (uv), and Node.js. On a clean checkout, the setup script handles everything automatically:
+This project supports Java (Maven), Python (uv), and Node.js. On a clean checkout, the setup script handles everything automatically — including installing Node modules:
 
 ```bash
 bash scripts/setup.sh
@@ -211,7 +217,7 @@ apps/<app-name>/
 
 ### Node.js (TypeScript)
 
-Generates a Node.js/TypeScript CLI app compiled to CommonJS, deployable as an AWS Lambda.
+Generates a Node.js/TypeScript app compiled to CommonJS, runnable locally as a CLI or deployed as an AWS Lambda.
 
 **Command line:**
 
@@ -276,7 +282,7 @@ apps/<app-name>/
 
 ### React (Cloudflare Workers)
 
-Generates a React + Vite + TanStack Router SPA deployed on Cloudflare Workers as a static asset site. Includes Tailwind CSS v4, Vitest, ESLint, Prettier, and full preview/staging/production Cloudflare environments.
+Generates a React + Vite + TanStack Router SPA deployed on Cloudflare Workers as a static site. Includes Tailwind CSS v4, Vitest, ESLint, Prettier, and full preview/staging/production Cloudflare environments.
 
 **Command line:**
 
