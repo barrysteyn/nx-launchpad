@@ -65,7 +65,7 @@ fi
 # ── Node modules ──────────────────────────────────────────────────────────────
 info "Installing node modules..."
 cd "$REPO_ROOT"
-npm ci
+npm ci --legacy-peer-deps
 
 # ── VSCode extensions ─────────────────────────────────────────────────────────
 if command -v code &>/dev/null && [ -f "$REPO_ROOT/.vscode/extensions.json" ]; then
