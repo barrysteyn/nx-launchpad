@@ -135,13 +135,7 @@
           "command": "echo 'No preview deploy for Node CLI apps'"
         },
         "staging": {
-          "cwd": "{projectRoot}/infra/environments/staging",
-          "commands": [
-            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
-            "terraform plan",
-            "terraform apply -auto-approve"
-          ],
-          "parallel": false
+          "command": "echo 'Deploying to staging is disabled — merge to the production branch to deploy'"
         },
         "production": {
           "cwd": "{projectRoot}/infra/environments/production",

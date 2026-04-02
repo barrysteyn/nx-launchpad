@@ -82,7 +82,7 @@
           ]
         },
         "staging": {
-          "command": "npx wrangler deploy --env staging"
+          "command": "echo 'Deploying to staging is disabled — merge to the production branch to deploy'"
         },
         "production": {
           "command": "npx wrangler deploy --env production"
