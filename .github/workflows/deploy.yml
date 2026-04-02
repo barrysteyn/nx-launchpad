@@ -32,6 +32,9 @@ jobs:
   plan:
     name: Plan deploy targets
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       configuration: ${{ steps.config.outputs.configuration }}
       count: ${{ steps.affected.outputs.count }}
