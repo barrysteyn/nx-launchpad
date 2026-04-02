@@ -126,6 +126,43 @@ npm install <package> -w apps/<name>
 
 ---
 
+## Deployments
+
+### How it works
+
+The deploy workflow (`.github/workflows/deploy.yml`) runs a `plan` job first — it detects affected projects and determines which tooling (Python, Java) is needed — then runs a `deploy` job that installs only what is required.
+
+### Automatic deploys (push)
+
+| Branch | Environment |
+|---|---|
+| `main` | staging |
+| `production` | production |
+
+Merging to `main` triggers a staging deploy; merging to `production` triggers a production deploy. Only projects affected by the merge are deployed.
+
+> [!NOTE]
+> Staging deploys are intentionally disabled in the example apps — the staging deploy target just prints a message. When you create your own apps, the generator scaffolds real staging deploy targets.
+
+### Manual deploys (workflow_dispatch)
+
+Trigger manually from the **Actions** tab in GitHub. You will be prompted for:
+
+| Input | Description |
+|---|---|
+| Environment | `staging` or `production` |
+| App | App name to deploy (e.g. `my-app`). Leave blank to deploy all affected apps. |
+
+### Required GitHub Secrets
+
+| Secret | Used by |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | Terraform (Lambda deployments) |
+| `AWS_SECRET_ACCESS_KEY` | Terraform (Lambda deployments) |
+| `CLOUDFLARE_API_TOKEN` | Wrangler (Cloudflare Workers deployments) |
+
+---
+
 ## Environment Variables
 
 Nx loads `.env` files automatically for every task. Create a root-level `.env` for workspace-wide defaults and a `{projectRoot}/.env` for project-specific overrides.
