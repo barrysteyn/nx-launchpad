@@ -1,3 +1,3 @@
-export { logger, flushLogger } from './logger.js';
-export { isJsonObjectOrArray, chunkArray } from './utils.js';
-export { default as Secrets } from './secrets.js';
+export { logger, flushLogger } from './logger';
+export { isJsonObjectOrArray, chunkArray } from './utils';
+export { default as Secrets } from './secrets';
