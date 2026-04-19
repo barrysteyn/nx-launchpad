@@ -5,7 +5,10 @@
     "lib": ["ES2023"],
     "types": ["node"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "paths": {
+      "@nx-launchpad/config-resolver-node": ["../../libs/config-resolver/node/src/config.ts"],
+      "@nx-launchpad/utils-node": ["../../libs/utils/node/src/index.ts"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

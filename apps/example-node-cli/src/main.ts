@@ -1,14 +1,26 @@
+import path from 'path';
+import { loadConfig } from '@nx-launchpad/config-resolver-node';
+import { flushLogger } from '@nx-launchpad/utils-node';
+
 export async function handler(
   _event: Record<string, unknown>,
   _context: Record<string, unknown>,
 ): Promise<{ statusCode: number; body: string }> {
-  return { statusCode: 200, body: 'Hello from example-node-cli!' };
+  try {
+    return { statusCode: 200, body: 'Hello from example-node-cli!' };
+  } finally {
+    await flushLogger();
+  }
 }
 
-export function main(): void {
-  console.log('Hello from example-node-cli!');
+export async function main(): Promise<void> {
+  const config = await loadConfig({
+    configDir: path.resolve(__dirname, '../../../config'),
+  });
+  console.log('TEST_KEY:', config['TEST_KEY']);
+  console.log('TEST_SECRET_KEY:', config['TEST_SECRET_KEY']);
 }
 
 if (require.main === module) {
-  main();
+  main().catch(console.error);
 }
