@@ -12,6 +12,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1032.0",
+    "@isaacs/ttlcache": "^2.1.4",
     "@opentelemetry/api-logs": "^0.215.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.215.0",
     "@opentelemetry/resources": "^2.7.0",
