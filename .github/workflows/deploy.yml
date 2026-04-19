@@ -102,6 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.plan.outputs.configuration }}
     env:
+      APP_ENV: ${{ needs.plan.outputs.configuration }}
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

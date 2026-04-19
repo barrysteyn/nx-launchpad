@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
+      APP_ENV: staging
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
