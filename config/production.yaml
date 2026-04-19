@@ -1,1 +1,2 @@
-TEST_KEY: production
+TEST_KEY: production config test
+TEST_SECRET_KEY: ssm:/nx-launchpad/test-secret

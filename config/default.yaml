@@ -1,1 +1,2 @@
 TEST_KEY: default
+TEST_SECRET_KEY: ssm:/nx-launchpad/test-secret
