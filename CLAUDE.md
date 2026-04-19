@@ -65,6 +65,29 @@ The config resolver (`libs/config-resolver`) loads `config/default.yaml` first, 
 
 In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
 
+## Shared Libraries
+
+Reusable code lives in `libs/` and is consumed by apps via TypeScript path aliases — no `package.json` required in the lib.
+
+### libs/utils
+
+Language-specific utility libraries. See [libs/utils/README.md](libs/utils/README.md) for full documentation.
+
+| Project | Path | Contents |
+|---|---|---|
+| `utils-node` | `libs/utils/node/` | Logger (OTEL + BetterStack), `isJsonObjectOrArray`, `chunkArray` |
+
+**Logger:** import from `@nx-launchpad/utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
+
+### libs/config-resolver
+
+Per-language resolvers that load `config/default.yaml`, merge the `APP_ENV` overlay, and resolve `ssm:` prefixed values from AWS SSM Parameter Store.
+
+| Project | Path |
+|---|---|
+| `config-resolver-node` | `libs/config-resolver/node/` |
+| `config-resolver-python` | `libs/config-resolver/python/` |
+
 ## Generating Apps
 
 Use the `@nx-launchpad/tools` generators to scaffold new applications. Never create app scaffolding by hand.
