@@ -20,8 +20,10 @@
     "@opentelemetry/sdk-logs": "^0.215.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@tanstack/react-router": "^1.167.4",
+    "deepmerge": "^4.3.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
