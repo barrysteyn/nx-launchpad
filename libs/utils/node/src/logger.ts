@@ -32,8 +32,9 @@ const SEVERITY = {
   error: SeverityNumber.ERROR,
 } as const;
 
-type Attrs = Record<string, string | number | boolean>;
-type LogArg = string | Attrs;
+type AttrValue = string | number | boolean | string[] | number[] | boolean[];
+type Attrs = Record<string, AttrValue>;
+type LogArg = string | Attrs | unknown;
 
 class Logger {
   private otelLogger = provider.getLogger('app');
@@ -47,7 +48,9 @@ class Logger {
     const [body, attrs] =
       typeof msgOrAttrs === 'string'
         ? [msgOrAttrs, {} as Attrs]
-        : [msg ?? '', msgOrAttrs];
+        : typeof msgOrAttrs === 'object' && msgOrAttrs !== null && !Array.isArray(msgOrAttrs)
+          ? [msg ?? '', msgOrAttrs as Attrs]
+          : [String(msgOrAttrs), {} as Attrs];
 
     this.otelLogger.emit({
       severityNumber: SEVERITY[level],
