@@ -29,6 +29,8 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 > - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
 >
 > - [ ] **Cloudflare API Token to GitHub secrets** — add *CLOUDFLARE_API_TOKEN* to GitHub secrets (for Wrangler).
+>
+> - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---
 
 ## Getting Started
@@ -175,6 +177,26 @@ Nx loads `.env` files automatically for every task. Create a root-level `.env` f
 | `{projectRoot}/.env` | No | Project-specific overrides |
 
 See the [Nx docs](https://nx.dev/docs/guides/tips-n-tricks/define-environment-variables) for the full loading order.
+
+### APP_ENV
+
+`APP_ENV` is the universal environment variable that tells every app and library which environment it is running in.
+
+| Value | When to use |
+|---|---|
+| `local` | Local development (default) |
+| `staging` | Staging environment |
+| `production` | Production environment |
+
+Set it in your root `.env` file:
+
+```bash
+APP_ENV=local
+```
+
+**How it works:** the config resolver loads `config/default.yaml` as the base, then deep-merges `config/{APP_ENV}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`.
+
+In CI/CD pipelines, `APP_ENV` is set automatically by the deploy workflow to match the target environment. You should not need to set it manually in staging or production.
 
 ---
 

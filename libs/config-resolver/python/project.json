@@ -1,0 +1,12 @@
+{
+  "name": "config-resolver-python",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "root": "libs/config-resolver/python",
+  "metadata": {
+    "ci": {
+      "profile": "python-uv"
+    }
+  },
+  "targets": {}
+}

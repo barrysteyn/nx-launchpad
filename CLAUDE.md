@@ -49,6 +49,22 @@ Valid profiles:
 
 If `metadata.ci.profile` is absent, the pipeline defaults to `"default"`. Always set it explicitly so the project's requirements are clear.
 
+## Environment Configuration
+
+### APP_ENV
+
+`APP_ENV` is the universal environment variable that controls which config layer is active. Valid values: `local`, `staging`, `production`.
+
+Set it in your root `.env` file:
+
+```bash
+APP_ENV=local
+```
+
+The config resolver (`libs/config-resolver`) loads `config/default.yaml` first, then deep-merges `config/{APP_ENV}.yaml` on top — environment values win on conflict.
+
+In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
+
 ## Generating Apps
 
 Use the `@nx-launchpad/tools` generators to scaffold new applications. Never create app scaffolding by hand.
