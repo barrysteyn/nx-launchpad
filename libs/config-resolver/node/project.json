@@ -8,5 +8,13 @@
       "profile": "default"
     }
   },
-  "targets": {}
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
 }
