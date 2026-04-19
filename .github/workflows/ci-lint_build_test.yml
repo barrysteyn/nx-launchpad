@@ -3,9 +3,6 @@ name: CI (Lint, Test, Build)
 on:
   pull_request:
     branches: [main]
-  push:
-    branches:
-      - main
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -15,6 +12,7 @@ permissions:
   contents: read
 
 env:
+  APP_ENV: local
   NX_DAEMON: "false"
   NX_NO_CLOUD: "true"
   NX_SKIP_NX_CACHE: "false"
