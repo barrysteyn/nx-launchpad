@@ -200,6 +200,17 @@ In CI/CD pipelines, `APP_ENV` is set automatically by the deploy workflow to mat
 
 ---
 
+## Shared Libraries
+
+Reusable libraries live in `libs/` and are available to all apps in the monorepo.
+
+| Library | Description | Docs |
+|---|---|---|
+| `libs/utils/` | Shared utilities (logger, etc.) for Node.js and Python | [libs/utils/README.md](libs/utils/README.md) |
+| `libs/config-resolver/` | Universal config resolver — loads and merges YAML config with AWS secret resolution | coming soon |
+
+---
+
 ## Generating Apps
 
 This workspace includes generators to scaffold new applications with sensible defaults. All generators are available via the `@nx-launchpad/tools` package.
