@@ -12,18 +12,16 @@ Shared utility libraries for use across all apps in this monorepo. Utilities are
 
 ### Logger
 
-A structured logger built on [OpenTelemetry](https://opentelemetry.io/) (OTEL). All log output follows the OTEL Logs data model, making it backend-agnostic — swap the export destination without changing any application code.
+A structured logger built on [pino](https://getpino.io/). All log output is JSON-structured, making it compatible with any log aggregation backend.
 
-The logger ships to [BetterStack](https://betterstack.com/) in non-local environments. Locally it writes to the console.
+Locally (`APP_ENV=local` or unset) logs are pretty-printed to the console via `pino-pretty`. In all other environments logs are written as JSON to stdout — Lambda ships these to CloudWatch automatically.
 
 #### How it works
 
-On import, the logger initialises an OTEL `LoggerProvider` with a `SimpleLogRecordProcessor`. The processor is chosen based on the presence of the `BETTERSTACK_TOKEN` environment variable:
+On import, the logger is initialised based on `APP_ENV`:
 
-- **`BETTERSTACK_TOKEN` set** — logs are exported via OTLP/HTTP to BetterStack's ingestion endpoint (`https://in-otel.logs.betterstack.com`)
-- **`BETTERSTACK_TOKEN` not set** — logs are written to the console (local development)
-
-`SimpleLogRecordProcessor` is used intentionally over `BatchLogRecordProcessor` because it flushes synchronously — important in Lambda environments where the process may freeze before a batch is flushed. For the same reason, a `flushLogger()` helper is exported and should be called at the end of each Lambda invocation.
+- **`APP_ENV=local` (or unset)** — pretty-printed, colourised output via `pino-pretty`
+- **Any other `APP_ENV`** — raw JSON to stdout (CloudWatch / any log aggregator)
 
 The service name attached to all log records is read from the `SERVICE_NAME` environment variable, defaulting to `"app"` if not set.
 
@@ -42,7 +40,7 @@ The service name attached to all log records is read from the `SERVICE_NAME` env
 
 | Variable | Required | Description |
 |---|---|---|
-| `BETTERSTACK_TOKEN` | No | BetterStack ingestion token. If absent, logs go to console. |
+| `APP_ENV` | No | Controls log format. `local` (or unset) → pretty print. Anything else → JSON stdout. |
 | `SERVICE_NAME` | No | Name attached to all log records. Defaults to `"app"`. |
 | `LOG_LEVEL` | No | Minimum log level. Defaults to `"info"`. |
 
@@ -66,11 +64,9 @@ logger.info({ userId: '123', action: 'login' }, 'User authenticated');
 logger.error({ statusCode: 500, path: '/api/data' }, 'Request failed');
 ```
 
-Attribute values must be `string`, `number`, or `boolean`.
-
 #### Child loggers
 
-Use `child()` to create a derived logger that carries a fixed set of attributes on every log record. This is the recommended pattern for adding service or module context:
+Use `child()` to create a derived logger that carries a fixed set of attributes on every log record:
 
 ```typescript
 const log = logger.child({ service: 'PaymentProcessor' });
@@ -88,15 +84,16 @@ requestLog.info('Handling request'); // includes service + requestId
 
 #### Lambda usage — flushing
 
-In AWS Lambda, always call `flushLogger()` before your handler returns. Without this, buffered log records may be lost when the Lambda execution environment freezes.
+Pino buffers writes to stdout. In AWS Lambda the execution environment freezes after the handler returns, which can cut off buffered log lines before they are shipped to CloudWatch.
+
+Always call `flushLogger()` in a `finally` block so every invocation flushes before the process freezes:
 
 ```typescript
 import { logger, flushLogger } from '@nx-launchpad/utils-node';
 
 export const handler = async (event: unknown) => {
-  logger.info('Handler invoked');
-
   try {
+    logger.info('Handler invoked');
     // ... your logic
   } finally {
     await flushLogger();
@@ -106,18 +103,20 @@ export const handler = async (event: unknown) => {
 
 #### Adding the logger to a new app
 
-1. Add the path alias import to your app's `tsconfig.json` (the alias is defined in `tsconfig.base.json`):
+1. Add the path alias to your app's `tsconfig.json`:
 
 ```json
 {
-  "extends": "../../../tsconfig.base.json"
+  "paths": {
+    "@nx-launchpad/utils-node": ["../../libs/utils/node/src/index.ts"]
+  }
 }
 ```
 
 2. Import and use:
 
 ```typescript
-import { logger } from '@nx-launchpad/utils-node';
+import { logger, flushLogger } from '@nx-launchpad/utils-node';
 ```
 
-3. Set `BETTERSTACK_TOKEN` and `SERVICE_NAME` in your environment (`.env` for local, GitHub secrets / Lambda env vars for deployed environments).
+3. Set `SERVICE_NAME` in your environment (`.env` for local, Lambda env vars for deployed environments).
