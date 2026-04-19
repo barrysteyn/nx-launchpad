@@ -1,1 +1,2 @@
-TEST_KEY: local
+TEST_KEY: local config test
+TEST_SECRET_KEY: this is local, so no encryption
