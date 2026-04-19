@@ -6,8 +6,8 @@ import {
 } from '@aws-sdk/client-ssm';
 import { TTLCache } from '@isaacs/ttlcache';
 
-import { logger as rootLogger } from './logger.js';
-import { chunkArray } from './utils.js';
+import { logger as rootLogger } from './logger';
+import { chunkArray } from './utils';
 
 const logger = rootLogger.child({ serviceName: 'Secrets' });
 
