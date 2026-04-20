@@ -26,6 +26,12 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   Versioning is required — it allows state recovery if something goes wrong.
 >   Once created, update `libs/infra/backend.hcl` with your bucket name.
 >
+> - [ ] **Set your project name** — add the following to your root `.env` file (copy from `.env.example`):
+>   ```bash
+>   TF_VAR_project_name=your-project-name
+>   ```
+>   This value namespaces all AWS and Cloudflare resources (`${project_name}-${app_name}-${environment}`). Choose a short, unique name — it becomes a permanent prefix for all infra. Also add `PROJECT_NAME` as a GitHub Actions **variable** (Settings → Secrets and variables → Actions → Variables) so the deploy workflow can pass it to Terraform.
+>
 > - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
 >
 > - [ ] **Cloudflare API Token to GitHub secrets** — add *CLOUDFLARE_API_TOKEN* to GitHub secrets (for Wrangler).
@@ -155,13 +161,14 @@ Trigger manually from the **Actions** tab in GitHub. You will be prompted for:
 | Environment | `staging` or `production` |
 | App | App name to deploy (e.g. `my-app`). Leave blank to deploy all affected apps. |
 
-### Required GitHub Secrets
+### Required GitHub Secrets and Variables
 
-| Secret | Used by |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | Terraform (Lambda deployments) |
-| `AWS_SECRET_ACCESS_KEY` | Terraform (Lambda deployments) |
-| `CLOUDFLARE_API_TOKEN` | Wrangler (Cloudflare Workers deployments) |
+| Name | Type | Used by |
+|---|---|---|
+| `AWS_ACCESS_KEY_ID` | Secret | Terraform (Lambda deployments) |
+| `AWS_SECRET_ACCESS_KEY` | Secret | Terraform (Lambda deployments) |
+| `CLOUDFLARE_API_TOKEN` | Secret | Wrangler (Cloudflare Workers deployments) |
+| `PROJECT_NAME` | Variable | Terraform (`TF_VAR_project_name` — resource naming prefix) |
 
 ---
 

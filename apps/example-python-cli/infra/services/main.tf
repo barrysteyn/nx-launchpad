@@ -1,8 +1,9 @@
 module "api_gateway" {
   source = "../../../../libs/infra/modules/aws/api-gateway"
 
-  name                 = "example-python-cli-${var.environment}"
-  description          = "Example Python CLI - ${title(var.environment)}"
+  project_name         = var.project_name
+  app_name             = "example-python-cli"
+  environment          = var.environment
   lambda_invoke_arn    = module.lambda.invoke_arn
   lambda_function_name = module.lambda.function_name
 
@@ -16,10 +17,11 @@ module "api_gateway" {
 module "lambda" {
   source = "../../../../libs/infra/modules/aws/lambda"
 
-  function_name = "example-python-cli-${var.environment}"
-  description   = "Example Python CLI - ${title(var.environment)}"
-  runtime       = "python3.12"
-  handler       = "example_python_cli.main.handler"
+  project_name = var.project_name
+  app_name     = "example-python-cli"
+  environment  = var.environment
+  runtime      = "python3.12"
+  handler      = "example_python_cli.main.handler"
 
   source_path = [
     {
@@ -33,7 +35,7 @@ module "lambda" {
   timeout     = var.timeout
 
   environment_variables = {
-    ENVIRONMENT = var.environment
+    APP_ENV = var.environment
   }
 
   tags = {

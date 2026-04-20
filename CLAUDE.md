@@ -65,6 +65,24 @@ The config resolver (`libs/config-resolver`) loads `config/default.yaml` first, 
 
 In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
 
+### TF_VAR_project_name
+
+`TF_VAR_project_name` is the universal Terraform variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/modules/aws/lambda`, `libs/infra/modules/aws/api-gateway`, `libs/infra/modules/cloudflare/kv`) uses it to compute resource names following the convention:
+
+```
+${project_name}-${app_name}-${environment}
+```
+
+Set it in your root `.env` file (alongside `APP_ENV`):
+
+```bash
+TF_VAR_project_name=your-project-name
+```
+
+There is **no default** — Terraform will error if it is not set. Each fork of this repo must choose a unique project name that becomes a stable prefix for all infrastructure resources.
+
+In CI/CD, `TF_VAR_project_name` must be set as a GitHub Actions variable (`vars.PROJECT_NAME`) — see the deploy workflow.
+
 ## Shared Libraries
 
 Reusable code lives in `libs/` and is consumed by apps via TypeScript path aliases — no `package.json` required in the lib.
@@ -189,6 +207,19 @@ infra/
 - All service definitions (Lambda, API Gateway) live in `services/` — edit there, not in the environment directories.
 - `environments/*/backend.tf`, `providers.tf`, and `variables.tf` are per-root-module Terraform boilerplate and must stay duplicated — this is the standard Terraform pattern.
 - `title(var.environment)` is used for capitalised descriptions (e.g. `"My App - Staging"`).
+- `project_name` is passed from the environment root modules into `services/` and then into the shared `libs/infra` modules — it is never hard-coded. Resource names are computed inside the shared modules as `${project_name}-${app_name}-${environment}`.
+
+## Shared Terraform Modules (`libs/infra/modules`)
+
+Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, and `environment`. The module computes the resource name internally — callers must never construct or hard-code the name themselves.
+
+| Module | Path | Resource named |
+|---|---|---|
+| `aws/lambda` | `libs/infra/modules/aws/lambda` | `${project_name}-${app_name}-${environment}` |
+| `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${app_name}-${environment}` |
+| `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${app_name}-${environment}` |
+
+**Rule:** when adding a new module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${app_name}-${environment}`. Never accept a pre-composed name string.
 
 ### Useful Terraform targets
 
