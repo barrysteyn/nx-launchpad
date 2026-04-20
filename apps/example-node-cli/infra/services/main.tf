@@ -1,10 +1,11 @@
 module "lambda" {
   source = "../../../../libs/infra/modules/aws/lambda"
 
-  function_name = "example-node-cli-${var.environment}"
-  description   = "Example Node CLI - ${title(var.environment)}"
-  runtime       = "nodejs22.x"
-  handler       = "main.handler"
+  project_name = var.project_name
+  app_name     = "example-node-cli"
+  environment  = var.environment
+  runtime      = "nodejs22.x"
+  handler      = "main.handler"
 
   source_path = "${path.root}/../../../dist"
 
@@ -12,7 +13,7 @@ module "lambda" {
   timeout     = var.timeout
 
   environment_variables = {
-    ENVIRONMENT = var.environment
+    APP_ENV = var.environment
   }
 
   tags = {
@@ -25,8 +26,9 @@ module "lambda" {
 module "api_gateway" {
   source = "../../../../libs/infra/modules/aws/api-gateway"
 
-  name                 = "example-node-cli-${var.environment}"
-  description          = "Example Node CLI - ${title(var.environment)}"
+  project_name         = var.project_name
+  app_name             = "example-node-cli"
+  environment          = var.environment
   lambda_invoke_arn    = module.lambda.invoke_arn
   lambda_function_name = module.lambda.function_name
 

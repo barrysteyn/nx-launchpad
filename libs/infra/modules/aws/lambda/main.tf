@@ -2,8 +2,8 @@ module "lambda" {
   source  = "terraform-aws-modules/lambda/aws"
   version = "~> 7.0"
 
-  function_name = var.function_name
-  description   = var.description
+  function_name = "${var.project_name}-${var.app_name}-${var.environment}"
+  description   = "${var.app_name} - ${title(var.environment)}"
   runtime       = var.runtime
   handler       = var.handler
 

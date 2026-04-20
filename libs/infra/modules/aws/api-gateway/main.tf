@@ -1,6 +1,6 @@
 resource "aws_apigatewayv2_api" "this" {
-  name          = var.name
-  description   = var.description
+  name          = "${var.project_name}-${var.app_name}-${var.environment}"
+  description   = "${var.app_name} - ${title(var.environment)}"
   protocol_type = "HTTP"
 
   tags = var.tags

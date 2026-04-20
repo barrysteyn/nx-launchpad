@@ -1,16 +1,20 @@
-variable "function_name" {
-  description = "Name of the Lambda function"
+variable "project_name" {
+  description = "Project name used to namespace resources — must be set by each fork of this template"
   type        = string
 }
 
-variable "description" {
-  description = "Description of the Lambda function"
+variable "app_name" {
+  description = "Application name (e.g. example-node-cli)"
   type        = string
-  default     = ""
+}
+
+variable "environment" {
+  description = "Deployment environment (e.g. staging, production)"
+  type        = string
 }
 
 variable "runtime" {
-  description = "Lambda runtime (e.g. python3.12, nodejs20.x, java21)"
+  description = "Lambda runtime (e.g. python3.12, nodejs22.x)"
   type        = string
 }
 

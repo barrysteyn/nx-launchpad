@@ -1,12 +1,16 @@
-variable "name" {
-  description = "Name of the API Gateway"
+variable "project_name" {
+  description = "Project name used to namespace resources — must be set by each fork of this template"
   type        = string
 }
 
-variable "description" {
-  description = "Description of the API Gateway"
+variable "app_name" {
+  description = "Application name (e.g. example-node-cli)"
   type        = string
-  default     = ""
+}
+
+variable "environment" {
+  description = "Deployment environment (e.g. staging, production)"
+  type        = string
 }
 
 variable "lambda_invoke_arn" {
