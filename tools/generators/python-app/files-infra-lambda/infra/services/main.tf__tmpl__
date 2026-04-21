@@ -2,8 +2,9 @@
 module "api_gateway" {
   source = "../../../../libs/infra/modules/aws/api-gateway"
 
-  name                 = "<%= name %>-${var.environment}"
-  description          = "<%= description %> - ${title(var.environment)}"
+  project_name         = var.project_name
+  app_name             = "<%= name %>"
+  environment          = var.environment
   lambda_invoke_arn    = module.lambda.invoke_arn
   lambda_function_name = module.lambda.function_name
 
@@ -18,10 +19,11 @@ module "api_gateway" {
 module "lambda" {
   source = "../../../../libs/infra/modules/aws/lambda"
 
-  function_name = "<%= name %>-${var.environment}"
-  description   = "<%= description %> - ${title(var.environment)}"
-  runtime       = "<%= pythonRuntime %>"
-  handler       = "<%= moduleName %>.main.handler"
+  project_name = var.project_name
+  app_name     = "<%= name %>"
+  environment  = var.environment
+  runtime      = "<%= pythonRuntime %>"
+  handler      = "<%= moduleName %>.main.handler"
 
   source_path = [
     {
@@ -33,10 +35,6 @@ module "lambda" {
 
   memory_size = var.memory_size
   timeout     = var.timeout
-
-  environment_variables = {
-    ENVIRONMENT = var.environment
-  }
 
   tags = {
     environment = var.environment

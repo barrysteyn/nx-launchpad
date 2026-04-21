@@ -209,6 +209,28 @@ infra/
 - `title(var.environment)` is used for capitalised descriptions (e.g. `"My App - Staging"`).
 - `project_name` is passed from the environment root modules into `services/` and then into the shared `libs/infra` modules — it is never hard-coded. Resource names are computed inside the shared modules as `${project_name}-${app_name}-${environment}`.
 
+## Runtime Environment Variables
+
+Every runnable (Lambda, Cloudflare Worker) **must** have `APP_ENV` and `PROJECT_NAME` injected at deploy time. These two variables are the foundation for config loading and resource naming at runtime — apps must never hard-code either value.
+
+### AWS Lambda
+
+`APP_ENV` and `PROJECT_NAME` are injected automatically by the shared `libs/infra/modules/aws/lambda` module — no app-level Terraform needed. They are merged last, so they cannot be accidentally overridden by caller-supplied `environment_variables`.
+
+### Cloudflare Workers
+
+Set `APP_ENV` and `PROJECT_NAME` as plain `vars` in each environment block in `wrangler.jsonc`:
+
+```jsonc
+"env": {
+  "preview":    { "vars": { "APP_ENV": "local",      "PROJECT_NAME": "your-project-name" } },
+  "staging":    { "vars": { "APP_ENV": "staging",    "PROJECT_NAME": "your-project-name" } },
+  "production": { "vars": { "APP_ENV": "production", "PROJECT_NAME": "your-project-name" } }
+}
+```
+
+Replace `"your-project-name"` with the same value used for `TF_VAR_project_name`.
+
 ## Shared Terraform Modules (`libs/infra/modules`)
 
 Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, and `environment`. The module computes the resource name internally — callers must never construct or hard-code the name themselves.

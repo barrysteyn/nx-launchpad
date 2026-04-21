@@ -34,7 +34,13 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >
 > - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
 >
-> - [ ] **Cloudflare API Token to GitHub secrets** — add *CLOUDFLARE_API_TOKEN* to GitHub secrets (for Wrangler).
+> - [ ] **Cloudflare credentials and Worker secrets** — add the following to your root `.env` file:
+>   ```bash
+>   CLOUDFLARE_API_TOKEN=your-api-token
+>   CLOUDFLARE_ACCOUNT_ID=your-account-id
+>   ```
+>   Find your Account ID in the Cloudflare dashboard: log in → select any domain (or Workers & Pages) → the Account ID is in the right-hand sidebar. Also add both as GitHub secrets (*CLOUDFLARE_API_TOKEN* and *CLOUDFLARE_ACCOUNT_ID*) — used by Wrangler for Workers deploys and by the config deploy script to write to KV.
+>   Also update `PROJECT_NAME` in `wrangler.jsonc` for each Cloudflare Worker app to match your `TF_VAR_project_name`.
 >
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---

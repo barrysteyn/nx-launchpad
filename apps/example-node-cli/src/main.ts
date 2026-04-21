@@ -1,5 +1,4 @@
-import path from 'path';
-import { loadConfig } from '@nx-launchpad/config-resolver-node';
+import { loadConfig } from '@nx-launchpad/config-loader-node';
 import { flushLogger } from '@nx-launchpad/utils-node';
 
 export async function handler(
@@ -14,9 +13,7 @@ export async function handler(
 }
 
 export async function main(): Promise<void> {
-  const config = await loadConfig({
-    configDir: path.resolve(__dirname, '../../../config'),
-  });
+  const config = await loadConfig();
   console.log('TEST_KEY:', config['TEST_KEY']);
   console.log('TEST_SECRET_KEY:', config['TEST_SECRET_KEY']);
 }

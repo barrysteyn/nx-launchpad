@@ -1,6 +1,6 @@
 module "services" {
-  source = "../../services"
-
-  environment = "production"
-  memory_size = 256
+  source       = "../../services"
+  project_name = var.project_name
+  environment  = "production"
+  memory_size  = 256
 }

@@ -12,7 +12,10 @@ module "lambda" {
   memory_size = var.memory_size
   timeout     = var.timeout
 
-  environment_variables = var.environment_variables
+  environment_variables = merge(var.environment_variables, {
+    APP_ENV      = var.environment
+    PROJECT_NAME = var.project_name
+  })
 
   tags = var.tags
 }
