@@ -42,6 +42,7 @@ jobs:
       needs_python_uv: ${{ steps.affected.outputs.needs_python_uv }}
       needs_java: ${{ steps.affected.outputs.needs_java }}
       summary_md: ${{ steps.affected.outputs.summary_md }}
+      config_affected: ${{ steps.config_affected.outputs.affected }}
     defaults:
       run:
         shell: bash
@@ -67,6 +68,15 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
 
       - uses: nrwl/nx-set-shas@v4
+
+      - name: Check if config is affected
+        id: config_affected
+        run: |
+          if npx nx show projects --affected --json | jq -e 'contains(["config"])' > /dev/null 2>&1; then
+            echo "affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "affected=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Determine deploy configuration
         id: config
@@ -107,6 +117,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       TF_VAR_project_name: ${{ vars.PROJECT_NAME }}
     defaults:
       run:
@@ -153,8 +164,13 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Deploy config
+        if: needs.plan.outputs.config_affected == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.app == 'deploy-config')
+        timeout-minutes: 15
+        run: npx nx run config:deploy-config --configuration=${{ needs.plan.outputs.configuration }}
+
       - name: Deploy single app
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != ''
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != '' && github.event.inputs.app != 'deploy-config'
         timeout-minutes: 30
         run: npx nx run ${{ github.event.inputs.app }}:deploy --configuration=${{ needs.plan.outputs.configuration }}
 

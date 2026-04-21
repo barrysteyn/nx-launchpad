@@ -6,7 +6,7 @@
     "types": ["node"],
     "outDir": "./dist",
     "paths": {
-      "@nx-launchpad/config-resolver-node": ["../../libs/config-resolver/node/src/config.ts"],
+      "@nx-launchpad/config-loader-node": ["../../libs/config-loader/node/src/index.ts"],
       "@nx-launchpad/utils-node": ["../../libs/utils/node/src/index.ts"]
     },
     "strict": true,

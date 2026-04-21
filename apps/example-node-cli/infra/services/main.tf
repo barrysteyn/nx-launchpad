@@ -12,10 +12,6 @@ module "lambda" {
   memory_size = var.memory_size
   timeout     = var.timeout
 
-  environment_variables = {
-    APP_ENV = var.environment
-  }
-
   tags = {
     environment = var.environment
     app         = "example-node-cli"
