@@ -85,6 +85,26 @@ Nx targets that run Terraform automatically derive `TF_VAR_project_name` from `P
 
 In CI/CD, `PROJECT_NAME` must be set as a GitHub Actions variable (`vars.PROJECT_NAME`) — see the deploy workflow.
 
+### Passing env vars to Terraform
+
+Terraform only reads environment variables that have the `TF_VAR_` prefix — it will not pick up `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_API_TOKEN` directly. Any Nx target that runs `terraform plan` or `terraform apply` must map these inline:
+
+```bash
+TF_VAR_project_name=$PROJECT_NAME \
+TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID \
+TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN \
+terraform apply -auto-approve
+```
+
+**Rule:** when adding a new Nx target that runs Terraform, prepend all required `TF_VAR_*` mappings inline on the command. Only include the variables that the module actually declares — AWS-only modules (Lambda, API Gateway) only need `TF_VAR_project_name`. Modules that use Cloudflare resources also need `TF_VAR_cloudflare_account_id` and `TF_VAR_cloudflare_api_token`.
+
+Currently:
+
+| Project | Cloudflare Terraform resources | Extra TF_VAR_ vars needed |
+|---|---|---|
+| `config` | Yes (KV namespace) | `cloudflare_account_id`, `cloudflare_api_token` |
+| Node.js / Python apps | No (Lambda + API Gateway only) | — |
+
 ## Shared Libraries
 
 Reusable code lives in `libs/` and is consumed by apps via TypeScript path aliases — no `package.json` required in the lib.
