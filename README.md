@@ -40,7 +40,6 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   CLOUDFLARE_ACCOUNT_ID=your-account-id
 >   ```
 >   Find your Account ID in the Cloudflare dashboard: log in → select any domain (or Workers & Pages) → the Account ID is in the right-hand sidebar. Also add both as GitHub secrets (*CLOUDFLARE_API_TOKEN* and *CLOUDFLARE_ACCOUNT_ID*) — used by Wrangler for Workers deploys and by the config deploy script to write to KV.
->   Also update `PROJECT_NAME` in `wrangler.jsonc` for each Cloudflare Worker app to match your `PROJECT_NAME` env var.
 >
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---
