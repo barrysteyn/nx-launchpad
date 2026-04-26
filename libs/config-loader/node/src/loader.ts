@@ -35,7 +35,7 @@ async function loadFromDynamoDB(environment: string): Promise<Record<string, unk
 
 
 export async function loadConfig({
-  environment = process.env['APP_ENV'] ?? 'local',
+  environment = process.env['ENVIRONMENT'] ?? 'local',
   forceReload = false,
 }: {
   environment?: string;

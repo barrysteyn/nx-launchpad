@@ -11,13 +11,13 @@
   "env": {
     "preview": {
       "vars": {
-        "APP_ENV": "local"
+        "ENVIRONMENT": "local"
       },
       "preview_urls": true
     },
     "staging": {
       "vars": {
-        "APP_ENV": "staging"
+        "ENVIRONMENT": "staging"
       }<% if (stagingDomain) { %>,
       "route": {
         "pattern": "<%= stagingDomain %>",
@@ -26,7 +26,7 @@
     },
     "production": {
       "vars": {
-        "APP_ENV": "production"
+        "ENVIRONMENT": "production"
       }<% if (productionDomain) { %>,
       "route": {
         "pattern": "<%= productionDomain %>",

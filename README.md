@@ -195,9 +195,9 @@ Nx loads `.env` files automatically for every task. Create a root-level `.env` f
 
 See the [Nx docs](https://nx.dev/docs/guides/tips-n-tricks/define-environment-variables) for the full loading order.
 
-### APP_ENV
+### ENVIRONMENT
 
-`APP_ENV` is the universal environment variable that tells every app and library which environment it is running in.
+`ENVIRONMENT` is the universal environment variable that tells every app and library which environment it is running in.
 
 | Value | When to use |
 |---|---|
@@ -208,12 +208,12 @@ See the [Nx docs](https://nx.dev/docs/guides/tips-n-tricks/define-environment-va
 Set it in your root `.env` file:
 
 ```bash
-APP_ENV=local
+ENVIRONMENT=local
 ```
 
-**How it works:** the config system loads `config/files/default.yaml` as the base, then deep-merges `config/files/{APP_ENV}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`. See [config/README.md](config/README.md) for the full config system documentation.
+**How it works:** the config system loads `config/files/default.yaml` as the base, then deep-merges `config/files/{ENVIRONMENT}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`. See [config/README.md](config/README.md) for the full config system documentation.
 
-In CI/CD pipelines, `APP_ENV` is set automatically by the deploy workflow to match the target environment. You should not need to set it manually in staging or production.
+In CI/CD pipelines, `ENVIRONMENT` is set automatically by the deploy workflow to match the target environment. You should not need to set it manually in staging or production.
 
 ---
 

@@ -51,19 +51,19 @@ If `metadata.ci.profile` is absent, the pipeline defaults to `"default"`. Always
 
 ## Environment Configuration
 
-### APP_ENV
+### ENVIRONMENT
 
-`APP_ENV` is the universal environment variable that controls which config layer is active. Valid values: `local`, `staging`, `production`.
+`ENVIRONMENT` is the universal environment variable that controls which config layer is active. Valid values: `local`, `staging`, `production`.
 
 Set it in your root `.env` file:
 
 ```bash
-APP_ENV=local
+ENVIRONMENT=local
 ```
 
-The `config` project resolves `config/files/default.yaml` and deep-merges `config/files/{APP_ENV}.yaml` on top — environment values win on conflict. At runtime, apps load the pre-resolved config via `libs/config-loader`.
+The `config` project resolves `config/files/default.yaml` and deep-merges `config/files/{ENVIRONMENT}.yaml` on top — environment values win on conflict. At runtime, apps load the pre-resolved config via `libs/config-loader`.
 
-In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
+In CI/CD, `ENVIRONMENT` is set by the deploy pipeline to match the target environment.
 
 ### PROJECT_NAME
 
@@ -73,7 +73,7 @@ In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environmen
 ${project_name}-${app_name}-${environment}
 ```
 
-Set it in your root `.env` file (alongside `APP_ENV`):
+Set it in your root `.env` file (alongside `ENVIRONMENT`):
 
 ```bash
 PROJECT_NAME=your-project-name
@@ -233,21 +233,21 @@ infra/
 
 ## Runtime Environment Variables
 
-Every runnable (Lambda, Cloudflare Worker) **must** have `APP_ENV` and `PROJECT_NAME` injected at deploy time. These two variables are the foundation for config loading and resource naming at runtime — apps must never hard-code either value.
+Every runnable (Lambda, Cloudflare Worker) **must** have `ENVIRONMENT` and `PROJECT_NAME` injected at deploy time. These two variables are the foundation for config loading and resource naming at runtime — apps must never hard-code either value.
 
 ### AWS Lambda
 
-`APP_ENV` and `PROJECT_NAME` are injected automatically by the shared `libs/infra/modules/aws/lambda` module — no app-level Terraform needed. They are merged last, so they cannot be accidentally overridden by caller-supplied `environment_variables`.
+`ENVIRONMENT` and `PROJECT_NAME` are injected automatically by the shared `libs/infra/modules/aws/lambda` module — no app-level Terraform needed. They are merged last, so they cannot be accidentally overridden by caller-supplied `environment_variables`.
 
 ### Cloudflare Workers
 
-Set `APP_ENV` as a plain `var` in each environment block in `wrangler.jsonc`. `PROJECT_NAME` is passed via the CLI at deploy time so it expands from the env var automatically — do not hardcode it in `wrangler.jsonc`:
+Set `ENVIRONMENT` as a plain `var` in each environment block in `wrangler.jsonc`. `PROJECT_NAME` is passed via the CLI at deploy time so it expands from the env var automatically — do not hardcode it in `wrangler.jsonc`:
 
 ```jsonc
 "env": {
-  "preview":    { "vars": { "APP_ENV": "local" } },
-  "staging":    { "vars": { "APP_ENV": "staging" } },
-  "production": { "vars": { "APP_ENV": "production" } }
+  "preview":    { "vars": { "ENVIRONMENT": "local" } },
+  "staging":    { "vars": { "ENVIRONMENT": "staging" } },
+  "production": { "vars": { "ENVIRONMENT": "production" } }
 }
 ```
 

@@ -14,7 +14,7 @@ Loaders are organised by language runtime — each language has its own folder w
 
 Config is a two-phase system:
 
-**Phase 1 — resolve & deploy (build time):** The `config` project reads `config/files/default.yaml`, deep-merges the environment overlay (`config/files/{APP_ENV}.yaml`), resolves any `ssm:` prefixed values from AWS SSM Parameter Store, and writes the result to DynamoDB and Cloudflare KV.
+**Phase 1 — resolve & deploy (build time):** The `config` project reads `config/files/default.yaml`, deep-merges the environment overlay (`config/files/{ENVIRONMENT}.yaml`), resolves any `ssm:` prefixed values from AWS SSM Parameter Store, and writes the result to DynamoDB and Cloudflare KV.
 
 **Phase 2 — load (runtime):** The loader reads the pre-resolved config blob from the appropriate store:
 
@@ -52,7 +52,7 @@ Before running locally, generate the resolved config file:
 npx nx run config:resolve --args="--environment=local --outFile=config/files/local.resolved.json"
 ```
 
-This reads `config/files/default.yaml` + `config/files/local.yaml`, resolves any `ssm:` values, and writes `config/files/local.resolved.json`. The loader reads this file when `APP_ENV=local`.
+This reads `config/files/default.yaml` + `config/files/local.yaml`, resolves any `ssm:` values, and writes `config/files/local.resolved.json`. The loader reads this file when `ENVIRONMENT=local`.
 
 ---
 
@@ -82,7 +82,7 @@ This runs `terraform apply` (to ensure the DynamoDB table and Cloudflare KV name
 
 | Variable | Required | Description |
 |---|---|---|
-| `APP_ENV` | No | Environment to load (`local`, `staging`, `production`). Defaults to `local`. |
+| `ENVIRONMENT` | No | Environment to load (`local`, `staging`, `production`). Defaults to `local`. |
 | `PROJECT_NAME` | Yes (non-local) | Used to construct the DynamoDB table name: `${PROJECT_NAME}-config-${environment}`. Injected automatically by the Lambda module. |
 
 #### Usage
@@ -101,7 +101,7 @@ The result is cached — call `loadConfig()` freely throughout your app without 
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `environment` | `string` | `APP_ENV` env var or `'local'` | Which environment's config to load |
+| `environment` | `string` | `ENVIRONMENT` env var or `'local'` | Which environment's config to load |
 | `forceReload` | `boolean` | `false` | Bypass cache and re-fetch from the store |
 
 #### Lambda usage

@@ -74,7 +74,7 @@ For local development there is no DynamoDB or KV — instead, generate a pre-res
 npx nx run config:resolve --args="--environment=local --outFile=files/local.resolved.json"
 ```
 
-This calls the resolver with `local` as the environment and writes the result to a JSON file. `libs/config-loader` reads this file when `APP_ENV=local`.
+This calls the resolver with `local` as the environment and writes the result to a JSON file. `libs/config-loader` reads this file when `ENVIRONMENT=local`.
 
 ---
 
