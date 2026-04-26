@@ -28,6 +28,7 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >
 > - [ ] **Add to your root `.env` file** (copy from `.env.example`):
 >   ```bash
+>   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
 >   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
 >   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
 >   CLOUDFLARE_API_TOKEN=your-api-token
