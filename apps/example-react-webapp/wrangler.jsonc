@@ -11,15 +11,13 @@
   "env": {
     "preview": {
       "vars": {
-        "APP_ENV": "local",
-        "PROJECT_NAME": "falcon"
+        "APP_ENV": "local"
       },
       "preview_urls": true
     },
     "staging": {
       "vars": {
-        "APP_ENV": "staging",
-        "PROJECT_NAME": "falcon"
+        "APP_ENV": "staging"
       },
       "route": {
         "pattern": "staging.nimrox.ai",
@@ -28,8 +26,7 @@
     },
     "production": {
       "vars": {
-        "APP_ENV": "production",
-        "PROJECT_NAME": "falcon"
+        "APP_ENV": "production"
       },
       "route": {
         "pattern": "nimrox.ai",
