@@ -61,7 +61,7 @@ Set it in your root `.env` file:
 APP_ENV=local
 ```
 
-The config resolver (`libs/config-resolver`) loads `config/default.yaml` first, then deep-merges `config/{APP_ENV}.yaml` on top — environment values win on conflict.
+The `config` project resolves `config/files/default.yaml` and deep-merges `config/files/{APP_ENV}.yaml` on top — environment values win on conflict. At runtime, apps load the pre-resolved config via `libs/config-loader`.
 
 In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
 
@@ -99,14 +99,14 @@ Language-specific utility libraries. See [libs/utils/README.md](libs/utils/READM
 
 **Logger:** import from `@nx-launchpad/utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
 
-### libs/config-resolver
+### libs/config-loader
 
-Per-language resolvers that load `config/default.yaml`, merge the `APP_ENV` overlay, and resolve `ssm:` prefixed values from AWS SSM Parameter Store.
+Per-language runtime loaders. Reads the pre-resolved config blob from DynamoDB (staging/production) or a local JSON file (local). See [libs/config-loader/README.md](libs/config-loader/README.md) for full documentation.
 
 | Project | Path |
 |---|---|
-| `config-resolver-node` | `libs/config-resolver/node/` |
-| `config-resolver-python` | `libs/config-resolver/python/` |
+| `config-loader-node` | `libs/config-loader/node/` |
+| `config-loader-python` | `libs/config-loader/python/` |
 
 ## Generating Apps
 

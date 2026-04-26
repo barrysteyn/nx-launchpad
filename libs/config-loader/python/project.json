@@ -1,8 +1,8 @@
 {
-  "name": "config-resolver-python",
+  "name": "config-loader-python",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "root": "libs/config-resolver/python",
+  "root": "libs/config-loader/python",
   "metadata": {
     "ci": {
       "profile": "python-uv"
