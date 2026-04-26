@@ -20,9 +20,9 @@
     },
     "projectName": {
       "type": "string",
-      "description": "Project name used to namespace all resources — must match TF_VAR_project_name (e.g. falcon)",
+      "description": "Project name used to namespace all resources — must match PROJECT_NAME (e.g. falcon)",
       "default": "",
-      "x-prompt": "Project name? (must match TF_VAR_project_name)"
+      "x-prompt": "Project name? (must match PROJECT_NAME)"
     },
     "stagingDomain": {
       "type": "string",

@@ -65,9 +65,9 @@ The config resolver (`libs/config-resolver`) loads `config/default.yaml` first, 
 
 In CI/CD, `APP_ENV` is set by the deploy pipeline to match the target environment.
 
-### TF_VAR_project_name
+### PROJECT_NAME
 
-`TF_VAR_project_name` is the universal Terraform variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/modules/aws/lambda`, `libs/infra/modules/aws/api-gateway`, `libs/infra/modules/cloudflare/kv`) uses it to compute resource names following the convention:
+`PROJECT_NAME` is the universal variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/modules/aws/lambda`, `libs/infra/modules/aws/api-gateway`, `libs/infra/modules/cloudflare/kv`) uses it to compute resource names following the convention:
 
 ```
 ${project_name}-${app_name}-${environment}
@@ -76,12 +76,14 @@ ${project_name}-${app_name}-${environment}
 Set it in your root `.env` file (alongside `APP_ENV`):
 
 ```bash
-TF_VAR_project_name=your-project-name
+PROJECT_NAME=your-project-name
 ```
 
 There is **no default** — Terraform will error if it is not set. Each fork of this repo must choose a unique project name that becomes a stable prefix for all infrastructure resources.
 
-In CI/CD, `TF_VAR_project_name` must be set as a GitHub Actions variable (`vars.PROJECT_NAME`) — see the deploy workflow.
+Nx targets that run Terraform automatically derive `TF_VAR_project_name` from `PROJECT_NAME` — you never need to set `TF_VAR_project_name` directly.
+
+In CI/CD, `PROJECT_NAME` must be set as a GitHub Actions variable (`vars.PROJECT_NAME`) — see the deploy workflow.
 
 ## Shared Libraries
 
@@ -229,7 +231,7 @@ Set `APP_ENV` and `PROJECT_NAME` as plain `vars` in each environment block in `w
 }
 ```
 
-Replace `"your-project-name"` with the same value used for `TF_VAR_project_name`.
+Replace `"your-project-name"` with the same value as your `PROJECT_NAME` env var.
 
 ## Shared Terraform Modules (`libs/infra/modules`)
 

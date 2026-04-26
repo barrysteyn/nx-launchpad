@@ -9,7 +9,7 @@ export async function reactCloudflareAppGenerator(
   const appName = options.name;
   const appDir = `apps/${appName}`;
   const description = options.description ?? `${appName} application`;
-  const projectName = options.projectName || process.env['TF_VAR_project_name'] || 'your-project-name';
+  const projectName = options.projectName || process.env['PROJECT_NAME'] || 'your-project-name';
   const stagingDomain = options.stagingDomain ?? '';
   const productionDomain = options.productionDomain ?? '';
   const title = appName
