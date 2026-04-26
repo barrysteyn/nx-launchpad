@@ -28,9 +28,9 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >
 > - [ ] **Set your project name** — add the following to your root `.env` file (copy from `.env.example`):
 >   ```bash
->   TF_VAR_project_name=your-project-name
+>   PROJECT_NAME=your-project-name
 >   ```
->   This value namespaces all AWS and Cloudflare resources (`${project_name}-${app_name}-${environment}`). Choose a short, unique name — it becomes a permanent prefix for all infra. Also add `PROJECT_NAME` as a GitHub Actions **variable** (Settings → Secrets and variables → Actions → Variables) so the deploy workflow can pass it to Terraform.
+>   This value namespaces all AWS and Cloudflare resources (`${project_name}-${app_name}-${environment}`). Choose a short, unique name — it becomes a permanent prefix for all infra. Nx targets derive `TF_VAR_project_name` from this automatically. Also add `PROJECT_NAME` as a GitHub Actions **variable** (Settings → Secrets and variables → Actions → Variables) so the deploy workflow can pass it to Terraform.
 >
 > - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
 >
@@ -40,7 +40,7 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   CLOUDFLARE_ACCOUNT_ID=your-account-id
 >   ```
 >   Find your Account ID in the Cloudflare dashboard: log in → select any domain (or Workers & Pages) → the Account ID is in the right-hand sidebar. Also add both as GitHub secrets (*CLOUDFLARE_API_TOKEN* and *CLOUDFLARE_ACCOUNT_ID*) — used by Wrangler for Workers deploys and by the config deploy script to write to KV.
->   Also update `PROJECT_NAME` in `wrangler.jsonc` for each Cloudflare Worker app to match your `TF_VAR_project_name`.
+>   Also update `PROJECT_NAME` in `wrangler.jsonc` for each Cloudflare Worker app to match your `PROJECT_NAME` env var.
 >
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---
@@ -173,8 +173,9 @@ Trigger manually from the **Actions** tab in GitHub. You will be prompted for:
 |---|---|---|
 | `AWS_ACCESS_KEY_ID` | Secret | Terraform (Lambda deployments) |
 | `AWS_SECRET_ACCESS_KEY` | Secret | Terraform (Lambda deployments) |
-| `CLOUDFLARE_API_TOKEN` | Secret | Wrangler (Cloudflare Workers deployments) |
-| `PROJECT_NAME` | Variable | Terraform (`TF_VAR_project_name` — resource naming prefix) |
+| `CLOUDFLARE_API_TOKEN` | Secret | Wrangler (Workers deploys) + config deploy script (writes to KV) |
+| `CLOUDFLARE_ACCOUNT_ID` | Secret | Config deploy script (looks up KV namespace) |
+| `PROJECT_NAME` | Variable | Terraform resource naming prefix (`${project_name}-${app_name}-${environment}`) |
 
 ---
 
@@ -207,7 +208,7 @@ Set it in your root `.env` file:
 APP_ENV=local
 ```
 
-**How it works:** the config resolver loads `config/default.yaml` as the base, then deep-merges `config/{APP_ENV}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`.
+**How it works:** the config system loads `config/files/default.yaml` as the base, then deep-merges `config/files/{APP_ENV}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`. See [config/README.md](config/README.md) for the full config system documentation.
 
 In CI/CD pipelines, `APP_ENV` is set automatically by the deploy workflow to match the target environment. You should not need to set it manually in staging or production.
 
@@ -220,7 +221,8 @@ Reusable libraries live in `libs/` and are available to all apps in the monorepo
 | Library | Description | Docs |
 |---|---|---|
 | `libs/utils/` | Shared utilities (logger, etc.) for Node.js and Python | [libs/utils/README.md](libs/utils/README.md) |
-| `libs/config-resolver/` | Universal config resolver — loads and merges YAML config with AWS secret resolution | coming soon |
+| `config/` | Resolves YAML config + SSM secrets at deploy time and pushes to DynamoDB / Cloudflare KV | [config/README.md](config/README.md) |
+| `libs/config-loader/` | Runtime config loader — reads the pre-resolved blob from DynamoDB (Lambda) or local file | [libs/config-loader/README.md](libs/config-loader/README.md) |
 
 ---
 

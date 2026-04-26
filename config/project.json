@@ -1,0 +1,117 @@
+{
+  "name": "config",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "config",
+  "sourceRoot": "config/src",
+  "metadata": {
+    "ci": {
+      "profile": "default"
+    }
+  },
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "npx esbuild src/deploy.ts --bundle --platform=node --target=node22 --outfile=dist/deploy.js --external:@aws-sdk/* --external:@smithy/* --external:cloudflare",
+          "npx esbuild src/resolveToFile.ts --bundle --platform=node --target=node22 --outfile=dist/resolveToFile.js --external:@aws-sdk/* --external:@smithy/*"
+        ],
+        "cwd": "{projectRoot}"
+      }
+    },
+    "resolve": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "node dist/resolveToFile.js {args.environment} {args.outFile}",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "tf-fmt": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "terraform fmt -recursive",
+        "cwd": "{projectRoot}/infra"
+      }
+    },
+    "tf-init": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "command": "terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../libs/infra/backend.hcl"
+        },
+        "production": {
+          "command": "terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../libs/infra/backend.hcl"
+        }
+      }
+    },
+    "tf-init-local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "rm -rf {projectRoot}/infra/environments/staging/.terraform",
+          "terraform -chdir={projectRoot}/infra/environments/staging init -backend=false",
+          "rm -rf {projectRoot}/infra/environments/production/.terraform",
+          "terraform -chdir={projectRoot}/infra/environments/production init -backend=false"
+        ],
+        "parallel": false
+      }
+    },
+    "tf-validate": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["tf-init-local"],
+      "options": {
+        "commands": [
+          "terraform -chdir={projectRoot}/infra/environments/staging validate",
+          "terraform -chdir={projectRoot}/infra/environments/production validate"
+        ],
+        "parallel": false
+      }
+    },
+    "tf-plan": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform plan",
+          "cwd": "{projectRoot}/infra/environments/staging"
+        },
+        "production": {
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform plan",
+          "cwd": "{projectRoot}/infra/environments/production"
+        }
+      }
+    },
+    "deploy-config": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "configurations": {
+        "staging": {
+          "cwd": "{projectRoot}/infra/environments/staging",
+          "commands": [
+            "terraform init -backend-config=../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve",
+            "node ../../dist/deploy.js"
+          ],
+          "parallel": false
+        },
+        "production": {
+          "cwd": "{projectRoot}/infra/environments/production",
+          "commands": [
+            "terraform init -backend-config=../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve",
+            "node ../../dist/deploy.js"
+          ],
+          "parallel": false
+        }
+      }
+    }
+  }
+}

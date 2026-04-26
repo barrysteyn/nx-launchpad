@@ -1,23 +1,25 @@
-# libs/config-resolver
+# libs/config-loader
 
-Loads and resolves application configuration from the workspace `config/` YAML files. Handles environment-specific overrides and transparently resolves secrets stored in AWS SSM Parameter Store — app code reads a plain object with no knowledge of where values came from.
+Loads resolved application configuration at runtime. Config is resolved and deployed separately (by the `config` project) — the loader simply reads the pre-resolved blob from the appropriate store.
 
-Resolvers are organised by language runtime — each language has its own folder with its own Nx project.
+Loaders are organised by language runtime — each language has its own folder with its own Nx project.
 
 | Folder | Language | Nx project |
 |---|---|---|
-| `node/` | TypeScript / Node.js | `config-resolver-node` |
+| `node/` | TypeScript / Node.js | `config-loader-node` |
 
 ---
 
 ## How it works
 
-1. Loads `config/default.yaml` as the base
-2. Deep-merges `config/{APP_ENV}.yaml` on top — environment values win on conflict
-3. Walks the merged config and collects any values prefixed with `ssm:` — these are SSM Parameter Store paths
-4. Fetches all SSM secrets in batched requests (max 10 per call)
-5. Substitutes the `ssm:` placeholders with the resolved values
-6. Caches the result per environment — subsequent calls are instant
+Config is a two-phase system:
+
+**Phase 1 — resolve & deploy (build time):** The `config` project reads `config/files/default.yaml`, deep-merges the environment overlay (`config/files/{APP_ENV}.yaml`), resolves any `ssm:` prefixed values from AWS SSM Parameter Store, and writes the result to DynamoDB and Cloudflare KV.
+
+**Phase 2 — load (runtime):** The loader reads the pre-resolved config blob from the appropriate store:
+
+- `local` — reads from `config/files/local.resolved.json` (generated locally via `npx nx run config:resolve`)
+- `staging` / `production` — fetches from DynamoDB table `${PROJECT_NAME}-config-${environment}`
 
 The resolved config is a plain object — no special types or wrappers.
 
@@ -25,74 +27,89 @@ The resolved config is a plain object — no special types or wrappers.
 
 ## YAML config format
 
-All keys must be `SCREAMING_SNAKE_CASE`. Values can be plain strings, numbers, booleans, or an `ssm:` reference:
+All keys must be `SCREAMING_SNAKE_CASE`. Values can be plain strings, numbers, booleans, or an `ssm:` reference (resolved at deploy time, not runtime):
 
 ```yaml
-# config/default.yaml
+# config/files/default.yaml
 DATABASE_URL: postgres://localhost:5432/mydb
 LOG_LEVEL: info
-API_KEY: ssm:/myapp/api-key          # resolved from SSM at load time
+API_KEY: ssm:/myapp/api-key
 ```
 
 ```yaml
-# config/production.yaml
-DATABASE_URL: ssm:/myapp/prod/db-url  # overrides default with SSM value
+# config/files/production.yaml
+DATABASE_URL: ssm:/myapp/prod/db-url
 LOG_LEVEL: warn
 ```
 
-The `ssm:` prefix is stripped and the remainder is treated as the SSM Parameter Store path. The key name is preserved in the resolved config.
+---
+
+## Generating local resolved config
+
+Before running locally, generate the resolved config file:
+
+```bash
+npx nx run config:resolve --args="--environment=local --outFile=config/files/local.resolved.json"
+```
+
+This reads `config/files/default.yaml` + `config/files/local.yaml`, resolves any `ssm:` values, and writes `config/files/local.resolved.json`. The loader reads this file when `APP_ENV=local`.
+
+---
+
+## Deploying config to staging / production
+
+```bash
+npx nx run config:deploy-config:staging
+npx nx run config:deploy-config:production
+```
+
+This runs `terraform apply` (to ensure the DynamoDB table and Cloudflare KV namespace exist), then resolves the config and writes it to both stores.
 
 ---
 
 ## Language implementations
 
-- [Node.js](#config-resolver--nodejs) — available now
+- [Node.js](#config-loader--nodejs) — available now
 - Python — coming soon
 
 ---
 
-## Config Resolver — Node.js
+## Config Loader — Node.js
 
-**Location:** `libs/config-resolver/node/src/config.ts`
+**Location:** `libs/config-loader/node/src/loader.ts`
 
 #### Environment variables
 
 | Variable | Required | Description |
 |---|---|---|
 | `APP_ENV` | No | Environment to load (`local`, `staging`, `production`). Defaults to `local`. |
-| `AWS_REGION` | No | AWS region for SSM. Defaults to `us-east-1`. |
-| `AWS_ACCESS_KEY_ID` | No* | AWS credentials. Not required if using instance/role credentials. |
-| `AWS_SECRET_ACCESS_KEY` | No* | AWS credentials. Not required if using instance/role credentials. |
-
-\* Not required locally if no `ssm:` values are present in the config.
+| `PROJECT_NAME` | Yes (non-local) | Used to construct the DynamoDB table name: `${PROJECT_NAME}-config-${environment}`. Injected automatically by the Lambda module. |
 
 #### Usage
 
 ```typescript
-import { loadConfig } from '@nx-launchpad/config-resolver-node';
+import { loadConfig } from '@nx-launchpad/config-loader-node';
 
 const config = await loadConfig();
 
 console.log(config['DATABASE_URL']); // resolved value
 ```
 
-The result is cached — call `loadConfig()` freely throughout your app without worrying about repeated SSM fetches.
+The result is cached — call `loadConfig()` freely throughout your app without worrying about repeated DynamoDB fetches.
 
 #### Options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `environment` | `string` | `APP_ENV` env var or `'local'` | Which environment overlay to load |
-| `configDir` | `string` | `{cwd}/config` | Path to the folder containing the YAML files |
-| `credentials` | `AwsCredentialIdentity` | env vars / instance role | Explicit AWS credentials (useful for testing) |
-| `forceReload` | `boolean` | `false` | Bypass cache and re-fetch everything including SSM secrets |
+| `environment` | `string` | `APP_ENV` env var or `'local'` | Which environment's config to load |
+| `forceReload` | `boolean` | `false` | Bypass cache and re-fetch from the store |
 
 #### Lambda usage
 
 Call `loadConfig()` outside the handler so the result is cached across warm invocations:
 
 ```typescript
-import { loadConfig } from '@nx-launchpad/config-resolver-node';
+import { loadConfig } from '@nx-launchpad/config-loader-node';
 import { flushLogger } from '@nx-launchpad/utils-node';
 
 const configPromise = loadConfig();
@@ -106,14 +123,14 @@ export const handler = async (event: unknown) => {
 };
 ```
 
-#### Adding the config resolver to a new app
+#### Adding the config loader to a new app
 
 1. Add the path alias to your app's `tsconfig.json`:
 
 ```json
 {
   "paths": {
-    "@nx-launchpad/config-resolver-node": ["../../libs/config-resolver/node/src/config.ts"]
+    "@nx-launchpad/config-loader-node": ["../../libs/config-loader/node/src/index.ts"]
   }
 }
 ```
@@ -121,7 +138,8 @@ export const handler = async (event: unknown) => {
 2. Import and call:
 
 ```typescript
-import { loadConfig } from '@nx-launchpad/config-resolver-node';
+import { loadConfig } from '@nx-launchpad/config-loader-node';
 ```
 
-3. Ensure `APP_ENV` is set in your environment. For non-local environments with `ssm:` values, AWS credentials must also be available.
+3. For local development, generate the resolved config file first (see above). For deployed environments, `PROJECT_NAME` must be set and the config must have been deployed via `config:deploy-config`.
+  
