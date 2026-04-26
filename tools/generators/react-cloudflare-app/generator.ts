@@ -9,7 +9,6 @@ export async function reactCloudflareAppGenerator(
   const appName = options.name;
   const appDir = `apps/${appName}`;
   const description = options.description ?? `${appName} application`;
-  const projectName = options.projectName || process.env['PROJECT_NAME'] || 'your-project-name';
   const stagingDomain = options.stagingDomain ?? '';
   const productionDomain = options.productionDomain ?? '';
   const title = appName
@@ -63,7 +62,7 @@ export async function reactCloudflareAppGenerator(
         configurations: {
           preview: {
             command: [
-              'WRANGLER_OUT=$(npx wrangler deploy --env preview 2>&1);',
+              'WRANGLER_OUT=$(npx wrangler deploy --env preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);',
               'VERSION_ID=$(echo "$WRANGLER_OUT" | grep -m1 \'Current Version ID\' | awk \'{print $NF}\');',
               '[ -n "$VERSION_ID" ] || { echo \'Failed to extract Version ID\' >&2; exit 1; };',
               'SHORT_ID=$(echo "$VERSION_ID" | cut -d\'-\' -f1);',
@@ -72,8 +71,8 @@ export async function reactCloudflareAppGenerator(
               'echo PREVIEW_URL=https://$SHORT_ID-$BASE_DOMAIN',
             ],
           },
-          staging: { command: 'npx wrangler deploy --env staging' },
-          production: { command: 'npx wrangler deploy --env production' },
+          staging: { command: 'npx wrangler deploy --env staging --var PROJECT_NAME:$PROJECT_NAME' },
+          production: { command: 'npx wrangler deploy --env production --var PROJECT_NAME:$PROJECT_NAME' },
         },
       },
     },
@@ -83,7 +82,6 @@ export async function reactCloudflareAppGenerator(
     name: appName,
     title,
     description,
-    projectName,
     stagingDomain,
     productionDomain,
     tmpl: '',

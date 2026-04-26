@@ -221,17 +221,17 @@ Every runnable (Lambda, Cloudflare Worker) **must** have `APP_ENV` and `PROJECT_
 
 ### Cloudflare Workers
 
-Set `APP_ENV` and `PROJECT_NAME` as plain `vars` in each environment block in `wrangler.jsonc`:
+Set `APP_ENV` as a plain `var` in each environment block in `wrangler.jsonc`. `PROJECT_NAME` is passed via the CLI at deploy time so it expands from the env var automatically — do not hardcode it in `wrangler.jsonc`:
 
 ```jsonc
 "env": {
-  "preview":    { "vars": { "APP_ENV": "local",      "PROJECT_NAME": "your-project-name" } },
-  "staging":    { "vars": { "APP_ENV": "staging",    "PROJECT_NAME": "your-project-name" } },
-  "production": { "vars": { "APP_ENV": "production", "PROJECT_NAME": "your-project-name" } }
+  "preview":    { "vars": { "APP_ENV": "local" } },
+  "staging":    { "vars": { "APP_ENV": "staging" } },
+  "production": { "vars": { "APP_ENV": "production" } }
 }
 ```
 
-Replace `"your-project-name"` with the same value as your `PROJECT_NAME` env var.
+`PROJECT_NAME` is injected via `--var PROJECT_NAME:$PROJECT_NAME` on every `wrangler deploy` call. The generated Nx deploy targets do this automatically.
 
 ## Shared Terraform Modules (`libs/infra/modules`)
 

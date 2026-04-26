@@ -18,12 +18,6 @@
       "default": "",
       "x-prompt": "Short description of the application?"
     },
-    "projectName": {
-      "type": "string",
-      "description": "Project name used to namespace all resources — must match PROJECT_NAME (e.g. falcon)",
-      "default": "",
-      "x-prompt": "Project name? (must match PROJECT_NAME)"
-    },
     "stagingDomain": {
       "type": "string",
       "description": "Custom domain for the staging environment (e.g. staging.example.com). Leave blank to skip.",

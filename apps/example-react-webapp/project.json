@@ -72,7 +72,7 @@
       "configurations": {
         "preview": {
           "command": [
-            "WRANGLER_OUT=$(npx wrangler deploy --env preview 2>&1);",
+            "WRANGLER_OUT=$(npx wrangler deploy --env preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);",
             "VERSION_ID=$(echo \"$WRANGLER_OUT\" | grep -m1 'Current Version ID' | awk '{print $NF}');",
             "[ -n \"$VERSION_ID\" ] || { echo 'Failed to extract Version ID' >&2; exit 1; };",
             "SHORT_ID=$(echo \"$VERSION_ID\" | cut -d'-' -f1);",
@@ -82,10 +82,10 @@
           ]
         },
         "staging": {
-          "command": "echo 'Deploying to staging is disabled — merge to the production branch to deploy'"
+          "command": "npx wrangler deploy --env staging --var PROJECT_NAME:$PROJECT_NAME"
         },
         "production": {
-          "command": "npx wrangler deploy --env production"
+          "command": "npx wrangler deploy --env production --var PROJECT_NAME:$PROJECT_NAME"
         }
       }
     }

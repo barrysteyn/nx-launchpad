@@ -11,15 +11,13 @@
   "env": {
     "preview": {
       "vars": {
-        "APP_ENV": "local",
-        "PROJECT_NAME": "<%= projectName %>"
+        "APP_ENV": "local"
       },
       "preview_urls": true
     },
     "staging": {
       "vars": {
-        "APP_ENV": "staging",
-        "PROJECT_NAME": "<%= projectName %>"
+        "APP_ENV": "staging"
       }<% if (stagingDomain) { %>,
       "route": {
         "pattern": "<%= stagingDomain %>",
@@ -28,8 +26,7 @@
     },
     "production": {
       "vars": {
-        "APP_ENV": "production",
-        "PROJECT_NAME": "<%= projectName %>"
+        "APP_ENV": "production"
       }<% if (productionDomain) { %>,
       "route": {
         "pattern": "<%= productionDomain %>",
