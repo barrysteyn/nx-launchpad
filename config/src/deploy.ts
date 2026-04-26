@@ -36,8 +36,9 @@ async function writeToCloudflareKV(
 
 async function deploy(): Promise<void> {
   const environment = process.env['ENVIRONMENT'];
-  if (!environment || environment === 'local') {
-    throw new Error('ENVIRONMENT must be set to a non-local environment for config deployment');
+  const validEnvironments = ['staging', 'production'];
+  if (!environment || !validEnvironments.includes(environment)) {
+    throw new Error(`ENVIRONMENT must be one of: ${validEnvironments.join(', ')}. Got: "${environment ?? ''}"`);
   }
 
   const projectName = process.env['PROJECT_NAME'];
