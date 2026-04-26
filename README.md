@@ -26,20 +26,24 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   Versioning is required — it allows state recovery if something goes wrong.
 >   Once created, update `libs/infra/backend.hcl` with your bucket name.
 >
-> - [ ] **Set your project name** — add the following to your root `.env` file (copy from `.env.example`):
+> - [ ] **Add to your root `.env` file** (copy from `.env.example`):
 >   ```bash
->   PROJECT_NAME=your-project-name
->   ```
->   This value namespaces all AWS and Cloudflare resources (`${project_name}-${app_name}-${environment}`). Choose a short, unique name — it becomes a permanent prefix for all infra. Nx targets derive `TF_VAR_project_name` from this automatically. Also add `PROJECT_NAME` as a GitHub Actions **variable** (Settings → Secrets and variables → Actions → Variables) so the deploy workflow can pass it to Terraform.
->
-> - [ ] **Add AWS keys to GitHub Secrets** — add both *AWS_ACCESS_KEY_ID* and *AWS_SECRET_ACCESS_KEY* to GitHub secrets (for Terraform).
->
-> - [ ] **Cloudflare credentials and Worker secrets** — add the following to your root `.env` file:
->   ```bash
+>   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
+>   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
 >   CLOUDFLARE_API_TOKEN=your-api-token
->   CLOUDFLARE_ACCOUNT_ID=your-account-id
+>   CLOUDFLARE_ACCOUNT_ID=your-account-id  # Cloudflare dashboard → right-hand sidebar
 >   ```
->   Find your Account ID in the Cloudflare dashboard: log in → select any domain (or Workers & Pages) → the Account ID is in the right-hand sidebar. Also add both as GitHub secrets (*CLOUDFLARE_API_TOKEN* and *CLOUDFLARE_ACCOUNT_ID*) — used by Wrangler for Workers deploys and by the config deploy script to write to KV.
+>   `PROJECT_NAME` becomes a permanent prefix for all infra (`${project_name}-${app_name}-${environment}`). Nx targets derive `TF_VAR_project_name` from it automatically.
+>
+> - [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
+>
+>   | Name | Type |
+>   |---|---|
+>   | `AWS_ACCESS_KEY_ID` | Secret |
+>   | `AWS_SECRET_ACCESS_KEY` | Secret |
+>   | `CLOUDFLARE_API_TOKEN` | Secret |
+>   | `CLOUDFLARE_ACCOUNT_ID` | Secret |
+>   | `PROJECT_NAME` | Variable |
 >
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---
