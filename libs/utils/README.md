@@ -14,14 +14,14 @@ Shared utility libraries for use across all apps in this monorepo. Utilities are
 
 A structured logger built on [pino](https://getpino.io/). All log output is JSON-structured, making it compatible with any log aggregation backend.
 
-Locally (`APP_ENV=local` or unset) logs are pretty-printed to the console via `pino-pretty`. In all other environments logs are written as JSON to stdout — Lambda ships these to CloudWatch automatically.
+Locally (`ENVIRONMENT=local` or unset) logs are pretty-printed to the console via `pino-pretty`. In all other environments logs are written as JSON to stdout — Lambda ships these to CloudWatch automatically.
 
 #### How it works
 
-On import, the logger is initialised based on `APP_ENV`:
+On import, the logger is initialised based on `ENVIRONMENT`:
 
-- **`APP_ENV=local` (or unset)** — pretty-printed, colourised output via `pino-pretty`
-- **Any other `APP_ENV`** — raw JSON to stdout (CloudWatch / any log aggregator)
+- **`ENVIRONMENT=local` (or unset)** — pretty-printed, colourised output via `pino-pretty`
+- **Any other `ENVIRONMENT`** — raw JSON to stdout (CloudWatch / any log aggregator)
 
 The service name attached to all log records is read from the `SERVICE_NAME` environment variable, defaulting to `"app"` if not set.
 
@@ -40,7 +40,7 @@ The service name attached to all log records is read from the `SERVICE_NAME` env
 
 | Variable | Required | Description |
 |---|---|---|
-| `APP_ENV` | No | Controls log format. `local` (or unset) → pretty print. Anything else → JSON stdout. |
+| `ENVIRONMENT` | No | Controls log format. `local` (or unset) → pretty print. Anything else → JSON stdout. |
 | `SERVICE_NAME` | No | Name attached to all log records. Defaults to `"app"`. |
 | `LOG_LEVEL` | No | Minimum log level. Defaults to `"info"`. |
 

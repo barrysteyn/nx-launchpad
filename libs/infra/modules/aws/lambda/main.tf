@@ -13,7 +13,7 @@ module "lambda" {
   timeout     = var.timeout
 
   environment_variables = merge(var.environment_variables, {
-    APP_ENV      = var.environment
+    ENVIRONMENT  = var.environment
     PROJECT_NAME = var.project_name
   })
 

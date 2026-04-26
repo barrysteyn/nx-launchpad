@@ -1,7 +1,7 @@
 import pino from 'pino';
 import PinoPretty from 'pino-pretty';
 
-const isLocal = !process.env['APP_ENV'] || process.env['APP_ENV'] === 'local';
+const isLocal = !process.env['ENVIRONMENT'] || process.env['ENVIRONMENT'] === 'local';
 
 export const logger = pino(
   {
