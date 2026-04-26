@@ -104,11 +104,11 @@
       "dependsOn": ["build"],
       "configurations": {
         "staging": {
-          "command": "terraform plan",
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform plan",
           "cwd": "{projectRoot}/infra/environments/staging"
         },
         "production": {
-          "command": "terraform plan",
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform plan",
           "cwd": "{projectRoot}/infra/environments/production"
         }
       }
@@ -118,11 +118,11 @@
       "dependsOn": ["build"],
       "configurations": {
         "staging": {
-          "command": "terraform apply",
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform apply",
           "cwd": "{projectRoot}/infra/environments/staging"
         },
         "production": {
-          "command": "terraform apply",
+          "command": "TF_VAR_project_name=$PROJECT_NAME terraform apply",
           "cwd": "{projectRoot}/infra/environments/production"
         }
       }
@@ -141,8 +141,8 @@
           "cwd": "{projectRoot}/infra/environments/production",
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
-            "terraform plan",
-            "terraform apply -auto-approve"
+            "TF_VAR_project_name=$PROJECT_NAME terraform plan",
+            "TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve"
           ],
           "parallel": false
         }
