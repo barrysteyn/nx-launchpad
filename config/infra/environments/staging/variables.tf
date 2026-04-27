@@ -3,6 +3,11 @@ variable "project_name" {
   type        = string
 }
 
+variable "environment" {
+  description = "Deployment environment — must be 'staging' when running from this directory"
+  type        = string
+}
+
 variable "aws_region" {
   description = "AWS region to deploy to"
   type        = string
