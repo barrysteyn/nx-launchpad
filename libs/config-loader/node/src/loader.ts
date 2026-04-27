@@ -23,7 +23,7 @@ async function loadFromDynamoDB(environment: string): Promise<Record<string, unk
   const projectName = process.env['PROJECT_NAME'];
   if (!projectName) throw new Error('PROJECT_NAME must be set');
 
-  const tableName = `${projectName}-config-${environment}`;
+  const tableName = `${projectName}-${environment}-config`;
   logger.info({ tableName }, 'Loading config from DynamoDB');
 
   const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));

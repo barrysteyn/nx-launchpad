@@ -25,7 +25,7 @@ const mockExistsSync = vi.mocked(existsSync);
 const OPTS = { environment: 'staging', filesDir: '/fake' };
 
 const baseConfig = {
-  RIZZLER_APP: { APP_NAME: 'baseApp', SECRET: 'ssm:path/to/ssm', KEY: 'val' },
+  RIZZLER_APP: { APP_NAME: 'baseApp', SECRET: 'ssm:/staging/rizzler/secret', KEY: 'val' },
 };
 const envConfig = {
   RIZZLER_APP: { APP_NAME: 'envApp', ENV_SPECIFIC: 'envValue' },
@@ -103,7 +103,7 @@ describe('Loading Shared Config Values', () => {
 describe('Resolving Shared Config Secrets', () => {
   test('Secret with ssm: prefix is resolved', async () => {
     mockReadFileSync.mockReturnValueOnce(
-      'RIZZLER_APP:\n  APP_NAME: baseApp\n  SECRET: ssm:path/to/ssm\n  KEY: val',
+      'RIZZLER_APP:\n  APP_NAME: baseApp\n  SECRET: ssm:/staging/rizzler/secret\n  KEY: val',
     );
     getSecretsMap.mockResolvedValue({ SECRET: 'resolved-secret' });
 

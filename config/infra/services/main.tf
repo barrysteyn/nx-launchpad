@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "config" {
-  name         = "${var.project_name}-config-${var.environment}"
+  name         = "${var.project_name}-${var.environment}-config"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "pk"
 
