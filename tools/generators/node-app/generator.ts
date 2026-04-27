@@ -65,7 +65,7 @@ function buildBaseTargets() {
     },
     build: {
       executor: 'nx:run-commands',
-      options: { command: 'npx tsc', cwd: '{projectRoot}' },
+      options: { command: 'npx esbuild src/main.ts --bundle --platform=node --target=node22 --outfile=dist/main.js --external:@aws-sdk/* --external:@smithy/*', cwd: '{projectRoot}' },
       configurations: {
         preview: { command: "echo 'No preview build for Node CLI apps'" },
       },
