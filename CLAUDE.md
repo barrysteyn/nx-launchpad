@@ -106,7 +106,7 @@ Currently:
 
 | Project | Cloudflare Terraform resources | Extra TF_VAR_ vars needed |
 |---|---|---|
-| `config` | Yes (KV namespace) | `cloudflare_account_id`, `cloudflare_api_token` |
+| `config` | Yes (KV namespace) | `environment`, `cloudflare_account_id`, `cloudflare_api_token` |
 | Node.js / Python apps | No (Lambda + API Gateway only) | — |
 
 ## Shared Libraries
