@@ -37,7 +37,15 @@ async function writeToCloudflareKV(
 async function deploy(): Promise<void> {
   const environment = process.env['ENVIRONMENT'];
   const validEnvironments = ['staging', 'production'];
-  if (!environment || !validEnvironments.includes(environment)) {
+  const expectedEnvironment = process.argv[2];
+
+  if (expectedEnvironment) {
+    if (environment !== expectedEnvironment) {
+      throw new Error(
+        `Requested ENVIRONMENT is "${expectedEnvironment}" but it was set to "${environment ?? ''}". Update your .env or shell before deploying.`,
+      );
+    }
+  } else if (!environment || !validEnvironments.includes(environment)) {
     throw new Error(`ENVIRONMENT must be one of: ${validEnvironments.join(', ')}. Got: "${environment ?? ''}"`);
   }
 
@@ -65,7 +73,7 @@ async function deploy(): Promise<void> {
 
   logger.info({ environment, keys: Object.keys(config).length }, 'Config resolved, deploying');
 
-  const resourceName = `${projectName}-config-${environment}`;
+  const resourceName = `${projectName}-${environment}-config`;
   const cf = new Cloudflare({ apiToken: cfApiToken });
   const kvNamespaceId = await getKvNamespaceId(cf, cfAccountId, resourceName);
 
