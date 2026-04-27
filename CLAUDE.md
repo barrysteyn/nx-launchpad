@@ -265,6 +265,7 @@ Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, an
 |---|---|---|
 | `aws/lambda` | `libs/infra/modules/aws/lambda` | `${project_name}-${environment}-${app_name}` |
 | `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${environment}-${app_name}` |
+| `aws/dynamodb` | `libs/infra/modules/aws/dynamodb` | `${project_name}-${environment}-${app_name}` |
 | `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
 
 **Rule:** when adding a new module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.

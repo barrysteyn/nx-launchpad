@@ -1,12 +1,8 @@
-resource "aws_dynamodb_table" "config" {
-  name         = "${var.project_name}-${var.environment}-config"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "pk"
-
-  attribute {
-    name = "pk"
-    type = "S"
-  }
+module "dynamodb" {
+  source       = "../../../libs/infra/modules/aws/dynamodb"
+  project_name = var.project_name
+  app_name     = "config"
+  environment  = var.environment
 
   tags = {
     environment = var.environment
