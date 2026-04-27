@@ -131,16 +131,16 @@ function buildInfraTargets() {
       executor: 'nx:run-commands',
       dependsOn: ['build'],
       configurations: {
-        staging: { command: 'TF_VAR_project_name=$PROJECT_NAME terraform plan', cwd: '{projectRoot}/infra/environments/staging' },
-        production: { command: 'TF_VAR_project_name=$PROJECT_NAME terraform plan', cwd: '{projectRoot}/infra/environments/production' },
+        staging: { command: 'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan', cwd: '{projectRoot}/infra/environments/staging' },
+        production: { command: 'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan', cwd: '{projectRoot}/infra/environments/production' },
       },
     },
     'tf-apply': {
       executor: 'nx:run-commands',
       dependsOn: ['build'],
       configurations: {
-        staging: { command: 'TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve', cwd: '{projectRoot}/infra/environments/staging' },
-        production: { command: 'TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve', cwd: '{projectRoot}/infra/environments/production' },
+        staging: { command: 'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve', cwd: '{projectRoot}/infra/environments/staging' },
+        production: { command: 'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve', cwd: '{projectRoot}/infra/environments/production' },
       },
     },
     deploy: {
@@ -152,8 +152,8 @@ function buildInfraTargets() {
           cwd: '{projectRoot}/infra/environments/staging',
           commands: [
             'terraform init -backend-config=../../../../../libs/infra/backend.hcl',
-            'TF_VAR_project_name=$PROJECT_NAME terraform plan',
-            'TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve',
+            'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan',
+            'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve',
           ],
           parallel: false,
         },
@@ -161,8 +161,8 @@ function buildInfraTargets() {
           cwd: '{projectRoot}/infra/environments/production',
           commands: [
             'terraform init -backend-config=../../../../../libs/infra/backend.hcl',
-            'TF_VAR_project_name=$PROJECT_NAME terraform plan',
-            'TF_VAR_project_name=$PROJECT_NAME terraform apply -auto-approve',
+            'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan',
+            'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve',
           ],
           parallel: false,
         },
