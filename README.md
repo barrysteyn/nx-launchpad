@@ -31,10 +31,11 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
 >   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
 >   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
+>   AWS_REGION=us-east-1                # AWS region for DynamoDB, SSM, and Lambda
 >   CLOUDFLARE_API_TOKEN=your-api-token
 >   CLOUDFLARE_ACCOUNT_ID=your-account-id  # Cloudflare dashboard → right-hand sidebar
 >   ```
->   `PROJECT_NAME` becomes a permanent prefix for all infra (`${project_name}-${app_name}-${environment}`). Nx targets derive `TF_VAR_project_name` from it automatically.
+>   `PROJECT_NAME` becomes a permanent prefix for all infra (`${project_name}-${environment}-${app_name}`). Nx targets derive `TF_VAR_project_name` from it automatically.
 >
 > - [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
 >
@@ -45,6 +46,8 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   | `CLOUDFLARE_API_TOKEN` | Secret |
 >   | `CLOUDFLARE_ACCOUNT_ID` | Secret |
 >   | `PROJECT_NAME` | Variable |
+>
+>   `AWS_REGION` is hardcoded to `us-east-1` in the deploy workflow — no need to add it here.
 >
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
 ---
@@ -179,7 +182,7 @@ Trigger manually from the **Actions** tab in GitHub. You will be prompted for:
 | `AWS_SECRET_ACCESS_KEY` | Secret | Terraform (Lambda deployments) |
 | `CLOUDFLARE_API_TOKEN` | Secret | Wrangler (Workers deploys) + config deploy script (writes to KV) |
 | `CLOUDFLARE_ACCOUNT_ID` | Secret | Config deploy script (looks up KV namespace) |
-| `PROJECT_NAME` | Variable | Terraform resource naming prefix (`${project_name}-${app_name}-${environment}`) |
+| `PROJECT_NAME` | Variable | Terraform resource naming prefix (`${project_name}-${environment}-${app_name}`) |
 
 ---
 
@@ -198,15 +201,15 @@ See the [Nx docs](https://nx.dev/docs/guides/tips-n-tricks/define-environment-va
 
 ### ENVIRONMENT
 
-`ENVIRONMENT` is the universal environment variable that tells every app and library which environment it is running in.
+`ENVIRONMENT` controls which config layer is active and how apps behave at runtime. It must always be set — every app and library reads it.
 
-| Value | When to use |
-|---|---|
-| `local` | Local development (default) |
-| `staging` | Staging environment |
-| `production` | Production environment |
+| Value | Set by | Behaviour |
+|---|---|---|
+| `local` | You (in `.env`) | Loads config from `config/files/local.resolved.json`. Logger pretty-prints to console. No AWS credentials required unless SSM values are present. |
+| `staging` | CI/CD deploy workflow | Loads config from DynamoDB table `${PROJECT_NAME}-config-staging`. Logger outputs JSON to stdout. |
+| `production` | CI/CD deploy workflow | Loads config from DynamoDB table `${PROJECT_NAME}-config-production`. Logger outputs JSON to stdout. |
 
-Set it in your root `.env` file:
+Always set `ENVIRONMENT=local` in your root `.env` file — never set it to `staging` or `production` locally:
 
 ```bash
 ENVIRONMENT=local
@@ -214,7 +217,7 @@ ENVIRONMENT=local
 
 **How it works:** the config system loads `config/files/default.yaml` as the base, then deep-merges `config/files/{ENVIRONMENT}.yaml` on top. Any key defined in the environment file overrides the default — everything else falls through from `default.yaml`. See [config/README.md](config/README.md) for the full config system documentation.
 
-In CI/CD pipelines, `ENVIRONMENT` is set automatically by the deploy workflow to match the target environment. You should not need to set it manually in staging or production.
+In CI/CD, `ENVIRONMENT` is set automatically by the deploy workflow — you never need to set it manually for staging or production.
 
 ---
 

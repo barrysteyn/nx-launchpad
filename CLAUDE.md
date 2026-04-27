@@ -63,6 +63,10 @@ ENVIRONMENT=local
 
 The `config` project resolves `config/files/default.yaml` and deep-merges `config/files/{ENVIRONMENT}.yaml` on top — environment values win on conflict. At runtime, apps load the pre-resolved config via `libs/config-loader`.
 
+### SSM path convention
+
+SSM parameters must follow `/{environment}/{service}/{secret}` (e.g. `/staging/stripe/secret-key`). Because the environment is part of the path, SSM references must live in the environment overlay files (`staging.yaml`, `production.yaml`) — never in `default.yaml`.
+
 In CI/CD, `ENVIRONMENT` is set by the deploy pipeline to match the target environment.
 
 ### PROJECT_NAME
@@ -70,7 +74,7 @@ In CI/CD, `ENVIRONMENT` is set by the deploy pipeline to match the target enviro
 `PROJECT_NAME` is the universal variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/modules/aws/lambda`, `libs/infra/modules/aws/api-gateway`, `libs/infra/modules/cloudflare/kv`) uses it to compute resource names following the convention:
 
 ```
-${project_name}-${app_name}-${environment}
+${project_name}-${environment}-${app_name}
 ```
 
 Set it in your root `.env` file (alongside `ENVIRONMENT`):
@@ -229,7 +233,7 @@ infra/
 - All service definitions (Lambda, API Gateway) live in `services/` — edit there, not in the environment directories.
 - `environments/*/backend.tf`, `providers.tf`, and `variables.tf` are per-root-module Terraform boilerplate and must stay duplicated — this is the standard Terraform pattern.
 - `title(var.environment)` is used for capitalised descriptions (e.g. `"My App - Staging"`).
-- `project_name` is passed from the environment root modules into `services/` and then into the shared `libs/infra` modules — it is never hard-coded. Resource names are computed inside the shared modules as `${project_name}-${app_name}-${environment}`.
+- `project_name` is passed from the environment root modules into `services/` and then into the shared `libs/infra` modules — it is never hard-coded. Resource names are computed inside the shared modules as `${project_name}-${environment}-${app_name}`.
 
 ## Runtime Environment Variables
 
@@ -259,11 +263,11 @@ Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, an
 
 | Module | Path | Resource named |
 |---|---|---|
-| `aws/lambda` | `libs/infra/modules/aws/lambda` | `${project_name}-${app_name}-${environment}` |
-| `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${app_name}-${environment}` |
-| `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${app_name}-${environment}` |
+| `aws/lambda` | `libs/infra/modules/aws/lambda` | `${project_name}-${environment}-${app_name}` |
+| `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${environment}-${app_name}` |
+| `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
 
-**Rule:** when adding a new module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${app_name}-${environment}`. Never accept a pre-composed name string.
+**Rule:** when adding a new module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.
 
 ### Useful Terraform targets
 
