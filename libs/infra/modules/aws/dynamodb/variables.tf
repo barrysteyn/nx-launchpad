@@ -43,10 +43,12 @@ variable "additional_attributes" {
 variable "global_secondary_indexes" {
   description = "Global secondary indexes to create on the table"
   type = list(object({
-    name               = string
-    hash_key           = string
-    range_key          = optional(string)
-    projection_type    = string
+    name            = string
+    projection_type = string
+    key_schema = list(object({
+      attribute_name = string
+      key_type       = string
+    }))
     non_key_attributes = optional(list(string))
     read_capacity      = optional(number)
     write_capacity     = optional(number)

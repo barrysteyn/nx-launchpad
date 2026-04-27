@@ -22,13 +22,19 @@ resource "aws_dynamodb_table" "this" {
   dynamic "global_secondary_index" {
     for_each = var.global_secondary_indexes
     content {
-      name               = global_secondary_index.value.name
-      hash_key           = global_secondary_index.value.hash_key
-      range_key          = global_secondary_index.value.range_key
-      projection_type    = global_secondary_index.value.projection_type
+      name            = global_secondary_index.value.name
+      projection_type = global_secondary_index.value.projection_type
       non_key_attributes = global_secondary_index.value.projection_type == "INCLUDE" ? global_secondary_index.value.non_key_attributes : null
       read_capacity      = var.billing_mode == "PROVISIONED" ? global_secondary_index.value.read_capacity : null
       write_capacity     = var.billing_mode == "PROVISIONED" ? global_secondary_index.value.write_capacity : null
+
+      dynamic "key_schema" {
+        for_each = global_secondary_index.value.key_schema
+        content {
+          attribute_name = key_schema.value.attribute_name
+          key_type       = key_schema.value.key_type
+        }
+      }
     }
   }
 
