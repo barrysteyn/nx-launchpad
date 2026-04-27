@@ -19,7 +19,7 @@ Config is a two-phase system:
 **Phase 2 — load (runtime):** The loader reads the pre-resolved config blob from the appropriate store:
 
 - `local` — reads from `config/files/local.resolved.json` (generated locally via `npx nx run config:resolve`)
-- `staging` / `production` — fetches from DynamoDB table `${PROJECT_NAME}-config-${environment}`
+- `staging` / `production` — fetches from DynamoDB table `${PROJECT_NAME}-${environment}-config`
 
 The resolved config is a plain object — no special types or wrappers.
 
@@ -33,12 +33,12 @@ All keys must be `SCREAMING_SNAKE_CASE`. Values can be plain strings, numbers, b
 # config/files/default.yaml
 DATABASE_URL: postgres://localhost:5432/mydb
 LOG_LEVEL: info
-API_KEY: ssm:/myapp/api-key
+API_KEY: ssm:/staging/myapp/api-key
 ```
 
 ```yaml
 # config/files/production.yaml
-DATABASE_URL: ssm:/myapp/prod/db-url
+DATABASE_URL: ssm:/production/myapp/db-url
 LOG_LEVEL: warn
 ```
 
@@ -83,7 +83,7 @@ This runs `terraform apply` (to ensure the DynamoDB table and Cloudflare KV name
 | Variable | Required | Description |
 |---|---|---|
 | `ENVIRONMENT` | No | Environment to load (`local`, `staging`, `production`). Defaults to `local`. |
-| `PROJECT_NAME` | Yes (non-local) | Used to construct the DynamoDB table name: `${PROJECT_NAME}-config-${environment}`. Injected automatically by the Lambda module. |
+| `PROJECT_NAME` | Yes (non-local) | Used to construct the DynamoDB table name: `${PROJECT_NAME}-${environment}-config`. Injected automatically by the Lambda module. |
 
 #### Usage
 

@@ -18,11 +18,25 @@ At runtime, apps never touch YAML or SSM — they just read the pre-resolved blo
 Each YAML file defines config keys as `SCREAMING_SNAKE_CASE`. Values can be plain strings, numbers, booleans, or an `ssm:` reference pointing to an AWS SSM Parameter Store path:
 
 ```yaml
-# files/default.yaml
+# files/staging.yaml
 DATABASE_URL: postgres://localhost:5432/mydb
-API_KEY: ssm:/myapp/api-key        # fetched from SSM at deploy time
+API_KEY: ssm:/staging/myapp/api-key        # fetched from SSM at deploy time
 LOG_LEVEL: info
 ```
+
+### SSM path convention
+
+SSM parameters must follow the format `/{environment}/{service}/{secret}`:
+
+```yaml
+# files/staging.yaml
+STRIPE_SECRET_KEY: ssm:/staging/stripe/secret-key
+
+# files/production.yaml
+STRIPE_SECRET_KEY: ssm:/production/stripe/secret-key
+```
+
+Because the environment is part of the path, SSM references belong in the environment overlay files (`staging.yaml`, `production.yaml`) — not in `default.yaml`. Plain string values and local development overrides go in `default.yaml` and `local.yaml`.
 
 There are four files:
 
@@ -59,8 +73,8 @@ The deploy script pushes config to the running infrastructure. It:
 1. Calls the resolver to get the fully-resolved config blob for the target environment
 2. Serialises it to JSON
 3. Writes it to **two** stores in parallel:
-   - **DynamoDB** — table named `${PROJECT_NAME}-config-${environment}` — read by Lambda apps via `libs/config-loader`
-   - **Cloudflare KV** — namespace named `${PROJECT_NAME}-config-${environment}` — read by Cloudflare Workers
+   - **DynamoDB** — table named `${PROJECT_NAME}-${environment}-config` — read by Lambda apps via `libs/config-loader`
+   - **Cloudflare KV** — namespace named `${PROJECT_NAME}-${environment}-config` — read by Cloudflare Workers
 
 This runs as part of `npx nx run config:deploy-config:staging/production`, which first runs `terraform apply` to ensure the stores exist, then calls this script.
 
@@ -82,8 +96,8 @@ This calls the resolver with `local` as the environment and writes the result to
 
 Terraform provisions the stores that config is deployed into:
 
-- **DynamoDB table** — `${project_name}-config-${environment}` — a simple key-value table with a single item (`pk: "config"`) holding the entire resolved config as a JSON string in the `data` attribute
-- **Cloudflare KV namespace** — `${project_name}-config-${environment}` — same JSON blob stored under the key `config`
+- **DynamoDB table** — `${project_name}-${environment}-config` — a simple key-value table with a single item (`pk: "config"`) holding the entire resolved config as a JSON string in the `data` attribute
+- **Cloudflare KV namespace** — `${project_name}-${environment}-config` — same JSON blob stored under the key `config`
 
 Both staging and production have their own Terraform root modules in `infra/environments/`. The actual resource definitions live in `infra/services/` and are shared between environments.
 
