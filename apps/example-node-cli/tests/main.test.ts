@@ -1,11 +1,26 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { main } from '../src/main';
 
+vi.mock('@nx-launchpad/config-loader-node', () => ({
+  loadConfig: vi.fn().mockResolvedValue({
+    TEST_KEY: 'test-value',
+    TEST_SECRET_KEY: 'test-secret',
+  }),
+}));
+
+vi.mock('@nx-launchpad/utils-node', () => ({
+  logger: { child: () => ({ info: vi.fn(), error: vi.fn() }) },
+  flushLogger: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('main', () => {
-  it('prints hello message', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    main();
-    expect(spy).toHaveBeenCalledWith('Hello from example-node-cli!');
-    spy.mockRestore();
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  it('logs config values', async () => {
+    await main();
+    expect(console.log).toHaveBeenCalledWith('TEST_KEY:', 'test-value');
+    expect(console.log).toHaveBeenCalledWith('TEST_SECRET_KEY:', 'test-secret');
   });
 });
