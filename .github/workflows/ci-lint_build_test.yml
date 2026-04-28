@@ -70,6 +70,14 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Print CI summary
+        run: |
+          echo "## 🧭 CI Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`$ENVIRONMENT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Affected projects | \`${{ needs.plan.outputs.count }}\` |" >> $GITHUB_STEP_SUMMARY
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
