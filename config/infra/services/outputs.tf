@@ -1,11 +1,11 @@
 output "dynamodb_table_name" {
   description = "DynamoDB config table name"
-  value       = aws_dynamodb_table.config.name
+  value       = module.dynamodb.table_name
 }
 
 output "dynamodb_table_arn" {
   description = "DynamoDB config table ARN"
-  value       = aws_dynamodb_table.config.arn
+  value       = module.dynamodb.table_arn
 }
 
 output "kv_namespace_id" {
