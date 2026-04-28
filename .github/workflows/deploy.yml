@@ -37,7 +37,7 @@ jobs:
       actions: read
       contents: read
     outputs:
-      configuration: ${{ steps.config.outputs.configuration }}
+      environment: ${{ steps.config.outputs.environment }}
       count: ${{ steps.affected.outputs.count }}
       needs_python_uv: ${{ steps.affected.outputs.needs_python_uv }}
       needs_java: ${{ steps.affected.outputs.needs_java }}
@@ -78,15 +78,15 @@ jobs:
             echo "affected=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Determine deploy configuration
+      - name: Determine deploy environment
         id: config
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "configuration=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/production" ]]; then
-            echo "configuration=production" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
           else
-            echo "configuration=staging" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
           fi
 
       - name: Determine nx command
@@ -106,13 +106,13 @@ jobs:
           summary_title: "## 🚀 Nx deploy targets"
 
   deploy:
-    name: deploy (${{ needs.plan.outputs.configuration }})
+    name: deploy (${{ needs.plan.outputs.environment }})
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    environment: ${{ needs.plan.outputs.configuration }}
+    environment: ${{ needs.plan.outputs.environment }}
     env:
-      ENVIRONMENT: ${{ needs.plan.outputs.configuration }}
+      ENVIRONMENT: ${{ needs.plan.outputs.environment }}
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -167,14 +167,14 @@ jobs:
       - name: Deploy config
         if: needs.plan.outputs.config_affected == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.app == 'deploy-config')
         timeout-minutes: 15
-        run: npx nx run config:deploy-config --configuration=${{ needs.plan.outputs.configuration }}
+        run: npx nx run config:deploy-config --configuration=${{ needs.plan.outputs.environment }}
 
       - name: Deploy single app
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != '' && github.event.inputs.app != 'deploy-config'
         timeout-minutes: 30
-        run: npx nx run ${{ github.event.inputs.app }}:deploy --configuration=${{ needs.plan.outputs.configuration }}
+        run: npx nx run ${{ github.event.inputs.app }}:deploy --configuration=${{ needs.plan.outputs.environment }}
 
       - name: Deploy all affected
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.app == ''
         timeout-minutes: 30
-        run: npx nx affected run-many -t deploy --configuration=${{ needs.plan.outputs.configuration }}
+        run: npx nx affected run-many -t deploy --configuration=${{ needs.plan.outputs.environment }}
