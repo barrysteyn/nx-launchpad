@@ -123,6 +123,16 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Print deploy summary
+        run: |
+          echo "## 🚀 Deploy Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`$ENVIRONMENT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Project name | \`$PROJECT_NAME\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Config affected | \`${{ needs.plan.outputs.config_affected }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Apps to deploy | \`${{ needs.plan.outputs.count }}\` |" >> $GITHUB_STEP_SUMMARY
+
       - uses: actions/checkout@v4
         with:
           filter: tree:0

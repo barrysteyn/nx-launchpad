@@ -23,9 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
-      APP_ENV: staging
+      ENVIRONMENT: local
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
+      - name: Print preview deploy summary
+        run: |
+          echo "## ☁️ Cloudflare Preview Deploy Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`$ENVIRONMENT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| PR | \`#${{ github.event.pull_request.number }}\` |" >> $GITHUB_STEP_SUMMARY
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
