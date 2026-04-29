@@ -14,11 +14,15 @@ export async function handler(
 
 export async function main(): Promise<void> {
   const environment = process.env['ENVIRONMENT'] ?? 'local';
-  const projectName = process.env['PROJECT_NAME'] ?? '';
-  const config =
-    environment === 'local'
-      ? await loadLocalConfig()
-      : await loadAwsConfig(`${projectName}-${environment}-config`);
+  let config: Record<string, unknown>;
+
+  if (environment === 'local') {
+    config = await loadLocalConfig();
+  } else {
+    const projectName = process.env['PROJECT_NAME'];
+    if (!projectName) throw new Error('PROJECT_NAME must be set for non-local environments');
+    config = await loadAwsConfig(`${projectName}-${environment}-config`);
+  }
   console.log('TEST_KEY:', config['TEST_KEY']);
   console.log('TEST_SECRET_KEY:', config['TEST_SECRET_KEY']);
 }
