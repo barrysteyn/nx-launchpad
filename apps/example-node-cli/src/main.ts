@@ -1,4 +1,4 @@
-import { loadConfig } from '@nx-launchpad/config-loader-node';
+import { loadLocalConfig, loadAwsConfig } from '@nx-launchpad/config-loader-node';
 import { flushLogger } from '@nx-launchpad/utils-node';
 
 export async function handler(
@@ -13,7 +13,12 @@ export async function handler(
 }
 
 export async function main(): Promise<void> {
-  const config = await loadConfig();
+  const environment = process.env['ENVIRONMENT'] ?? 'local';
+  const projectName = process.env['PROJECT_NAME'] ?? '';
+  const config =
+    environment === 'local'
+      ? await loadLocalConfig()
+      : await loadAwsConfig(`${projectName}-${environment}-config`);
   console.log('TEST_KEY:', config['TEST_KEY']);
   console.log('TEST_SECRET_KEY:', config['TEST_SECRET_KEY']);
 }

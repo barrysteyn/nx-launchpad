@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { main } from '../src/main';
 
 vi.mock('@nx-launchpad/config-loader-node', () => ({
-  loadConfig: vi.fn().mockResolvedValue({
+  loadLocalConfig: vi.fn().mockResolvedValue({
     TEST_KEY: 'test-value',
     TEST_SECRET_KEY: 'test-secret',
   }),
+  loadAwsConfig: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock('@nx-launchpad/utils-node', () => ({
@@ -16,6 +17,7 @@ vi.mock('@nx-launchpad/utils-node', () => ({
 describe('main', () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
+    process.env['ENVIRONMENT'] = 'local';
   });
 
   it('logs config values', async () => {
