@@ -19,14 +19,6 @@ nx-graph.html
 static/
 
 # ------------------------------------------------------------
-# App-specific generated data
-# ------------------------------------------------------------
-crawled_pages/
-apps/falcon-iq-analyzer/results/
-apps/falcon-iq-analyzer/crawled_sites/
-.falcon/
-
-# ------------------------------------------------------------
 # Node / TypeScript
 # ------------------------------------------------------------
 node_modules/
@@ -83,6 +75,9 @@ htmlcov/
 .vite/
 .wrangler/
 
+# Generated resolved config files
+config/files/*.resolved.json
+
 # ------------------------------------------------------------
 # Terraform
 # ------------------------------------------------------------
@@ -129,6 +124,7 @@ target/
 .claude/*
 !.claude/commands/
 !.claude/settings.json
+docs/superpowers/*
 
 # Uncomment these only if they are truly local-only and should
 # never be shared as part of the template repo:
