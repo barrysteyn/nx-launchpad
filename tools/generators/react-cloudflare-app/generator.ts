@@ -34,7 +34,11 @@ export async function reactCloudflareAppGenerator(
       typecheck: {
         executor: 'nx:run-commands',
         options: {
-          command: 'npx tsc --noEmit -p tsconfig.app.json',
+          commands: [
+            'npx tsc --noEmit -p tsconfig.app.json',
+            'npx tsc --noEmit -p tsconfig.worker.json',
+          ],
+          parallel: false,
           cwd: '{projectRoot}',
         },
       },
@@ -53,7 +57,19 @@ export async function reactCloudflareAppGenerator(
       },
       serve: {
         executor: 'nx:run-commands',
+        dependsOn: ['seed-local-kv'],
         options: { command: 'npx vite', cwd: '{projectRoot}' },
+      },
+      'seed-local-kv': {
+        executor: 'nx:run-commands',
+        options: {
+          commands: [
+            'npx nx run config:resolve --args="--environment=local --outFile=files/local.resolved.json"',
+            'npx wrangler kv key put config --binding CONFIG_KV --local --path=../../config/files/local.resolved.json',
+          ],
+          parallel: false,
+          cwd: '{projectRoot}',
+        },
       },
       deploy: {
         executor: 'nx:run-commands',
