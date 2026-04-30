@@ -1,0 +1,46 @@
+# <%= name %>
+
+<%= description %>
+
+## Stack
+
+- **React + TanStack Router** — file-based routing; add a file to `src/app/routes/` and it becomes a route automatically
+- **Hono** — lightweight API framework running in the Cloudflare Workers runtime
+- **Config middleware** — loads the resolved app config from Cloudflare KV on every request; available in route handlers via `c.var.config`
+- **Tailwind CSS v4** — utility-first styling
+
+## Project structure
+
+```
+src/
+  app/        ← React SPA (runs in the browser)
+    routes/   ← file-based routes; one file = one route
+  worker/     ← Hono API (runs in Cloudflare Workers)
+    api/      ← route handlers (e.g. GET /api/health)
+    middleware/  ← config loader middleware
+```
+
+## Local development
+
+Seed the local KV store and start the dev server:
+
+```bash
+npx nx run <%= name %>:serve
+```
+
+The KV store is seeded automatically before Vite starts. The React SPA and the Hono API both run at `http://localhost:5173` — no second process needed.
+
+If you change config values, re-seed manually:
+
+```bash
+npx nx run <%= name %>:seed-local-kv
+```
+
+## Deployment
+
+Before deploying, replace the `<staging-kv-namespace-id>` and `<production-kv-namespace-id>` placeholders in `wrangler.jsonc` with the real KV namespace IDs from `terraform output kv_namespace_id`.
+
+```bash
+npx nx run <%= name %>:deploy:staging
+npx nx run <%= name %>:deploy:production
+```

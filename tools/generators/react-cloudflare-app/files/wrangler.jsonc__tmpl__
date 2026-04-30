@@ -1,9 +1,19 @@
 {
   "name": "<%= name %>",
   "compatibility_date": "2025-01-01",
+  "main": "src/worker/index.ts",
+  "vars": {
+    "ENVIRONMENT": "local"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV"
+    }
+  ],
   "assets": {
-    "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   },
   "observability": {
     "enabled": true
@@ -11,14 +21,26 @@
   "env": {
     "preview": {
       "vars": {
-        "ENVIRONMENT": "local"
+        "ENVIRONMENT": "staging"
       },
+      "kv_namespaces": [
+        {
+          "binding": "CONFIG_KV",
+          "id": "<staging-kv-namespace-id>"
+        }
+      ],
       "preview_urls": true
     },
     "staging": {
       "vars": {
         "ENVIRONMENT": "staging"
-      }<% if (stagingDomain) { %>,
+      },
+      "kv_namespaces": [
+        {
+          "binding": "CONFIG_KV",
+          "id": "<staging-kv-namespace-id>"
+        }
+      ]<% if (stagingDomain) { %>,
       "route": {
         "pattern": "<%= stagingDomain %>",
         "custom_domain": true
@@ -27,7 +49,14 @@
     "production": {
       "vars": {
         "ENVIRONMENT": "production"
-      }<% if (productionDomain) { %>,
+      },
+      "kv_namespaces": [
+        {
+          "binding": "CONFIG_KV",
+          "id": "<production-kv-namespace-id>"
+        }
+      ],
+      "workers_dev": false<% if (productionDomain) { %>,
       "route": {
         "pattern": "<%= productionDomain %>",
         "custom_domain": true
