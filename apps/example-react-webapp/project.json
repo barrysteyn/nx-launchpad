@@ -62,6 +62,7 @@
     },
     "serve": {
       "executor": "nx:run-commands",
+      "dependsOn": ["seed-local-kv"],
       "options": {
         "command": "npx vite",
         "cwd": "{projectRoot}"

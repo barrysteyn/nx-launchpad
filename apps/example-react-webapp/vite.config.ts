@@ -1,9 +1,28 @@
+import { cloudflare } from '@cloudflare/vite-plugin';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    cloudflare(),
+    TanStackRouterVite({
+      routesDirectory: './src/app/routes',
+      generatedRouteTree: './src/app/routeTree.gen.ts',
+    }),
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      '@nx-launchpad/config-loader-node': resolve(
+        __dirname,
+        '../../libs/config-loader/node/src/cloudflare.ts',
+      ),
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/test-setup.ts'],

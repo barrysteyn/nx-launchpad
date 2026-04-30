@@ -1,15 +1,6 @@
 import type { MiddlewareHandler } from 'hono';
 import { loadCloudflareConfig } from '@nx-launchpad/config-loader-node';
-
-type Bindings = {
-  ENVIRONMENT: string;
-  PROJECT_NAME: string;
-  CONFIG_KV: KVNamespace;
-};
-
-type Variables = {
-  config: Record<string, unknown>;
-};
+import type { Bindings, Variables } from '../types';
 
 export const configMiddleware: MiddlewareHandler<{
   Bindings: Bindings;

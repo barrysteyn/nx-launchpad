@@ -13,7 +13,7 @@ describe('loadCloudflareConfig', () => {
 
   it("throws with a helpful message when key 'config' is missing", async () => {
     await expect(loadCloudflareConfig(mockKV(null))).rejects.toThrow(
-      "CONFIG_KV key 'config' not found. Run: nx run example-react-webapp:seed-local-kv",
+      "CONFIG_KV key 'config' not found. Seed the KV store before starting the worker.",
     );
   });
 
