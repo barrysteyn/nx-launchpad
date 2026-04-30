@@ -1,4 +1,7 @@
-import { loadLocalConfig, loadAwsConfig } from '@nx-launchpad/config-loader-node';
+import {
+  loadLocalConfig,
+  loadAwsConfig,
+} from '@nx-launchpad/config-loader-node';
 import { flushLogger } from '@nx-launchpad/utils-node';
 
 export async function handler(
@@ -20,7 +23,8 @@ export async function main(): Promise<void> {
     config = await loadLocalConfig();
   } else {
     const projectName = process.env['PROJECT_NAME'];
-    if (!projectName) throw new Error('PROJECT_NAME must be set for non-local environments');
+    if (!projectName)
+      throw new Error('PROJECT_NAME must be set for non-local environments');
     config = await loadAwsConfig(`${projectName}-${environment}-config`);
   }
   console.log('TEST_KEY:', config['TEST_KEY']);
