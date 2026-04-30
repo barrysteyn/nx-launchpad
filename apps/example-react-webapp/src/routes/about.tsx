@@ -1,4 +1,10 @@
-export function AboutPage() {
+import { createFileRoute } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/about')({
+  component: AboutPage,
+});
+
+function AboutPage() {
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
       <h1 className="text-3xl font-bold text-gray-900">About</h1>
