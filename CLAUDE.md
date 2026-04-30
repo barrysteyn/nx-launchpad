@@ -338,6 +338,7 @@ apps/<name>/
   tsconfig.node.json
   tsconfig.test.json
   eslint.config.js
+  .prettierignore         ← excludes routeTree.gen.ts from formatting checks
   package.json            ← workspace member; identity fields only
   .node-version
   project.json
