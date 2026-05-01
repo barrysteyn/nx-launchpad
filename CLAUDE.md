@@ -404,6 +404,19 @@ npx nx run <name>:deploy:production
 
 The `wrangler.jsonc` defines three environments — `preview` (with `preview_urls: true` for version-specific Cloudflare URLs), `staging`, and `production`.
 
+#### `CLOUDFLARE_ENV` and build/deploy matching
+
+`CLOUDFLARE_ENV` is an official env var of `@cloudflare/vite-plugin`. At build time it tells the plugin which wrangler environment to select — this bakes env-specific settings (KV bindings, vars, etc.) into the generated `dist/.../wrangler.json` as `targetEnvironment`.
+
+Each `build:<env>` configuration sets `CLOUDFLARE_ENV=<env>`, and the corresponding `deploy:<env>` uses `-e <env>`. **The two must always match** — wrangler validates at deploy time that the `-e` flag equals the `targetEnvironment` that was baked in during the build.
+
+```
+build:preview    → CLOUDFLARE_ENV=preview  → targetEnvironment: "preview"
+deploy:preview   → -e preview              → ✓ matches
+```
+
+The `wrangler.jsonc` base (top-level) config is for local dev only — it does **not** need `kv_namespaces`. KV namespace IDs belong in the env-specific blocks (`preview`, `staging`, `production`) where they have real Cloudflare namespace IDs assigned.
+
 ## Python Dependencies
 
 To add a dependency to a Python project, use `uv add` directly — do not create an Nx target for this:
