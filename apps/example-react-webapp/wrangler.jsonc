@@ -38,7 +38,7 @@
       "kv_namespaces": [
         {
           "binding": "CONFIG_KV",
-          "id": "<staging-kv-namespace-id>"
+          "id": "50a9373f57394bf3aedb1c1ca71cc225"
         }
       ],
       "preview_urls": true
@@ -50,7 +50,7 @@
       "kv_namespaces": [
         {
           "binding": "CONFIG_KV",
-          "id": "<staging-kv-namespace-id>"
+          "id": "50a9373f57394bf3aedb1c1ca71cc225"
         }
       ],
       "route": {

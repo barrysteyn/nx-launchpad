@@ -49,7 +49,26 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >
 >   `AWS_REGION` is hardcoded to `us-east-1` in the deploy workflow — no need to add it here.
 >
+> - [ ] **Deploy config to staging and production** — this runs Terraform to create the shared Cloudflare KV namespaces that every React + Cloudflare Worker app binds to for config:
+>   ```bash
+>   npx nx run config:deploy-config --configuration=staging
+>   npx nx run config:deploy-config --configuration=production
+>   ```
+>   Complete the `.env` and GitHub Secrets steps above before running these. Each command applies Terraform (creating the KV namespace) and seeds it with your resolved config.
+>
+> - [ ] **Hardcode the KV namespace IDs** — after the deploys above succeed, run:
+>   ```bash
+>   npx wrangler kv namespace list
+>   ```
+>   Note the IDs for `${PROJECT_NAME}-staging-config` and `${PROJECT_NAME}-production-config`, then tell Claude Code:
+>   ```
+>   Please hardcode the Cloudflare KV namespace IDs into all wrangler.jsonc files and the
+>   generator template. The staging ID is <staging-id> and the production ID is <production-id>.
+>   ```
+>   Claude will update every `wrangler.jsonc` in the monorepo and the generator template in one step.
+>
 > - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
+>
 ---
 
 ## Getting Started
