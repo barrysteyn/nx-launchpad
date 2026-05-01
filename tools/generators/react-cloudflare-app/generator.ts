@@ -50,9 +50,9 @@ export async function reactCloudflareAppGenerator(
         executor: 'nx:run-commands',
         options: { command: 'npx vite build --mode staging', cwd: '{projectRoot}' },
         configurations: {
-          preview: { command: 'npx vite build --mode staging' },
-          staging: { command: 'npx vite build --mode staging' },
-          production: { command: 'npx vite build --mode production' },
+          preview: { command: 'CLOUDFLARE_ENV=preview npx vite build --mode staging' },
+          staging: { command: 'CLOUDFLARE_ENV=staging npx vite build --mode staging' },
+          production: { command: 'CLOUDFLARE_ENV=production npx vite build --mode production' },
         },
       },
       serve: {
@@ -78,7 +78,7 @@ export async function reactCloudflareAppGenerator(
         configurations: {
           preview: {
             command: [
-              'WRANGLER_OUT=$(npx wrangler deploy --env preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);',
+              'WRANGLER_OUT=$(npx wrangler deploy -e preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);',
               'VERSION_ID=$(echo "$WRANGLER_OUT" | grep -m1 \'Current Version ID\' | awk \'{print $NF}\');',
               '[ -n "$VERSION_ID" ] || { echo \'Failed to extract Version ID\' >&2; exit 1; };',
               'SHORT_ID=$(echo "$VERSION_ID" | cut -d\'-\' -f1);',
@@ -87,8 +87,8 @@ export async function reactCloudflareAppGenerator(
               'echo PREVIEW_URL=https://$SHORT_ID-$BASE_DOMAIN',
             ],
           },
-          staging: { command: 'npx wrangler deploy --env staging --var PROJECT_NAME:$PROJECT_NAME' },
-          production: { command: 'npx wrangler deploy --env production --var PROJECT_NAME:$PROJECT_NAME' },
+          staging: { command: 'npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME' },
+          production: { command: 'npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME' },
         },
       },
     },
