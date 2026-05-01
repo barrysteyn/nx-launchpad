@@ -23,7 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
-      ENVIRONMENT: local
+      ENVIRONMENT: staging
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - name: Print preview deploy summary
