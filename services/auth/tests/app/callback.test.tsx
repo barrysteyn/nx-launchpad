@@ -23,6 +23,7 @@ describe('Callback route', () => {
       writable: true,
       value: { href: '' },
     });
+    vi.stubEnv('VITE_TRUSTED_ORIGINS', 'https://app.nimrox.ai,http://localhost:5173');
   });
 
   it('shows loading state while fetching token', async () => {

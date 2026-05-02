@@ -9,14 +9,18 @@ export interface AuthPayload {
   [key: string]: unknown;
 }
 
+const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
 export async function verifyToken(
   token: string,
   authBaseUrl: string,
 ): Promise<AuthPayload> {
   if (!token) throw new Error('Token is required');
-  const JWKS = createRemoteJWKSet(
-    new URL(`${authBaseUrl}/.well-known/jwks.json`),
-  );
+  let JWKS = jwksCache.get(authBaseUrl);
+  if (!JWKS) {
+    JWKS = createRemoteJWKSet(new URL(`${authBaseUrl}/.well-known/jwks.json`));
+    jwksCache.set(authBaseUrl, JWKS);
+  }
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: authBaseUrl,
     audience: authBaseUrl,
