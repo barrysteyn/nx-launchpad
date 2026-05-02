@@ -9,9 +9,11 @@ import { jwksKvAdapter } from './jwks-adapter';
 import type { Bindings } from './types';
 
 let _auth: ReturnType<typeof betterAuth> | null = null;
+let _cacheKey = '';
 
 export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
-  if (_auth) return _auth;
+  const cacheKey = `${env.BETTER_AUTH_URL}|${env.BETTER_AUTH_SECRETS ?? ''}`;
+  if (_auth && _cacheKey === cacheKey) return _auth;
 
   const redis = new Redis({
     url: env.UPSTASH_REDIS_URL,
@@ -104,5 +106,6 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
   }) as unknown as ReturnType<typeof betterAuth>;
 
   // _auth is guaranteed to be set at this point
+  _cacheKey = cacheKey;
   return _auth!;
 }

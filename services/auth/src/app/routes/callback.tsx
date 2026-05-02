@@ -22,7 +22,19 @@ function CallbackPage() {
         setError(err?.message ?? 'Failed to retrieve token. Please sign in again.');
         return;
       }
-      const base = search.redirect_uri ?? '/';
+      const rawRedirect = search.redirect_uri;
+      const trustedOrigins = (import.meta.env.VITE_TRUSTED_ORIGINS ?? '').split(',').map(o => o.trim());
+      let base = '/';
+      if (rawRedirect) {
+        try {
+          const redirectOrigin = new URL(rawRedirect).origin;
+          if (trustedOrigins.includes(redirectOrigin)) {
+            base = rawRedirect;
+          }
+        } catch {
+          // invalid URL — fall back to /
+        }
+      }
       const separator = base.includes('?') ? '&' : '?';
       window.location.href = `${base}${separator}token=${data.token}`;
     });
