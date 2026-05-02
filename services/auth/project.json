@@ -1,0 +1,121 @@
+{
+  "name": "auth",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "services/auth",
+  "sourceRoot": "services/auth/src",
+  "metadata": {
+    "ci": {
+      "profile": "default"
+    }
+  },
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx eslint src",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx prettier --check src",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "npx tsc --noEmit -p tsconfig.app.json",
+          "npx tsc --noEmit -p tsconfig.worker.json"
+        ],
+        "parallel": false,
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vite build --mode staging",
+        "cwd": "{projectRoot}"
+      },
+      "configurations": {
+        "preview": {
+          "command": "CLOUDFLARE_ENV=preview npx vite build --mode staging"
+        },
+        "staging": {
+          "command": "CLOUDFLARE_ENV=staging npx vite build --mode staging"
+        },
+        "production": {
+          "command": "CLOUDFLARE_ENV=production npx vite build --mode production"
+        }
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vite",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "db-generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx auth@latest generate --output schema/auth-schema.sql --config src/worker/auth.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "db-migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "configurations": {
+        "local": {
+          "command": "npx wrangler d1 execute DB --local --file=schema/auth-schema.sql"
+        },
+        "staging": {
+          "command": "npx wrangler d1 execute DB --remote -e staging --file=schema/auth-schema.sql"
+        },
+        "production": {
+          "command": "npx wrangler d1 execute DB --remote -e production --file=schema/auth-schema.sql"
+        }
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "configurations": {
+        "preview": {
+          "command": [
+            "WRANGLER_OUT=$(npx wrangler deploy -e preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);",
+            "VERSION_ID=$(echo \"$WRANGLER_OUT\" | grep -m1 'Current Version ID' | awk '{print $NF}');",
+            "[ -n \"$VERSION_ID\" ] || { echo 'Failed to extract Version ID' >&2; exit 1; };",
+            "SHORT_ID=$(echo \"$VERSION_ID\" | cut -d'-' -f1);",
+            "BASE_DOMAIN=$(echo \"$WRANGLER_OUT\" | grep -oE 'https://[a-zA-Z0-9._-]+\\.workers\\.dev' | head -1 | sed 's|https://||');",
+            "[ -n \"$BASE_DOMAIN\" ] || { echo 'Failed to extract base domain' >&2; exit 1; };",
+            "echo PREVIEW_URL=https://$SHORT_ID-$BASE_DOMAIN"
+          ]
+        },
+        "staging": {
+          "command": "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME"
+        },
+        "production": {
+          "command": "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME"
+        }
+      }
+    }
+  }
+}
