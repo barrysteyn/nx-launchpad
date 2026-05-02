@@ -29,7 +29,7 @@ describe('verifyToken', () => {
     const token = await mintToken();
     const mockJwks = vi.fn().mockResolvedValue({ keys: [publicJwk] });
     global.fetch = vi.fn().mockImplementation(() =>
-      Promise.resolve({ json: mockJwks, ok: true } as Response),
+      Promise.resolve({ json: mockJwks, ok: true, status: 200 } as Response),
     );
 
     const payload = await verifyToken(token, BASE_URL);
@@ -47,7 +47,7 @@ describe('verifyToken', () => {
 
     const mockJwks = vi.fn().mockResolvedValue({ keys: [publicJwk] });
     global.fetch = vi.fn().mockImplementation(() =>
-      Promise.resolve({ json: mockJwks, ok: true } as Response),
+      Promise.resolve({ json: mockJwks, ok: true, status: 200 } as Response),
     );
 
     await expect(verifyToken(token, BASE_URL)).rejects.toThrow();
