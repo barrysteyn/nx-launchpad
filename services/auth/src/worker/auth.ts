@@ -22,7 +22,6 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: env.TRUSTED_ORIGINS.split(','),
     secret: env.BETTER_AUTH_SECRET,
-    secrets: env.BETTER_AUTH_SECRETS,
 
     database: drizzleAdapter(db(env), { provider: 'sqlite' }),
 
@@ -93,7 +92,8 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
     advanced: {
       crossSubDomainCookies: { enabled: true },
     },
-  });
+  }) as unknown as ReturnType<typeof betterAuth>;
 
-  return _auth;
+  // _auth is guaranteed to be set at this point
+  return _auth!;
 }

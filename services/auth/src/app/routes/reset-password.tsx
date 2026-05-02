@@ -14,7 +14,7 @@ function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    const { error: err } = await authClient.forgetPassword({
+    const { error: err } = await authClient.requestPasswordReset({
       email,
       redirectTo: '/reset-password/confirm',
     });
