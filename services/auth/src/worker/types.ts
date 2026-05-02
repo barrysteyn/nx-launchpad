@@ -5,8 +5,6 @@ export type Bindings = {
   TRUSTED_ORIGINS: string;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_SECRETS: string;
-  UPSTASH_REDIS_URL: string;
-  UPSTASH_REDIS_TOKEN: string;
   AWS_SES_ACCESS_KEY: string;
   AWS_SES_SECRET_KEY: string;
   AWS_SES_REGION: string;

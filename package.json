@@ -21,7 +21,6 @@
     "@isaacs/ttlcache": "^2.1.4",
     "@logtail/pino": "^0.5.8",
     "@tanstack/react-router": "^1.167.4",
-    "@upstash/redis": "^1.37.0",
     "better-auth": "^1.6.9",
     "cloudflare": "^5.2.0",
     "deepmerge": "^4.3.1",

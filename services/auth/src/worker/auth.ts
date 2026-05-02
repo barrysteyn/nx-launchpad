@@ -2,7 +2,6 @@ import { betterAuth } from 'better-auth';
 import { jwt, magicLink } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { Redis } from '@upstash/redis';
 import { db } from './db';
 import { sendSESEmail } from './email';
 import { jwksKvAdapter } from './jwks-adapter';
@@ -14,11 +13,6 @@ let _cacheKey = '';
 export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
   const cacheKey = `${env.BETTER_AUTH_URL}|${env.BETTER_AUTH_SECRETS ?? ''}`;
   if (_auth && _cacheKey === cacheKey) return _auth;
-
-  const redis = new Redis({
-    url: env.UPSTASH_REDIS_URL,
-    token: env.UPSTASH_REDIS_TOKEN,
-  });
 
   _auth = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
@@ -35,20 +29,6 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
       : undefined,
 
     database: drizzleAdapter(db(env), { provider: 'sqlite' }),
-
-    secondaryStorage: {
-      get: async (key) => {
-        const value = await redis.get<string>(key);
-        return value ?? null;
-      },
-      set: async (key, value, ttl) => {
-        if (ttl) await redis.set(key, value, { ex: ttl });
-        else await redis.set(key, value);
-      },
-      delete: async (key) => {
-        await redis.del(key);
-      },
-    },
 
     emailAndPassword: {
       enabled: true,
