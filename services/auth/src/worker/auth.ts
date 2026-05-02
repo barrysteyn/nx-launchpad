@@ -22,6 +22,15 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: env.TRUSTED_ORIGINS.split(','),
     secret: env.BETTER_AUTH_SECRET,
+    secrets: env.BETTER_AUTH_SECRETS
+      ? env.BETTER_AUTH_SECRETS.split(',').map((entry) => {
+          const colonIdx = entry.indexOf(':');
+          return {
+            version: parseInt(entry.slice(0, colonIdx), 10),
+            value: entry.slice(colonIdx + 1).trim(),
+          };
+        })
+      : undefined,
 
     database: drizzleAdapter(db(env), { provider: 'sqlite' }),
 
