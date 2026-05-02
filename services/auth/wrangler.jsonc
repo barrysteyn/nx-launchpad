@@ -1,0 +1,108 @@
+{
+  "name": "auth",
+  "compatibility_date": "2025-01-01",
+  "main": "src/worker/index.ts",
+  "workers_dev": true,
+  "vars": {
+    "ENVIRONMENT": "local",
+    "BETTER_AUTH_URL": "http://localhost:5173",
+    "TRUSTED_ORIGINS": "http://localhost:5173",
+    "FROM_EMAIL": "noreply@local.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "auth-local",
+      "database_id": "local-auth-db"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "JWKS_KV",
+      "id": "local-jwks-kv"
+    }
+  ],
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": false
+  },
+  "env": {
+    "preview": {
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
+        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
+        "FROM_EMAIL": "noreply@staging.nimrox.ai"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "JWKS_KV",
+          "id": "<preview-jwks-kv-id>"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "auth-staging",
+          "database_id": "<staging-d1-id>"
+        }
+      ],
+      "preview_urls": true
+    },
+    "staging": {
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
+        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
+        "FROM_EMAIL": "noreply@staging.nimrox.ai"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "JWKS_KV",
+          "id": "<staging-jwks-kv-id>"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "auth-staging",
+          "database_id": "<staging-d1-id>"
+        }
+      ],
+      "route": {
+        "pattern": "auth.staging.nimrox.ai",
+        "custom_domain": true
+      }
+    },
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production",
+        "BETTER_AUTH_URL": "https://auth.nimrox.ai",
+        "TRUSTED_ORIGINS": "https://nimrox.ai,https://staging.nimrox.ai",
+        "FROM_EMAIL": "noreply@nimrox.ai"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "JWKS_KV",
+          "id": "<production-jwks-kv-id>"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "auth-production",
+          "database_id": "<production-d1-id>"
+        }
+      ],
+      "workers_dev": false,
+      "route": {
+        "pattern": "auth.nimrox.ai",
+        "custom_domain": true
+      }
+    }
+  }
+}
