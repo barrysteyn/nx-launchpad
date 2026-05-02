@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import health from './api/health';
 import { getAuth } from './auth';
 import type { Bindings, Variables } from './types';
 
@@ -15,8 +14,6 @@ app.use('*', async (c, next) => {
     credentials: true,
   })(c, next);
 });
-
-app.route('/', health);
 
 app.on(['GET', 'POST'], '/api/auth/*', (c) =>
   getAuth(c.env).handler(c.req.raw),
