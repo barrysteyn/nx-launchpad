@@ -1,0 +1,28 @@
+{
+  "name": "auth-node",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "root": "libs/auth/node",
+  "sourceRoot": "libs/auth/node/src",
+  "metadata": {
+    "ci": {
+      "profile": "default"
+    }
+  },
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsc --noEmit -p tsconfig.json",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
