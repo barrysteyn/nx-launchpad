@@ -91,29 +91,102 @@
         }
       }
     },
+    "tf-fmt": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "terraform fmt -recursive",
+        "cwd": "{projectRoot}/infra"
+      }
+    },
+    "tf-init": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "command": "terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl"
+        },
+        "production": {
+          "command": "terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl"
+        }
+      }
+    },
+    "tf-init-local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "rm -rf {projectRoot}/infra/environments/staging/.terraform",
+          "terraform -chdir={projectRoot}/infra/environments/staging init -backend=false",
+          "rm -rf {projectRoot}/infra/environments/production/.terraform",
+          "terraform -chdir={projectRoot}/infra/environments/production init -backend=false"
+        ],
+        "parallel": false
+      }
+    },
+    "tf-validate": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["tf-init-local"],
+      "options": {
+        "commands": [
+          "terraform -chdir={projectRoot}/infra/environments/staging validate",
+          "terraform -chdir={projectRoot}/infra/environments/production validate"
+        ],
+        "parallel": false
+      }
+    },
+    "tf-plan": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "cwd": "{projectRoot}/infra/environments/staging"
+        },
+        "production": {
+          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "cwd": "{projectRoot}/infra/environments/production"
+        }
+      }
+    },
+    "tf-apply": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "cwd": "{projectRoot}/infra/environments/staging",
+          "commands": [
+            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+          ],
+          "parallel": false
+        },
+        "production": {
+          "cwd": "{projectRoot}/infra/environments/production",
+          "commands": [
+            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+          ],
+          "parallel": false
+        }
+      }
+    },
     "deploy": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
       "options": {
-        "cwd": "{projectRoot}"
+        "cwd": "{projectRoot}",
+        "parallel": false
       },
       "configurations": {
-        "preview": {
-          "command": [
-            "WRANGLER_OUT=$(npx wrangler deploy -e preview --var PROJECT_NAME:$PROJECT_NAME 2>&1);",
-            "VERSION_ID=$(echo \"$WRANGLER_OUT\" | grep -m1 'Current Version ID' | awk '{print $NF}');",
-            "[ -n \"$VERSION_ID\" ] || { echo 'Failed to extract Version ID' >&2; exit 1; };",
-            "SHORT_ID=$(echo \"$VERSION_ID\" | cut -d'-' -f1);",
-            "BASE_DOMAIN=$(echo \"$WRANGLER_OUT\" | grep -oE 'https://[a-zA-Z0-9._-]+\\.workers\\.dev' | head -1 | sed 's|https://||');",
-            "[ -n \"$BASE_DOMAIN\" ] || { echo 'Failed to extract base domain' >&2; exit 1; };",
-            "echo PREVIEW_URL=https://$SHORT_ID-$BASE_DOMAIN"
+        "staging": {
+          "commands": [
+            "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/staging apply -auto-approve",
+            "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME"
           ]
         },
-        "staging": {
-          "command": "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME"
-        },
         "production": {
-          "command": "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME"
+          "commands": [
+            "terraform -chdir=infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/production apply -auto-approve",
+            "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME"
+          ]
         }
       }
     }
