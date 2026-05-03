@@ -97,32 +97,62 @@ Fill in the real IDs from the Terraform output into `wrangler.jsonc`:
 }
 ```
 
-Do the same for the `preview` environment (it shares staging resources).
-
 ### Step 4 — Set secrets
 
-Secrets are never stored in `wrangler.jsonc`. Set them via the CLI:
+Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflare via the Wrangler CLI and injected into the Worker at runtime.
+
+#### better-auth secrets
+
+The auth service uses two related secret variables:
+
+| Variable | Purpose |
+|---|---|
+| `BETTER_AUTH_SECRET` | Primary signing secret — used for session tokens and CSRF protection |
+| `BETTER_AUTH_SECRETS` | Versioned list for secret rotation — must include the current secret |
+
+Generate a secret value:
 
 ```bash
-# Generate a secret: openssl rand -base64 32
-# Format: "<version>:<base64-value>"  e.g. "1:abc123..."
+openssl rand -base64 32
+# e.g. outputs: kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
+```
+
+For initial setup, both variables use the same value. `BETTER_AUTH_SECRETS` wraps it with a version prefix:
+
+```bash
 npx wrangler secret put BETTER_AUTH_SECRET -e staging
-npx wrangler secret put BETTER_AUTH_SECRETS -e staging   # same value as BETTER_AUTH_SECRET for initial setup
+# When prompted, enter: kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
 
-# AWS SES — for sending verification, magic link, and reset emails
+npx wrangler secret put BETTER_AUTH_SECRETS -e staging
+# When prompted, enter: 1:kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
+```
+
+The version prefix (`1:`) is required — it enables rotation later without invalidating active sessions. See [Secret rotation](#secret-rotation) below.
+
+#### AWS SES secrets
+
+Used to send verification emails, magic links, and password reset emails. The IAM user or role needs the `ses:SendEmail` permission on your verified sending domain.
+
+```bash
 npx wrangler secret put AWS_SES_ACCESS_KEY -e staging
+# When prompted, enter your IAM access key ID
+
 npx wrangler secret put AWS_SES_SECRET_KEY -e staging
-npx wrangler secret put AWS_SES_REGION -e staging        # e.g. us-east-1
+# When prompted, enter your IAM secret access key
+
+npx wrangler secret put AWS_SES_REGION -e staging
+# When prompted, enter the AWS region where SES is configured, e.g. us-east-1
 ```
 
-`BETTER_AUTH_SECRETS` supports secret rotation. The format is a comma-separated list of versioned secrets:
+The `FROM_EMAIL` address (e.g. `noreply@staging.example.com`) is a plain `var` in `wrangler.jsonc` — it does not need to be a secret, but the domain must be verified in SES.
 
-```
-1:base64secret                          # single secret (initial setup)
-2:newbase64secret,1:oldbase64secret     # after rotation — new first, old second
+#### Verify secrets are set
+
+```bash
+npx wrangler secret list -e staging
 ```
 
-The service caches the auth instance per unique `BETTER_AUTH_SECRETS` value, so updating the secret automatically invalidates the cache on the next request.
+You should see all five secrets listed: `BETTER_AUTH_SECRET`, `BETTER_AUTH_SECRETS`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`.
 
 ### Step 5 — Run the database migration
 
