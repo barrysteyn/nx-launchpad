@@ -17,7 +17,6 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
   _auth = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: env.TRUSTED_ORIGINS.split(','),
-    secret: env.BETTER_AUTH_SECRET,
     secrets: env.BETTER_AUTH_SECRETS
       ? env.BETTER_AUTH_SECRETS.split(',').map((entry) => {
           const colonIdx = entry.indexOf(':');

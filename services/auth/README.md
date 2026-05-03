@@ -103,12 +103,7 @@ Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflar
 
 #### better-auth secrets
 
-The auth service uses two related secret variables:
-
-| Variable | Purpose |
-|---|---|
-| `BETTER_AUTH_SECRET` | Primary signing secret — used for session tokens and CSRF protection |
-| `BETTER_AUTH_SECRETS` | Versioned list for secret rotation — must include the current secret |
+`BETTER_AUTH_SECRETS` is the only secret required. It is a versioned, comma-separated list of signing secrets — this design supports rotation from day one without ever needing a second variable.
 
 Generate a secret value:
 
@@ -117,12 +112,7 @@ openssl rand -base64 32
 # e.g. outputs: kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
 ```
 
-For initial setup, both variables use the same value. `BETTER_AUTH_SECRETS` wraps it with a version prefix:
-
 ```bash
-npx wrangler secret put BETTER_AUTH_SECRET -e staging
-# When prompted, enter: kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
-
 npx wrangler secret put BETTER_AUTH_SECRETS -e staging
 # When prompted, enter: 1:kJ3mP9xQwR2vL8nT5yU1oE6iA4hZ0cF7
 ```
@@ -152,7 +142,7 @@ The `FROM_EMAIL` address (e.g. `noreply@staging.example.com`) is a plain `var` i
 npx wrangler secret list -e staging
 ```
 
-You should see all five secrets listed: `BETTER_AUTH_SECRET`, `BETTER_AUTH_SECRETS`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`.
+You should see all four secrets listed: `BETTER_AUTH_SECRETS`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`.
 
 ### Step 5 — Run the database migration
 
