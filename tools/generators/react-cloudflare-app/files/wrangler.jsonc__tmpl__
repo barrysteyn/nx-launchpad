@@ -33,6 +33,7 @@
   },
   "env": {
     "preview": {
+      "name": "<%= name %>-staging",
       "vars": {
         "ENVIRONMENT": "staging"
       },
@@ -45,6 +46,7 @@
       "preview_urls": true
     },
     "staging": {
+      "name": "<%= name %>-staging",
       "vars": {
         "ENVIRONMENT": "staging"
       },
@@ -60,6 +62,7 @@
       }<% } %>
     },
     "production": {
+      "name": "<%= name %>-production",
       "vars": {
         "ENVIRONMENT": "production"
       },
