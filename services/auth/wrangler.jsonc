@@ -32,29 +32,6 @@
     "enabled": false
   },
   "env": {
-    "preview": {
-      "name": "auth-staging",
-      "vars": {
-        "ENVIRONMENT": "staging",
-        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@staging.nimrox.ai"
-      },
-      "kv_namespaces": [
-        {
-          "binding": "JWKS_KV",
-          "id": "<preview-jwks-kv-id>"
-        }
-      ],
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "auth-staging",
-          "database_id": "<staging-d1-id>"
-        }
-      ],
-      "preview_urls": true
-    },
     "staging": {
       "name": "auth-staging",
       "vars": {

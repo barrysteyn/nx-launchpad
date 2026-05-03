@@ -28,6 +28,7 @@
   "workers_dev": true,
   "env": {
     "preview": {
+      "name": "example-react-webapp-staging",
       "vars": {
         "ENVIRONMENT": "staging"
       },
@@ -40,6 +41,7 @@
       "preview_urls": true
     },
     "staging": {
+      "name": "example-react-webapp-staging",
       "vars": {
         "ENVIRONMENT": "staging"
       },
@@ -55,6 +57,7 @@
       }
     },
     "production": {
+      "name": "example-react-webapp-production",
       "vars": {
         "ENVIRONMENT": "production"
       },
