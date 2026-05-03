@@ -3,7 +3,6 @@ export type Bindings = {
   PROJECT_NAME: string;
   BETTER_AUTH_URL: string;
   TRUSTED_ORIGINS: string;
-  BETTER_AUTH_SECRET: string;
   BETTER_AUTH_SECRETS: string;
   AWS_SES_ACCESS_KEY: string;
   AWS_SES_SECRET_KEY: string;
