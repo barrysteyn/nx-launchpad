@@ -6,6 +6,12 @@
     "ENVIRONMENT": "local",
     "AUTH_URL": "https://auth.staging.falconiq.ai"
   },
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV",
+      "id": "local-config-kv"
+    }
+  ],
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
