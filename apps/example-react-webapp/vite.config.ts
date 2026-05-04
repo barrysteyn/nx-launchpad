@@ -25,6 +25,10 @@ export default defineConfig({
         __dirname,
         '../../libs/auth/node/src/index.ts',
       ),
+      '@nx-launchpad/auth-browser': resolve(
+        __dirname,
+        '../../libs/auth/browser/src/index.ts',
+      ),
     },
   },
   server: {
