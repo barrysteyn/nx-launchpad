@@ -16,7 +16,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@nx-launchpad/auth-browser": ["../../libs/auth/browser/src/index.ts"]
+    }
   },
   "include": ["src/app"]
 }
