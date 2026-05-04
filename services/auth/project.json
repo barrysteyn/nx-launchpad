@@ -71,6 +71,7 @@
       "executor": "nx:run-commands",
       "options": {
         "commands": [
+          "rm -rf schema",
           "npx @better-auth/cli generate --output src/worker/schema.ts --config src/worker/auth.generate.ts -y",
           "npx drizzle-kit generate --name=init"
         ],
