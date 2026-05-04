@@ -17,16 +17,10 @@
       "database_id": "local-auth-db"
     }
   ],
-  "kv_namespaces": [
-    {
-      "binding": "JWKS_KV",
-      "id": "local-jwks-kv"
-    }
-  ],
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/.well-known/*"]
   },
   "observability": {
     "enabled": false
@@ -36,25 +30,19 @@
       "name": "auth-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@staging.nimrox.ai"
+        "BETTER_AUTH_URL": "https://auth.staging.falconiq.ai",
+        "TRUSTED_ORIGINS": "https://staging.falconiq.ai",
+        "FROM_EMAIL": "noreply@staging.falconiq.ai"
       },
-      "kv_namespaces": [
-        {
-          "binding": "JWKS_KV",
-          "id": "<staging-jwks-kv-id>"
-        }
-      ],
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "auth-staging",
-          "database_id": "<staging-d1-id>"
+          "database_name": "nx-launchpad-staging-auth",
+          "database_id": "3124c01a-7b1a-415a-9e89-774534e52262"
         }
       ],
       "route": {
-        "pattern": "auth.staging.nimrox.ai",
+        "pattern": "auth.staging.falconiq.ai",
         "custom_domain": true
       }
     },
@@ -62,16 +50,10 @@
       "name": "auth-production",
       "vars": {
         "ENVIRONMENT": "production",
-        "BETTER_AUTH_URL": "https://auth.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://nimrox.ai,https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@nimrox.ai"
+        "BETTER_AUTH_URL": "https://auth.falconiq.ai",
+        "TRUSTED_ORIGINS": "https://falconiq.ai,https://staging.falconiq.ai",
+        "FROM_EMAIL": "noreply@falconiq.ai"
       },
-      "kv_namespaces": [
-        {
-          "binding": "JWKS_KV",
-          "id": "<production-jwks-kv-id>"
-        }
-      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -81,7 +63,7 @@
       ],
       "workers_dev": false,
       "route": {
-        "pattern": "auth.nimrox.ai",
+        "pattern": "auth.falconiq.ai",
         "custom_domain": true
       }
     }

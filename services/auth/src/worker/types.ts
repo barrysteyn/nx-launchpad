@@ -9,7 +9,6 @@ export type Bindings = {
   AWS_SES_REGION: string;
   FROM_EMAIL: string;
   DB: D1Database;
-  JWKS_KV: KVNamespace;
 };
 
 export type Variables = {
