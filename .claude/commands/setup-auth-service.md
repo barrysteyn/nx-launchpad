@@ -64,7 +64,7 @@ Only update the values that are still placeholders. If they already contain real
 npx nx run auth:db-migrate:<env>
 ```
 
-This applies the schema to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has D1 Edit permissions (see README for the full permissions table).
+This applies `schema/0000_init.sql` to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has D1 Edit permissions (see README for the full permissions table).
 
 ## Step 6 — Deploy the worker
 
@@ -90,9 +90,9 @@ Then set it (run this and prompt the user to enter `1:<generated-value>`):
 npx wrangler secret put BETTER_AUTH_SECRETS -e <env>
 ```
 
-### AWS SES secrets
+### AWS SES secrets (optional)
 
-These are needed for sending emails (verification, magic links, password reset). The IAM user needs `ses:SendEmail` permission.
+These enable email features (verification emails, magic links, password reset). Without them, those features are silently disabled — signups work without email verification. The IAM user needs `ses:SendEmail` permission.
 
 ```
 npx wrangler secret put AWS_SES_ACCESS_KEY -e <env>
@@ -105,7 +105,7 @@ After setting all secrets, verify:
 npx wrangler secret list -e <env>
 ```
 
-Expected: `BETTER_AUTH_SECRETS`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`.
+`BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
 
 ## Step 8 — Enable the service in Nx
 
