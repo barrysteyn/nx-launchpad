@@ -55,22 +55,26 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
           },
         },
       }),
-      sendResetPassword: async ({ user, url }) => {
-        void sendSESEmail(
-          { to: user.email, subject: 'Reset your password', url },
-          env,
-        );
-      },
+      ...(env.AWS_SES_ACCESS_KEY && {
+        sendResetPassword: async ({ user, url }) => {
+          void sendSESEmail(
+            { to: user.email, subject: 'Reset your password', url },
+            env,
+          );
+        },
+      }),
     },
 
     emailVerification: {
-      sendVerificationEmail: async ({ user, url }) => {
-        void sendSESEmail(
-          { to: user.email, subject: 'Verify your email address', url },
-          env,
-        );
-      },
-      sendOnSignUp: true,
+      ...(env.AWS_SES_ACCESS_KEY && {
+        sendVerificationEmail: async ({ user, url }) => {
+          void sendSESEmail(
+            { to: user.email, subject: 'Verify your email address', url },
+            env,
+          );
+        },
+      }),
+      sendOnSignUp: !!env.AWS_SES_ACCESS_KEY,
       autoSignInAfterVerification: true,
     },
 
@@ -90,14 +94,18 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
           jwksPath: '/.well-known/jwks.json',
         },
       }),
-      magicLink({
-        sendMagicLink: async ({ email, url }) => {
-          void sendSESEmail(
-            { to: email, subject: 'Your magic link', url },
-            env,
-          );
-        },
-      }),
+      ...(env.AWS_SES_ACCESS_KEY
+        ? [
+            magicLink({
+              sendMagicLink: async ({ email, url }) => {
+                void sendSESEmail(
+                  { to: email, subject: 'Your magic link', url },
+                  env,
+                );
+              },
+            }),
+          ]
+        : []),
       apiKey(),
     ],
 

@@ -70,7 +70,11 @@
     "db-generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx auth@latest generate --output schema/auth-schema.sql --config src/worker/auth.ts",
+        "commands": [
+          "npx @better-auth/cli generate --output src/worker/schema.ts --config src/worker/auth.generate.ts -y",
+          "npx drizzle-kit generate --name=init"
+        ],
+        "parallel": false,
         "cwd": "{projectRoot}"
       }
     },
@@ -81,13 +85,13 @@
       },
       "configurations": {
         "local": {
-          "command": "npx wrangler d1 execute DB --local --file=schema/auth-schema.sql"
+          "command": "npx wrangler d1 execute DB --local --file=schema/0000_init.sql"
         },
         "staging": {
-          "command": "npx wrangler d1 execute DB --remote -e staging --file=schema/auth-schema.sql"
+          "command": "npx wrangler d1 execute DB --remote -e staging --file=schema/0000_init.sql"
         },
         "production": {
-          "command": "npx wrangler d1 execute DB --remote -e production --file=schema/auth-schema.sql"
+          "command": "npx wrangler d1 execute DB --remote -e production --file=schema/0000_init.sql"
         }
       }
     },
@@ -102,10 +106,10 @@
       "executor": "nx:run-commands",
       "configurations": {
         "staging": {
-          "command": "terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl"
+          "command": "AWS_PROFILE=$AWS_PROFILE terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl"
         },
         "production": {
-          "command": "terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl"
+          "command": "AWS_PROFILE=$AWS_PROFILE terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl"
         }
       }
     },
@@ -136,12 +140,33 @@
       "executor": "nx:run-commands",
       "configurations": {
         "staging": {
-          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "command": "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
           "cwd": "{projectRoot}/infra/environments/staging"
         },
         "production": {
-          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "command": "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
           "cwd": "{projectRoot}/infra/environments/production"
+        }
+      }
+    },
+    "tf-destroy": {
+      "executor": "nx:run-commands",
+      "configurations": {
+        "staging": {
+          "cwd": "{projectRoot}/infra/environments/staging",
+          "commands": [
+            "AWS_PROFILE=$AWS_PROFILE terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform destroy -auto-approve"
+          ],
+          "parallel": false
+        },
+        "production": {
+          "cwd": "{projectRoot}/infra/environments/production",
+          "commands": [
+            "AWS_PROFILE=$AWS_PROFILE terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform destroy -auto-approve"
+          ],
+          "parallel": false
         }
       }
     },
@@ -151,16 +176,16 @@
         "staging": {
           "cwd": "{projectRoot}/infra/environments/staging",
           "commands": [
-            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+            "AWS_PROFILE=$AWS_PROFILE terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
           ],
           "parallel": false
         },
         "production": {
           "cwd": "{projectRoot}/infra/environments/production",
           "commands": [
-            "terraform init -backend-config=../../../../../libs/infra/backend.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+            "AWS_PROFILE=$AWS_PROFILE terraform init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
           ],
           "parallel": false
         }
@@ -176,15 +201,15 @@
       "configurations": {
         "staging": {
           "commands": [
-            "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/staging apply -auto-approve",
+            "AWS_PROFILE=$AWS_PROFILE terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/staging apply -auto-approve",
             "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME"
           ]
         },
         "production": {
           "commands": [
-            "terraform -chdir=infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/production apply -auto-approve",
+            "AWS_PROFILE=$AWS_PROFILE terraform -chdir=infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl",
+            "AWS_PROFILE=$AWS_PROFILE TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/production apply -auto-approve",
             "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME"
           ]
         }
