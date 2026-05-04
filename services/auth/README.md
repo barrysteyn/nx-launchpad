@@ -60,7 +60,7 @@ PROJECT_NAME=your-project-name
 ENVIRONMENT=staging
 CLOUDFLARE_ACCOUNT_ID=...
 CLOUDFLARE_API_TOKEN=...
-AWS_PROFILE=your-aws-profile   # used by Terraform for S3 state backend
+AWS_PROFILE=your-aws-profile   # set in your shell; used by Terraform for S3 state backend
 ```
 
 Your Cloudflare API token must have the following permissions:
