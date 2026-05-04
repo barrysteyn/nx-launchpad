@@ -45,18 +45,18 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx vite build --mode staging",
+        "command": "npx vite build",
         "cwd": "{projectRoot}"
       },
       "configurations": {
         "preview": {
-          "command": "CLOUDFLARE_ENV=preview npx vite build --mode staging"
+          "command": "CLOUDFLARE_ENV=preview VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
         },
         "staging": {
-          "command": "CLOUDFLARE_ENV=staging npx vite build --mode staging"
+          "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
         },
         "production": {
-          "command": "CLOUDFLARE_ENV=production npx vite build --mode production"
+          "command": "CLOUDFLARE_ENV=production VITE_AUTH_URL=https://auth.$URL VITE_TRUSTED_ORIGINS=https://$URL,https://staging.$URL npx vite build --mode production"
         }
       }
     },

@@ -14,11 +14,6 @@ module "services" {
   cloudflare_account_id = var.cloudflare_account_id
 }
 
-output "jwks_kv_namespace_id" {
-  description = "Cloudflare KV namespace ID for JWKS keys (staging)"
-  value       = module.services.jwks_kv_namespace_id
-}
-
 output "d1_database_id" {
   description = "D1 database ID (staging)"
   value       = module.services.d1_database_id

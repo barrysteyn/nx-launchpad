@@ -17,3 +17,9 @@ variable "environment" {
   description = "Deployment environment (e.g. staging, production)"
   type        = string
 }
+
+variable "read_replication_mode" {
+  description = "D1 read replication mode"
+  type        = string
+  default     = "disabled"
+}
