@@ -4,14 +4,14 @@ Centralised authentication service for all apps in this monorepo. Built on [bett
 
 ## What it does
 
-- **Email + password** auth with mandatory email verification
-- **Magic link** login via email
+- **Email + password** auth — email verification is optional (enabled when AWS SES secrets are configured)
+- **Magic link** login via email (requires AWS SES secrets)
 - **JWT tokens** (EdDSA, 1 hour TTL) — apps verify tokens without hitting this service on every request
 - **API keys** — for machine-to-machine auth
 - **JWKS endpoint** at `/api/auth/.well-known/jwks.json` — public key discovery for token verification
 - **Cross-subdomain cookies** — a session established on `auth.example.com` works across `*.example.com`
 
-Emails (verification, magic link, password reset) are sent via AWS SES.
+Emails (verification, magic link, password reset) are sent via AWS SES when configured. Without SES secrets, email features are silently disabled — useful for staging environments where you don't need email flows.
 
 ## Architecture
 
@@ -32,24 +32,35 @@ The `/callback` route extracts the JWT from the session and redirects to the ori
 
 ---
 
+## Opt-in
+
+The auth service is excluded from Nx by default via `.nxignore`. This means it is not built or deployed in `nx affected` runs until you explicitly enable it.
+
+To enable it, remove `services/auth` from `.nxignore` at the repo root. Use the `/setup-auth-service` Claude command to provision everything from scratch.
+
+---
+
 ## First-time setup
+
+Use the `/setup-auth-service` Claude command — it walks through every step interactively and fills in the wrangler.jsonc database IDs for you. The manual steps are documented below for reference.
 
 ### Prerequisites
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.10
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm`)
 - A Cloudflare account with D1 enabled
-- An AWS account with SES configured and a verified sender domain
+- AWS credentials (for Terraform S3 state backend)
 
 ### Step 1 — Set environment variables
 
-In your shell (or `.env` file at the repo root):
+In your `.env` file at the repo root:
 
 ```bash
-export PROJECT_NAME=your-project-name   # must match your other infra
-export ENVIRONMENT=staging
-export CLOUDFLARE_ACCOUNT_ID=...
-export CLOUDFLARE_API_TOKEN=...
+PROJECT_NAME=your-project-name
+ENVIRONMENT=staging
+CLOUDFLARE_ACCOUNT_ID=...
+CLOUDFLARE_API_TOKEN=...
+AWS_PROFILE=your-aws-profile   # used by Terraform for S3 state backend
 ```
 
 Your Cloudflare API token must have the following permissions:
@@ -61,14 +72,6 @@ Your Cloudflare API token must have the following permissions:
 | Zone | Workers Routes | Edit |
 
 Create or update your token at **Cloudflare dashboard → My Profile → API Tokens**.
-
-AWS credentials are only needed for Terraform if you use S3 state backend:
-
-```bash
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
-export AWS_REGION=us-east-1
-```
 
 ### Step 2 — Provision infrastructure
 
@@ -101,7 +104,7 @@ Fill in the real IDs from the Terraform output into `wrangler.jsonc`:
 npx nx run auth:db-migrate:staging
 ```
 
-This applies `schema/auth-schema.sql` to the remote D1 database. The database was created in Step 2 — the worker does not need to be deployed yet. Run this again whenever the schema changes.
+This applies `schema/0000_init.sql` to the remote D1 database. Run this again whenever the schema changes (after running `db-generate`).
 
 ### Step 5 — Deploy
 
@@ -115,11 +118,11 @@ This runs Terraform (idempotent — no changes if infra is already up), then dep
 
 Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflare via the Wrangler CLI and injected into the Worker at runtime. The Worker must already be deployed (Step 5) before these commands will work.
 
-#### better-auth secrets
+#### better-auth secrets (required)
 
 `BETTER_AUTH_SECRETS` is required. It is a versioned, comma-separated list of signing secrets — this design supports rotation from day one without ever needing a second variable.
 
-Generate a secret value (the `tr` strips the newlines base64 introduces every 76 characters):
+Generate a secret value:
 
 ```bash
 openssl rand -base64 256 | tr -d '\n'; echo
@@ -132,30 +135,26 @@ npx wrangler secret put BETTER_AUTH_SECRETS -e staging
 
 The version prefix (`1:`) is required — it enables rotation later without invalidating active sessions. See [Secret rotation](#secret-rotation) below.
 
-#### AWS SES secrets
+#### AWS SES secrets (optional)
 
-Used to send verification emails, magic links, and password reset emails. The IAM user or role needs the `ses:SendEmail` permission on your verified sending domain.
+Required to send verification emails, magic links, and password reset emails. Without these, email features are silently disabled — signups work without email verification. The IAM user needs the `ses:SendEmail` permission on your verified sending domain.
 
 ```bash
 npx wrangler secret put AWS_SES_ACCESS_KEY -e staging
-# When prompted, enter your IAM access key ID
-
 npx wrangler secret put AWS_SES_SECRET_KEY -e staging
-# When prompted, enter your IAM secret access key
-
 npx wrangler secret put AWS_SES_REGION -e staging
-# When prompted, enter the AWS region where SES is configured, e.g. us-east-1
+# Enter the AWS region where SES is configured, e.g. us-east-1
 ```
 
 The `FROM_EMAIL` address (e.g. `noreply@staging.example.com`) is a plain `var` in `wrangler.jsonc` — it does not need to be a secret, but the domain must be verified in SES.
 
-#### Verify secrets are set
+#### Verify secrets
 
 ```bash
 npx wrangler secret list -e staging
 ```
 
-You should see all four secrets listed: `BETTER_AUTH_SECRETS`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`.
+`BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
 
 ---
 
@@ -184,10 +183,11 @@ The worker runs at `http://localhost:5173`. The React login UI is served at the 
 | `test` | Run unit tests |
 | `lint` / `format` | Lint and format checks |
 | `typecheck` | TypeScript check (app + worker) |
-| `db-generate` | Regenerate `schema/auth-schema.sql` from the better-auth config |
-| `db-migrate:local` / `:staging` / `:production` | Apply schema to D1 |
+| `db-generate` | Regenerate `src/worker/schema.ts` (Drizzle) and `schema/0000_init.sql` (SQL) from the better-auth config |
+| `db-migrate:local` / `:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
 | `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
 | `tf-plan:staging` / `:production` | Preview infra changes |
+| `tf-destroy:staging` / `:production` | Destroy Cloudflare infra |
 | `deploy:staging` / `:production` | Terraform + wrangler deploy |
 
 ---
@@ -239,3 +239,5 @@ To rotate secrets without invalidating existing sessions:
    ```
    # Enter: 2:newSecret
    ```
+
+SSM is the source of truth for secrets. After updating Cloudflare, update the corresponding SSM parameter so the `sync-auth-secrets.yml` workflow stays in sync.
