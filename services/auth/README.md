@@ -53,14 +53,14 @@ Use the `/setup-auth-service` Claude command — it walks through every step int
 
 ### Step 1 — Set environment variables
 
-In your `.env` file at the repo root:
+The following must be present in your root `.env` file (this is the standard local setup for the repo — nothing auth-specific):
 
 ```bash
 PROJECT_NAME=your-project-name
 ENVIRONMENT=staging
 CLOUDFLARE_ACCOUNT_ID=...
 CLOUDFLARE_API_TOKEN=...
-AWS_PROFILE=your-aws-profile   # set in your shell; used by Terraform for S3 state backend
+AWS_PROFILE=your-aws-profile   # used by Terraform for S3 state backend
 ```
 
 Your Cloudflare API token must have the following permissions:
