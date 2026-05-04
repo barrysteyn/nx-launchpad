@@ -53,7 +53,7 @@
           "command": "CLOUDFLARE_ENV=preview VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
         },
         "staging": {
-          "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
+          "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL,http://localhost:5173 npx vite build"
         },
         "production": {
           "command": "CLOUDFLARE_ENV=production VITE_AUTH_URL=https://auth.$URL VITE_TRUSTED_ORIGINS=https://$URL,https://staging.$URL npx vite build --mode production"
