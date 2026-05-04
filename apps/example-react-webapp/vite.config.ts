@@ -21,6 +21,10 @@ export default defineConfig({
         __dirname,
         '../../libs/config-loader/node/src/cloudflare.ts',
       ),
+      '@nx-launchpad/auth-node': resolve(
+        __dirname,
+        '../../libs/auth/node/src/index.ts',
+      ),
     },
   },
   test: {

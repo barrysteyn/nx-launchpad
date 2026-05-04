@@ -3,7 +3,8 @@
   "compatibility_date": "2025-01-01",
   "main": "src/worker/index.ts",
   "vars": {
-    "ENVIRONMENT": "local"
+    "ENVIRONMENT": "local",
+    "AUTH_URL": "http://localhost:5173"
   },
   "assets": {
     "directory": "./dist/client",
@@ -30,7 +31,8 @@
     "preview": {
       "name": "example-react-webapp-staging",
       "vars": {
-        "ENVIRONMENT": "staging"
+        "ENVIRONMENT": "staging",
+        "AUTH_URL": "https://auth.staging.falconiq.ai"
       },
       "kv_namespaces": [
         {
@@ -43,7 +45,8 @@
     "staging": {
       "name": "example-react-webapp-staging",
       "vars": {
-        "ENVIRONMENT": "staging"
+        "ENVIRONMENT": "staging",
+        "AUTH_URL": "https://auth.staging.falconiq.ai"
       },
       "kv_namespaces": [
         {
@@ -59,7 +62,8 @@
     "production": {
       "name": "example-react-webapp-production",
       "vars": {
-        "ENVIRONMENT": "production"
+        "ENVIRONMENT": "production",
+        "AUTH_URL": "https://auth.falconiq.ai"
       },
       "kv_namespaces": [
         {
