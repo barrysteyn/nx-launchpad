@@ -205,14 +205,14 @@
           "commands": [
             "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl",
             "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/staging apply -auto-approve",
-            "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME"
+            "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME --var MULTITENANCY_ENABLED:$(node -e \"process.stdout.write(require('./package.json').multitenancyEnabled?'true':'false')\")"
           ]
         },
         "production": {
           "commands": [
             "terraform -chdir=infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl",
             "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/production apply -auto-approve",
-            "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME"
+            "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME --var MULTITENANCY_ENABLED:$(node -e \"process.stdout.write(require('./package.json').multitenancyEnabled?'true':'false')\")"
           ]
         }
       }

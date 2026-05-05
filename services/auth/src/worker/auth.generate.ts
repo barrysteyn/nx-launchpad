@@ -1,12 +1,13 @@
 import { getAuth } from './auth';
 import type { Bindings } from './types';
+import pkg from '../../package.json';
 
 // Stub env used only by `npx @better-auth/cli generate` for schema generation.
 // Never imported by the worker at runtime.
 const stubEnv: Bindings = {
   ENVIRONMENT: 'local',
   PROJECT_NAME: 'stub',
-  MULTITENANCY_ENABLED: 'false',
+  MULTITENANCY_ENABLED: pkg.multitenancyEnabled ? 'true' : 'false',
   BETTER_AUTH_URL: 'http://localhost',
   TRUSTED_ORIGINS: 'http://localhost',
   BETTER_AUTH_SECRETS: '1:stub',
