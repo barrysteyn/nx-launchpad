@@ -28,8 +28,9 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >
 > - [ ] **Add to your root `.env` file** (copy from `.env.example`):
 >   ```bash
->   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
 >   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
+>   URL=example.com                     # Used as the A domain for the project
+>   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
 >   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
 >   AWS_REGION=us-east-1                # AWS region for DynamoDB, SSM, and Lambda
 >   CLOUDFLARE_API_TOKEN=your-api-token
@@ -46,6 +47,7 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >   | `CLOUDFLARE_API_TOKEN` | Secret |
 >   | `CLOUDFLARE_ACCOUNT_ID` | Secret |
 >   | `PROJECT_NAME` | Variable |
+>   | `URL` | Variable |
 >
 >   `AWS_REGION` is hardcoded to `us-east-1` in the deploy workflow — no need to add it here.
 >
