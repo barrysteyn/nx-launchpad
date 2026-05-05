@@ -4,19 +4,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/worker/index.ts",
   "workers_dev": true,
-  "vars": {
-    "ENVIRONMENT": "local",
-    "BETTER_AUTH_URL": "http://localhost:5173",
-    "TRUSTED_ORIGINS": "http://localhost:5173",
-    "FROM_EMAIL": "noreply@local.dev"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "auth-local",
-      "database_id": "local-auth-db"
-    }
-  ],
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
