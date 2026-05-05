@@ -1,2 +1,2 @@
 TEST_KEY: staging config test
-TEST_SECRET_KEY: ssm:/staging/nx-launchpad/test-secret
+TEST_SECRET_KEY: ssm:/nx-launchpad/staging/nx-launchpad/test-secret

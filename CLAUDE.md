@@ -64,7 +64,7 @@ The `config` project resolves `config/files/default.yaml` and deep-merges `confi
 
 ### SSM path convention
 
-SSM parameters must follow `/{environment}/{service}/{secret}` (e.g. `/staging/stripe/secret-key`). Because the environment is part of the path, SSM references must live in the environment overlay files (`staging.yaml`, `production.yaml`) — never in `default.yaml`.
+SSM parameters must follow `/{project_name}/{environment}/{service}/{secret}` (e.g. `/nx-launchpad/staging/stripe/secret-key`). Because the environment is part of the path, SSM references must live in the environment overlay files (`staging.yaml`, `production.yaml`) — never in `default.yaml`.
 
 In CI/CD, `ENVIRONMENT` is set by the deploy pipeline to match the target environment.
 

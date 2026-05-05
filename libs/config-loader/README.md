@@ -33,12 +33,12 @@ All keys must be `SCREAMING_SNAKE_CASE`. Values can be plain strings, numbers, b
 # config/files/default.yaml
 DATABASE_URL: postgres://localhost:5432/mydb
 LOG_LEVEL: info
-API_KEY: ssm:/staging/myapp/api-key
+API_KEY: ssm:/nx-launchpad/staging/myapp/api-key
 ```
 
 ```yaml
 # config/files/production.yaml
-DATABASE_URL: ssm:/production/myapp/db-url
+DATABASE_URL: ssm:/nx-launchpad/production/myapp/db-url
 LOG_LEVEL: warn
 ```
 

@@ -20,20 +20,20 @@ Each YAML file defines config keys as `SCREAMING_SNAKE_CASE`. Values can be plai
 ```yaml
 # files/staging.yaml
 DATABASE_URL: postgres://localhost:5432/mydb
-API_KEY: ssm:/staging/myapp/api-key        # fetched from SSM at deploy time
+API_KEY: ssm:/nx-launchpad/staging/myapp/api-key        # fetched from SSM at deploy time
 LOG_LEVEL: info
 ```
 
 ### SSM path convention
 
-SSM parameters must follow the format `/{environment}/{service}/{secret}`:
+SSM parameters must follow the format `/{project_name}/{environment}/{service}/{secret}`:
 
 ```yaml
 # files/staging.yaml
-STRIPE_SECRET_KEY: ssm:/staging/stripe/secret-key
+STRIPE_SECRET_KEY: ssm:/nx-launchpad/staging/stripe/secret-key
 
 # files/production.yaml
-STRIPE_SECRET_KEY: ssm:/production/stripe/secret-key
+STRIPE_SECRET_KEY: ssm:/nx-launchpad/production/stripe/secret-key
 ```
 
 Because the environment is part of the path, SSM references belong in the environment overlay files (`staging.yaml`, `production.yaml`) — not in `default.yaml`. Plain string values and local development overrides go in `default.yaml` and `local.yaml`.
