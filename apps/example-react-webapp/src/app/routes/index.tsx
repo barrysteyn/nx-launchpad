@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { authClient } from '../lib/auth-client';
+import { authClient, AUTH_URL } from '../lib/auth-client';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -12,8 +12,8 @@ function HomePage() {
 
   async function handleSignOut() {
     await authClient.signOut();
-    if (import.meta.env.VITE_AUTH_URL) {
-      window.location.href = `${import.meta.env.VITE_AUTH_URL}/login`;
+    if (AUTH_URL) {
+      window.location.href = `${AUTH_URL}/login`;
     }
   }
 
