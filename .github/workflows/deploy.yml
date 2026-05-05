@@ -187,4 +187,4 @@ jobs:
       - name: Deploy all affected
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.app == ''
         timeout-minutes: 30
-        run: npx nx affected run-many -t deploy --configuration=${{ needs.plan.outputs.environment }}
+        run: npx nx affected -t deploy --configuration=${{ needs.plan.outputs.environment }}
