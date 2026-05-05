@@ -4,6 +4,7 @@ import { configMiddleware } from './middleware/config';
 import type { Bindings, Variables } from './types';
 import health from './api/health';
 import me from './api/me';
+import admin from './api/admin';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -18,5 +19,6 @@ app.use('/api/*', (c, next) => {
 
 app.route('/', health);
 app.route('/', me);
+app.route('/', admin);
 
 export default app;
