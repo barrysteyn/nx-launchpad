@@ -266,6 +266,89 @@ Both the browser and worker layers use a **protected by default, opt out explici
 
 ---
 
+## Authorization / Roles
+
+The auth service uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin) for role-based authorization.
+
+### How roles work
+
+Every user has a `role` field in the database (defaults to `null`, treated as `"user"`). The role is included in the JWT payload so downstream workers can enforce access without a round-trip to the auth service:
+
+```json
+{
+  "id": "user_abc123",
+  "email": "alice@example.com",
+  "role": "admin"
+}
+```
+
+Two roles exist out of the box: `admin` (full control) and `user` (no admin privileges).
+
+### Checking roles in a worker
+
+After JWT verification, `c.var.user.role` is available in any Hono handler:
+
+```typescript
+app.get('/api/admin/users', (c) => {
+  const user = c.get('user');
+  if (user.role !== 'admin') {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+  // ...
+});
+```
+
+> [!NOTE]
+> The JWT is issued at sign-in and has a 1-hour TTL. A role change takes effect when the user's current JWT expires or they re-authenticate — session cookies reflect the new role immediately.
+
+### Bootstrapping the first admin
+
+The admin plugin requires an existing admin to promote other users. Bootstrap your first admin by writing directly to D1:
+
+**Staging:**
+```bash
+npx wrangler d1 execute DB --remote -e staging \
+  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
+```
+
+**Production:**
+```bash
+npx wrangler d1 execute DB --remote -e production \
+  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
+```
+
+### Promoting or demoting a user
+
+Once you have at least one admin, use the admin API from a trusted client context (e.g. an admin UI or a server-side script). The caller's session must belong to an admin.
+
+**Client-side (from an admin session):**
+```typescript
+// Promote to admin
+await authClient.admin.setRole({ userId: 'user_abc123', role: 'admin' });
+
+// Demote back to user
+await authClient.admin.setRole({ userId: 'user_abc123', role: 'user' });
+```
+
+**Server-side (Hono route or script):**
+```typescript
+await auth.api.setRole({
+  body: { userId: 'user_abc123', role: 'admin' },
+  headers: request.headers, // must carry an admin session cookie
+});
+```
+
+### Verifying a role change
+
+Check the updated role directly in D1:
+
+```bash
+npx wrangler d1 execute DB --remote -e staging \
+  --command "SELECT id, email, role FROM user WHERE email = 'your@email.com'"
+```
+
+---
+
 ## Secret rotation
 
 To rotate secrets without invalidating existing sessions:
