@@ -194,7 +194,8 @@
       "dependsOn": ["build"],
       "options": {
         "cwd": "{projectRoot}",
-        "parallel": false
+        "parallel": false,
+        "forwardAllArgs": false
       },
       "configurations": {
         "preview": {
