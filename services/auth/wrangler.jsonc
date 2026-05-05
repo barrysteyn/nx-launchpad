@@ -13,21 +13,6 @@
     "enabled": false
   },
   "env": {
-    "preview": {
-      "vars": {
-        "ENVIRONMENT": "staging",
-        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@staging.nimrox.ai"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "nx-launchpad-staging-auth",
-          "database_id": "c2247707-0378-418f-9a12-de5a467fea91"
-        }
-      ]
-    },
     "staging": {
       "name": "auth-staging",
       "vars": {

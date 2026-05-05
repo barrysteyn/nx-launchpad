@@ -50,7 +50,7 @@
       },
       "configurations": {
         "preview": {
-          "command": "CLOUDFLARE_ENV=preview VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
+          "command": "echo 'Auth service is not deployed in preview — consumer apps use staging auth directly'"
         },
         "staging": {
           "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL,http://localhost:5173 npx vite build"
@@ -198,7 +198,7 @@
       },
       "configurations": {
         "preview": {
-          "command": "npx wrangler deploy -e preview --var PROJECT_NAME:$PROJECT_NAME"
+          "command": "echo 'Auth service is not deployed in preview — consumer apps use staging auth directly'"
         },
         "staging": {
           "commands": [
