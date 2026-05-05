@@ -50,13 +50,13 @@
       },
       "configurations": {
         "preview": {
-          "command": "CLOUDFLARE_ENV=preview npx vite build --mode staging"
+          "command": "CLOUDFLARE_ENV=preview VITE_AUTH_URL=https://auth.staging.$URL npx vite build --mode staging"
         },
         "staging": {
-          "command": "CLOUDFLARE_ENV=staging npx vite build --mode staging"
+          "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL npx vite build --mode staging"
         },
         "production": {
-          "command": "CLOUDFLARE_ENV=production npx vite build --mode production"
+          "command": "CLOUDFLARE_ENV=production VITE_AUTH_URL=https://auth.$URL npx vite build --mode production"
         }
       }
     },

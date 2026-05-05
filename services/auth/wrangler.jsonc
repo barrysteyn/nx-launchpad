@@ -30,9 +30,9 @@
       "name": "auth-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "BETTER_AUTH_URL": "https://auth.staging.falconiq.ai",
-        "TRUSTED_ORIGINS": "https://staging.falconiq.ai",
-        "FROM_EMAIL": "noreply@staging.falconiq.ai"
+        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
+        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
+        "FROM_EMAIL": "noreply@staging.nimrox.ai"
       },
       "d1_databases": [
         {
@@ -42,7 +42,7 @@
         }
       ],
       "route": {
-        "pattern": "auth.staging.falconiq.ai",
+        "pattern": "auth.staging.nimrox.ai",
         "custom_domain": true
       }
     },
@@ -50,9 +50,9 @@
       "name": "auth-production",
       "vars": {
         "ENVIRONMENT": "production",
-        "BETTER_AUTH_URL": "https://auth.falconiq.ai",
-        "TRUSTED_ORIGINS": "https://falconiq.ai,https://staging.falconiq.ai",
-        "FROM_EMAIL": "noreply@falconiq.ai"
+        "BETTER_AUTH_URL": "https://auth.nimrox.ai",
+        "TRUSTED_ORIGINS": "https://nimrox.ai,https://staging.nimrox.ai",
+        "FROM_EMAIL": "noreply@nimrox.ai"
       },
       "d1_databases": [
         {
@@ -63,7 +63,7 @@
       ],
       "workers_dev": false,
       "route": {
-        "pattern": "auth.falconiq.ai",
+        "pattern": "auth.nimrox.ai",
         "custom_domain": true
       }
     }
