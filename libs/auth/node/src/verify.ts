@@ -15,7 +15,6 @@ export async function verifyToken(
   token: string,
   authBaseUrl: string,
 ): Promise<AuthPayload> {
-  if (!token) throw new Error('Token is required');
   let JWKS = jwksCache.get(authBaseUrl);
   if (!JWKS) {
     JWKS = createRemoteJWKSet(new URL(`${authBaseUrl}/.well-known/jwks.json`));

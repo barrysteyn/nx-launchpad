@@ -5,10 +5,14 @@ import type { Bindings, Variables } from './types';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-app.use('*', async (c, next) => {
-  const origins = c.env.TRUSTED_ORIGINS?.split(',') ?? [];
+let _origins: Set<string> | null = null;
+
+app.use('*', (c, next) => {
+  if (!_origins) {
+    _origins = new Set((c.env.TRUSTED_ORIGINS ?? '').split(',').filter(Boolean));
+  }
   return cors({
-    origin: (origin) => (origins.includes(origin) ? origin : null),
+    origin: (origin) => (_origins!.has(origin) ? origin : null),
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,

@@ -9,10 +9,10 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('*', configMiddleware);
 
-const PUBLIC_API_ROUTES = ['/api/health'];
+const PUBLIC_API_ROUTES = new Set(['/api/health']);
 
 app.use('/api/*', (c, next) => {
-  if (PUBLIC_API_ROUTES.includes(c.req.path)) return next();
+  if (PUBLIC_API_ROUTES.has(c.req.path)) return next();
   return jwtMiddleware(c.env.AUTH_URL)(c, next);
 });
 
