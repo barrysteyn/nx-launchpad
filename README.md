@@ -144,6 +144,18 @@ The deploy workflow (`.github/workflows/deploy.yml`) detects affected projects a
 
 Trigger from the **Actions** tab in GitHub. You will be prompted for an environment (`staging` or `production`) and an optional app name — leave blank to deploy all affected apps.
 
+### Redeploying everything after a dependency update
+
+Nx's affected logic is scoped to project-level file changes — it does **not** treat root `package.json` or `package-lock.json` changes as a reason to redeploy every app (by design, to avoid a single package bump triggering a full redeploy). If you add or upgrade a package and want to force-redeploy all apps, run the deploy targets explicitly:
+
+```bash
+# Redeploy all Cloudflare apps to staging
+npx nx run-many -t deploy --configuration=staging
+
+# Redeploy a specific app
+npx nx run <app-name>:deploy:staging
+```
+
 ---
 
 ## Shared Libraries

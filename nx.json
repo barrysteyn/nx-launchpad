@@ -9,8 +9,6 @@
       "!{projectRoot}/tsconfig.spec.json"
     ],
     "sharedGlobals": [
-      "{workspaceRoot}/package.json",
-      "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/tsconfig.base.json",
       "{workspaceRoot}/.eslintrc.json",
       "{workspaceRoot}/.prettierrc"
