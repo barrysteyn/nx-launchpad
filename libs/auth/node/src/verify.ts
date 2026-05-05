@@ -1,9 +1,12 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import type { Context, MiddlewareHandler } from 'hono';
 
+export const ADMIN_ROLE = 'admin' as const;
+
 export interface AuthPayload {
   id: string;
   email: string;
+  role?: string | null;
   emailVerified?: boolean;
   name?: string;
   [key: string]: unknown;
@@ -17,7 +20,7 @@ export async function verifyToken(
 ): Promise<AuthPayload> {
   let JWKS = jwksCache.get(authBaseUrl);
   if (!JWKS) {
-    JWKS = createRemoteJWKSet(new URL(`${authBaseUrl}/.well-known/jwks.json`));
+    JWKS = createRemoteJWKSet(new URL(`${authBaseUrl}/api/auth/.well-known/jwks.json`));
     jwksCache.set(authBaseUrl, JWKS);
   }
   const { payload } = await jwtVerify(token, JWKS, {
