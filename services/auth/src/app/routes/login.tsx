@@ -19,9 +19,7 @@ function LoginPage() {
   const [error, setError] = useState('');
   const [magicSent, setMagicSent] = useState(false);
 
-  const callbackURL = search.redirect_uri
-    ? `/callback?redirect_uri=${encodeURIComponent(search.redirect_uri)}`
-    : '/callback';
+  const callbackURL = search.redirect_uri ?? '/';
 
   async function handlePasswordSignIn(e: React.FormEvent) {
     e.preventDefault();
