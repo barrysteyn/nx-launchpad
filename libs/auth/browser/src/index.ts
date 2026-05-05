@@ -1,3 +1,2 @@
-export { getToken, saveToken, clearToken } from './token';
-export { useToken } from './useToken';
+export { createBrowserAuthClient } from './authClient';
 export type { AuthPayload } from './types';
