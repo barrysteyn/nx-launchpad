@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet, useMatches } from '@tanstack/react-router';
 import { NavBar } from '../components/nav/NavBar';
-import { useToken } from '@nx-launchpad/auth-browser';
+import { authClient } from '../lib/auth-client';
 
 declare module '@tanstack/react-router' {
   interface StaticDataRouteOption {
@@ -13,11 +13,13 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
-  const token = useToken();
+  const { data: session, isPending } = authClient.useSession();
   const matches = useMatches();
   const isPublic = matches.some((m) => m.staticData?.isPublic);
 
-  if (import.meta.env.VITE_AUTH_URL && !isPublic && !token) {
+  if (isPending) return null;
+
+  if (import.meta.env.VITE_AUTH_URL && !isPublic && !session) {
     window.location.href = `${import.meta.env.VITE_AUTH_URL}/login?redirect_uri=${encodeURIComponent(window.location.href)}`;
     return null;
   }

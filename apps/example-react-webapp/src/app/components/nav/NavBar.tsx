@@ -15,6 +15,12 @@ export function NavBar() {
       >
         About
       </Link>
+      <Link
+        to="/restricted"
+        className="text-gray-700 hover:text-gray-900 [&.active]:font-semibold"
+      >
+        Restricted
+      </Link>
     </nav>
   );
 }

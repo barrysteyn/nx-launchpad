@@ -1,29 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { useToken, clearToken } from '@nx-launchpad/auth-browser';
-import type { AuthPayload } from '@nx-launchpad/auth-browser';
-import { fetchApi } from '../services/api';
+import { authClient } from '../lib/auth-client';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
+  staticData: { isPublic: true },
 });
 
 function HomePage() {
-  const token = useToken();
-  const [user, setUser] = useState<AuthPayload | null>(null);
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
 
-  useEffect(() => {
-    if (!token) return;
-    fetchApi<AuthPayload>('/api/me', token)
-      .then(({ data }) => setUser(data))
-      .catch(() => {});
-  }, [token]);
-
-  function handleSignOut() {
-    clearToken();
-    window.location.href = import.meta.env.VITE_AUTH_URL
-      ? `${import.meta.env.VITE_AUTH_URL}/login`
-      : '/';
+  async function handleSignOut() {
+    await authClient.signOut();
+    if (import.meta.env.VITE_AUTH_URL) {
+      window.location.href = `${import.meta.env.VITE_AUTH_URL}/login`;
+    }
   }
 
   return (
