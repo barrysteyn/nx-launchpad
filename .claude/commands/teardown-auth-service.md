@@ -23,8 +23,28 @@ When prompted to confirm deletion, enter `y`. This removes the Worker from Cloud
 
 ## Step 3 — Destroy Terraform infrastructure
 
+The D1 module has `prevent_destroy = true` as a safety guard. You must temporarily disable it before running `tf-destroy`, then restore it afterwards.
+
+**3a.** In `libs/infra/modules/cloudflare/d1/main.tf`, change `prevent_destroy` to `false`:
+
+```hcl
+lifecycle {
+  prevent_destroy = false
+}
+```
+
+**3b.** Run the destroy:
+
 ```
 npx nx run auth:tf-destroy:<env>
+```
+
+**3c.** Restore `prevent_destroy` to `true` in `libs/infra/modules/cloudflare/d1/main.tf`:
+
+```hcl
+lifecycle {
+  prevent_destroy = true
+}
 ```
 
 This destroys the D1 database and any other Cloudflare resources provisioned by Terraform for this environment.
