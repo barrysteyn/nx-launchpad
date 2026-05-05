@@ -8,35 +8,37 @@ Centralised authentication service for all apps in this monorepo. Built on [bett
 - **Magic link** login via email (requires AWS SES secrets)
 - **JWT tokens** (EdDSA, 1 hour TTL) — apps verify tokens without hitting this service on every request
 - **API keys** — for machine-to-machine auth
-- **JWKS endpoint** at `/api/auth/.well-known/jwks.json` — public key discovery for token verification
-- **Cross-subdomain cookies** — a session established on `auth.example.com` works across `*.example.com`
+- **JWKS endpoint** at `/.well-known/jwks.json` — public key discovery for token verification
+- **Cross-subdomain cookies** — a session established on `auth.nimrox.ai` is automatically valid across all `*.nimrox.ai` apps
 
 Emails (verification, magic link, password reset) are sent via AWS SES when configured. Without SES secrets, email features are silently disabled — useful for staging environments where you don't need email flows.
+
+## How auth works
+
+When a user visits a protected app (e.g. `staging.nimrox.ai`) without a session, the app redirects them here:
+
+```
+https://auth.staging.nimrox.ai/login?redirect_uri=https://staging.nimrox.ai/
+```
+
+After signing in, better-auth sets a session cookie scoped to `.nimrox.ai` and redirects the browser directly back to `redirect_uri`. The app's `useSession()` hook reads the cookie on load — no token in the URL, no intermediate redirect page.
+
+For API calls that require authentication, apps request a short-lived JWT from this service (`authClient.token()`) and send it as a `Bearer` token. The receiving worker verifies the JWT locally using the public JWKS — no round-trip to this service on every request.
 
 ## Architecture
 
 ```
 Browser / App
     │
-    ├── /api/auth/*                      → better-auth handler (Hono worker)
-    ├── /api/auth/.well-known/jwks.json  → public JWKS for JWT verification
-    └── /*                               → React SPA (login, signup, verify-email, reset-password, callback)
+    ├── /api/auth/*            → better-auth handler (sessions, sign-in, sign-up, etc.)
+    ├── /.well-known/jwks.json → public JWKS for JWT verification by other workers
+    └── /*                     → React SPA (login, signup, verify-email, reset-password)
 
 Infrastructure
     └── D1 database  → user accounts, sessions, API keys, JWKS key pairs
 ```
 
-JWKS key pairs are stored in D1, encrypted at rest by better-auth using your `BETTER_AUTH_SECRETS` (AES-256 GCM). Only the public key is ever exposed via the JWKS endpoint.
-
-The `/callback` route extracts the JWT from the session and redirects to the originating app with `?token=<jwt>`. Apps then use `libs/auth/node` to verify the token on subsequent requests without round-tripping to this service.
-
----
-
-## Opt-in
-
-The auth service is excluded from Nx by default via `.nxignore`. This means it is not built or deployed in `nx affected` runs until you explicitly enable it.
-
-To enable it, remove `services/auth` from `.nxignore` at the repo root. Use the `/setup-auth-service` Claude command to provision everything from scratch.
+JWKS key pairs are stored in D1, encrypted at rest by better-auth using your `BETTER_AUTH_SECRETS`. Only the public key is ever exposed via the JWKS endpoint.
 
 ---
 
@@ -53,10 +55,11 @@ Use the `/setup-auth-service` Claude command — it walks through every step int
 
 ### Step 1 — Set environment variables
 
-The following must be present in your root `.env` file (this is the standard local setup for the repo — nothing auth-specific):
+The following must be present in your root `.env` file:
 
 ```bash
 PROJECT_NAME=your-project-name
+URL=nimrox.ai
 ENVIRONMENT=staging
 CLOUDFLARE_ACCOUNT_ID=...
 CLOUDFLARE_API_TOKEN=...
@@ -146,7 +149,7 @@ npx wrangler secret put AWS_SES_REGION -e staging
 # Enter the AWS region where SES is configured, e.g. us-east-1
 ```
 
-The `FROM_EMAIL` address (e.g. `noreply@staging.example.com`) is a plain `var` in `wrangler.jsonc` — it does not need to be a secret, but the domain must be verified in SES.
+The `FROM_EMAIL` address is a plain `var` in `wrangler.jsonc` — it does not need to be a secret, but the domain must be verified in SES.
 
 #### Verify secrets
 
@@ -183,7 +186,7 @@ The worker runs at `http://localhost:5173`. The React login UI is served at the 
 | `test` | Run unit tests |
 | `lint` / `format` | Lint and format checks |
 | `typecheck` | TypeScript check (app + worker) |
-| `db-generate` | Regenerate `src/worker/schema.ts` (Drizzle) and `schema/0000_init.sql` (SQL) from the better-auth config |
+| `db-generate` | Regenerate `src/worker/schema.ts` and `schema/0000_init.sql` from the better-auth config |
 | `db-migrate:local` / `:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
 | `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
 | `tf-plan:staging` / `:production` | Preview infra changes |
@@ -194,18 +197,45 @@ The worker runs at `http://localhost:5173`. The React login UI is served at the 
 
 ## Using auth in other apps
 
-Install the shared library:
+### Browser (React SPA)
+
+Create an auth client in your app using the shared library:
 
 ```typescript
-import { jwtMiddleware, verifyToken } from '@nx-launchpad/auth-node';
+// src/app/lib/auth-client.ts
+import { createBrowserAuthClient } from '@nx-launchpad/auth-browser';
+
+export const AUTH_URL = import.meta.env.VITE_AUTH_URL as string | undefined;
+export const authClient = createBrowserAuthClient(AUTH_URL);
 ```
 
-### Hono middleware
+Use `useSession()` to read the current user and guard routes:
+
+```typescript
+const { data: session, isPending } = authClient.useSession();
+```
+
+Sign out:
+
+```typescript
+await authClient.signOut();
+```
+
+`useSession()` is cross-tab aware — signing out in one tab updates all other open tabs within a second via BroadcastChannel.
+
+### Worker (Hono API)
+
+Protect all API routes by default using the global JWT middleware from `@nx-launchpad/auth-node`:
 
 ```typescript
 import { jwtMiddleware } from '@nx-launchpad/auth-node';
 
-app.use('/api/*', jwtMiddleware('https://auth.staging.nimrox.ai'));
+const PUBLIC_API_ROUTES = new Set(['/api/health']);
+
+app.use('/api/*', (c, next) => {
+  if (PUBLIC_API_ROUTES.has(c.req.path)) return next();
+  return jwtMiddleware(c.env.AUTH_URL)(c, next);
+});
 
 app.get('/api/me', (c) => {
   const user = c.get('user'); // { id, email, emailVerified, name }
@@ -213,15 +243,18 @@ app.get('/api/me', (c) => {
 });
 ```
 
-### Manual token verification
+The middleware verifies the JWT against the auth service's public JWKS, caches the key set, and sets `c.var.user` for downstream handlers. Any route not in `PUBLIC_API_ROUTES` returns `401` if the request has no valid Bearer token.
 
-```typescript
-import { verifyToken } from '@nx-launchpad/auth-node';
+The `AUTH_URL` binding must be set in `wrangler.jsonc` pointing to the auth service (e.g. `https://auth.staging.nimrox.ai`).
 
-const user = await verifyToken(token, 'https://auth.staging.nimrox.ai');
-```
+### Public vs protected routes
 
-Token verification fetches the public JWKS once and caches it — no round-trip to the auth service on subsequent requests.
+Both the browser and worker layers use a **protected by default, opt out explicitly** pattern:
+
+| Layer | Protected by default | Opt out |
+|---|---|---|
+| React pages | `__root.tsx` redirect via `useSession()` | Add `staticData: { isPublic: true }` to the route |
+| API endpoints | Global `jwtMiddleware` on `/api/*` | Add the path to `PUBLIC_API_ROUTES` |
 
 ---
 
@@ -235,9 +268,7 @@ To rotate secrets without invalidating existing sessions:
    npx wrangler secret put BETTER_AUTH_SECRETS -e staging
    # Enter: 2:newSecret,1:oldSecret
    ```
-3. After all existing tokens signed with version 1 have expired (1 hour), remove the old entry:
+3. After all sessions signed with version 1 have expired (1 hour), remove the old entry:
    ```
    # Enter: 2:newSecret
    ```
-
-SSM is the source of truth for secrets. After updating Cloudflare, update the corresponding SSM parameter so the `sync-auth-secrets.yml` workflow stays in sync.
