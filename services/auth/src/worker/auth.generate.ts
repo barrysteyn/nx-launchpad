@@ -6,6 +6,7 @@ import type { Bindings } from './types';
 const stubEnv: Bindings = {
   ENVIRONMENT: 'local',
   PROJECT_NAME: 'stub',
+  MULTITENANCY_ENABLED: 'false',
   BETTER_AUTH_URL: 'http://localhost',
   TRUSTED_ORIGINS: 'http://localhost',
   BETTER_AUTH_SECRETS: '1:stub',

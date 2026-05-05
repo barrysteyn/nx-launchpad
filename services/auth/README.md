@@ -268,7 +268,16 @@ Both the browser and worker layers use a **protected by default, opt out explici
 
 ## Authorization / Roles
 
-The auth service uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin) for role-based authorization.
+The auth service supports two mutually exclusive authorization modes, controlled by the `MULTITENANCY_ENABLED` env var in `wrangler.jsonc`. The mode is chosen once during initial setup (via `/setup-auth-service`) and baked into the DB schema — switching modes on an existing database requires a manual migration.
+
+| Mode | `MULTITENANCY_ENABLED` | Plugin | JWT payload |
+|---|---|---|---|
+| Single-tenant (default) | `"false"` | `admin` plugin | `{ id, email, role }` |
+| Multi-tenant | `"true"` | `organization` plugin | `{ id, email, orgId }` |
+
+### Single-tenant mode
+
+Uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin) for role-based authorization.
 
 ### How roles work
 
@@ -346,6 +355,40 @@ Check the updated role directly in D1:
 npx wrangler d1 execute DB --remote -e staging \
   --command "SELECT id, email, role FROM user WHERE email = 'your@email.com'"
 ```
+
+### Multi-tenant mode
+
+Uses better-auth's [organization plugin](https://better-auth.com/docs/plugins/organization). Each organisation is a tenant. Users join organisations via invitation and hold a role within that org (`owner`, `admin`, or `member` by default).
+
+The active organisation is stored in the session cookie. The JWT includes `orgId` (the active organisation ID) so downstream workers can scope requests to the correct tenant without a round-trip to the auth service.
+
+#### Activating a tenant session (client-side)
+
+```typescript
+await authClient.organization.setActive({ organizationId: 'org_abc123' });
+```
+
+This writes `activeOrganizationId` into the session. All subsequent `/api/auth/token` calls will include that `orgId` in the JWT.
+
+#### Enforcing tenancy in a Hono worker
+
+```typescript
+app.get('/api/data', (c) => {
+  const user = c.get('user');         // from jwtMiddleware
+  const orgId = user.orgId;           // from JWT payload
+  if (!orgId) return c.json({ error: 'No active organisation' }, 403);
+  // scope your DB query to orgId
+});
+```
+
+#### Switching modes on an existing database
+
+Flipping `MULTITENANCY_ENABLED` without a migration will cause runtime errors. The correct process is:
+
+1. Change `MULTITENANCY_ENABLED` in `wrangler.jsonc` and `auth.generate.ts`
+2. Run `npx nx run auth:db-generate` to produce a new migration
+3. Apply the migration manually (the auto-generated SQL will be additive or require `ALTER TABLE` depending on direction)
+4. Redeploy
 
 ---
 
