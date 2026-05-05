@@ -49,6 +49,9 @@
         "cwd": "{projectRoot}"
       },
       "configurations": {
+        "preview": {
+          "command": "CLOUDFLARE_ENV=preview VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL npx vite build"
+        },
         "staging": {
           "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL,http://localhost:5173 npx vite build"
         },
@@ -194,6 +197,9 @@
         "parallel": false
       },
       "configurations": {
+        "preview": {
+          "command": "npx wrangler deploy -e preview --var PROJECT_NAME:$PROJECT_NAME"
+        },
         "staging": {
           "commands": [
             "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl",
