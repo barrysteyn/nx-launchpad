@@ -11,10 +11,20 @@ import type { Bindings } from './types';
 let _auth: ReturnType<typeof betterAuth> | null = null;
 let _cacheKey = '';
 
+function activeOrgId(session: unknown): string | null {
+  return ((session as Record<string, unknown>).activeOrganizationId as string | undefined) ?? null;
+}
+
+function userRole(user: unknown): string | null {
+  return ((user as Record<string, unknown>).role as string | undefined) ?? null;
+}
+
 export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
   const isMultiTenant = env.MULTITENANCY_ENABLED === 'true';
   const cacheKey = `${env.BETTER_AUTH_URL}|${env.MULTITENANCY_ENABLED ?? ''}|${env.BETTER_AUTH_SECRETS ?? ''}`;
   if (_auth && _cacheKey === cacheKey) return _auth;
+
+  const dbInstance = db(env);
 
   _auth = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
@@ -29,7 +39,7 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
         })
       : undefined,
 
-    database: drizzleAdapter(db(env), { provider: 'sqlite', schema }),
+    database: drizzleAdapter(dbInstance, { provider: 'sqlite', schema }),
 
     emailAndPassword: {
       enabled: true,
@@ -112,7 +122,7 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
             organization({
               organizationHooks: {
                 afterAddMember: async ({ user, organization: org }) => {
-                  await db(env)
+                  await dbInstance
                     .update(schema.session)
                     .set({ activeOrganizationId: org.id } as Record<string, unknown>)
                     .where(eq(schema.session.userId, user.id));
@@ -127,19 +137,8 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
           issuer: env.BETTER_AUTH_URL,
           audience: env.BETTER_AUTH_URL,
           definePayload: isMultiTenant
-            ? ({ user, session }) => ({
-                id: user.id,
-                email: user.email,
-                orgId:
-                  (session as Record<string, unknown>)
-                    .activeOrganizationId as string | null ?? null,
-              })
-            : ({ user }) => ({
-                id: user.id,
-                email: user.email,
-                role:
-                  (user as Record<string, unknown>).role as string | null ?? null,
-              }),
+            ? ({ user, session }) => ({ id: user.id, email: user.email, orgId: activeOrgId(session) })
+            : ({ user }) => ({ id: user.id, email: user.email, role: userRole(user) }),
         },
         jwks: {
           keyPairConfig: { alg: 'EdDSA' },
@@ -166,7 +165,6 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
     },
   }) as unknown as ReturnType<typeof betterAuth>;
 
-  // _auth is guaranteed to be set at this point
   _cacheKey = cacheKey;
-  return _auth!;
+  return _auth;
 }

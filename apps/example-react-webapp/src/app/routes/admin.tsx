@@ -13,7 +13,7 @@ function AdminPage() {
   const [status, setStatus] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const role = session?.user.role ?? 'user';
+  const role = session?.user.role;
 
   async function callAdminEndpoint() {
     setLoading(true);
@@ -37,16 +37,18 @@ function AdminPage() {
     <div className="flex flex-col items-center justify-center py-24 gap-6 max-w-lg mx-auto">
       <h1 className="text-3xl font-bold text-gray-900">Admin Demo</h1>
 
-      <div
-        className={`w-full rounded-lg border p-4 text-sm ${role === ADMIN_ROLE ? 'border-green-300 bg-green-50' : 'border-yellow-300 bg-yellow-50'}`}
-      >
-        <p className="font-medium text-gray-600">Your role (from session)</p>
-        <p
-          className={`text-lg font-bold mt-1 ${role === ADMIN_ROLE ? 'text-green-700' : 'text-yellow-700'}`}
+      {role && (
+        <div
+          className={`w-full rounded-lg border p-4 text-sm ${role === ADMIN_ROLE ? 'border-green-300 bg-green-50' : 'border-yellow-300 bg-yellow-50'}`}
         >
-          {role}
-        </p>
-      </div>
+          <p className="font-medium text-gray-600">Your role (from session)</p>
+          <p
+            className={`text-lg font-bold mt-1 ${role === ADMIN_ROLE ? 'text-green-700' : 'text-yellow-700'}`}
+          >
+            {role}
+          </p>
+        </div>
+      )}
 
       <div className="w-full">
         <p className="text-sm text-gray-500 mb-3">
