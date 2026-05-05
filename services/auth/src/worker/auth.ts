@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { jwt, magicLink } from 'better-auth/plugins';
+import { jwt, magicLink, admin } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './db';
@@ -105,11 +105,17 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
 
     // ── plugins ──────────────────────────────────────────────────
     plugins: [
+      admin(),
       jwt({
         jwt: {
           expirationTime: '1h',
           issuer: env.BETTER_AUTH_URL,
           audience: env.BETTER_AUTH_URL,
+          definePayload: ({ user }) => ({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+          }),
         },
         jwks: {
           keyPairConfig: { alg: 'EdDSA' },
