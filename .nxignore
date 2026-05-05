@@ -1,3 +1,2 @@
 # Services listed here are not provisioned in this project.
 # Remove an entry to enable the service, then run its setup command.
-services/auth

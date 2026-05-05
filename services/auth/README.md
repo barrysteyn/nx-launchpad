@@ -205,7 +205,7 @@ import { jwtMiddleware, verifyToken } from '@nx-launchpad/auth-node';
 ```typescript
 import { jwtMiddleware } from '@nx-launchpad/auth-node';
 
-app.use('/api/*', jwtMiddleware('https://auth.staging.falconiq.ai'));
+app.use('/api/*', jwtMiddleware('https://auth.staging.nimrox.ai'));
 
 app.get('/api/me', (c) => {
   const user = c.get('user'); // { id, email, emailVerified, name }
@@ -218,7 +218,7 @@ app.get('/api/me', (c) => {
 ```typescript
 import { verifyToken } from '@nx-launchpad/auth-node';
 
-const user = await verifyToken(token, 'https://auth.staging.falconiq.ai');
+const user = await verifyToken(token, 'https://auth.staging.nimrox.ai');
 ```
 
 Token verification fetches the public JWKS once and caches it — no round-trip to the auth service on subsequent requests.

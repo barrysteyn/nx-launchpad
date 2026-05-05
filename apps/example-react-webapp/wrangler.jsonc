@@ -4,7 +4,7 @@
   "main": "src/worker/index.ts",
   "vars": {
     "ENVIRONMENT": "local",
-    "AUTH_URL": "https://auth.staging.falconiq.ai"
+    "AUTH_URL": "https://auth.staging.nimrox.ai"
   },
   "kv_namespaces": [
     {
@@ -38,7 +38,7 @@
       "name": "example-react-webapp-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "AUTH_URL": "https://auth.staging.falconiq.ai"
+        "AUTH_URL": "https://auth.staging.nimrox.ai"
       },
       "kv_namespaces": [
         {
@@ -52,7 +52,7 @@
       "name": "example-react-webapp-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "AUTH_URL": "https://auth.staging.falconiq.ai"
+        "AUTH_URL": "https://auth.staging.nimrox.ai"
       },
       "kv_namespaces": [
         {
@@ -69,7 +69,7 @@
       "name": "example-react-webapp-production",
       "vars": {
         "ENVIRONMENT": "production",
-        "AUTH_URL": "https://auth.falconiq.ai"
+        "AUTH_URL": "https://auth.nimrox.ai"
       },
       "kv_namespaces": [
         {
