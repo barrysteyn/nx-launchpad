@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { jwt, magicLink, admin } from 'better-auth/plugins';
+import { jwt, magicLink, admin, organization } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './db';
@@ -11,7 +11,8 @@ let _auth: ReturnType<typeof betterAuth> | null = null;
 let _cacheKey = '';
 
 export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
-  const cacheKey = `${env.BETTER_AUTH_URL}|${env.BETTER_AUTH_SECRETS ?? ''}`;
+  const isMultiTenant = env.MULTITENANCY_ENABLED === 'true';
+  const cacheKey = `${env.BETTER_AUTH_URL}|${env.MULTITENANCY_ENABLED ?? ''}|${env.BETTER_AUTH_SECRETS ?? ''}`;
   if (_auth && _cacheKey === cacheKey) return _auth;
 
   _auth = betterAuth({
@@ -105,17 +106,26 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
 
     // ── plugins ──────────────────────────────────────────────────
     plugins: [
-      admin(),
+      ...(isMultiTenant ? [organization()] : [admin()]),
       jwt({
         jwt: {
           expirationTime: '1h',
           issuer: env.BETTER_AUTH_URL,
           audience: env.BETTER_AUTH_URL,
-          definePayload: ({ user }) => ({
-            id: user.id,
-            email: user.email,
-            role: user.role,
-          }),
+          definePayload: isMultiTenant
+            ? ({ user, session }) => ({
+                id: user.id,
+                email: user.email,
+                orgId:
+                  (session as Record<string, unknown>)
+                    .activeOrganizationId as string | null ?? null,
+              })
+            : ({ user }) => ({
+                id: user.id,
+                email: user.email,
+                role:
+                  (user as Record<string, unknown>).role as string | null ?? null,
+              }),
         },
         jwks: {
           keyPairConfig: { alg: 'EdDSA' },

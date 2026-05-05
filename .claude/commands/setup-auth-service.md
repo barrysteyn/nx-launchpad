@@ -28,7 +28,27 @@ Ask the user: "Which environment are you setting up — staging or production?"
 
 Use their answer as `<env>` throughout the remaining steps.
 
-## Step 3 — Provision infrastructure (D1 database)
+## Step 3 — Choose authorization mode
+
+Ask the user:
+
+> "Do you want **multi-tenancy** (users belong to organisations — roles are per-org) or **single-tenant** (one global role per user, e.g. admin/user)?"
+
+**If single-tenant (default):** no action needed — `MULTITENANCY_ENABLED` is already `"false"` in `wrangler.jsonc` and `auth.generate.ts`.
+
+**If multi-tenant:**
+
+1. In `services/auth/wrangler.jsonc`, set `MULTITENANCY_ENABLED` to `"true"` in both the `staging` and `production` env blocks.
+2. In `services/auth/src/worker/auth.generate.ts`, set `MULTITENANCY_ENABLED: 'true'` in the stub env.
+3. Regenerate the schema for the chosen mode:
+   ```
+   npx nx run auth:db-generate
+   ```
+   This regenerates `src/worker/schema.ts` and `schema/0000_init.sql` with the organisation plugin's tables instead of the admin plugin's tables.
+
+Warn the user: **switching modes after the database has been migrated requires a manual DB migration** — it is not safe to simply flip the flag on an existing populated database.
+
+## Step 4 — Provision infrastructure (D1 database)
 
 ```
 npx nx run auth:tf-apply:<env>
@@ -40,7 +60,7 @@ Wait for it to complete. Read the output and extract:
 
 Tell the user these values and proceed to the next step.
 
-## Step 4 — Update wrangler.jsonc
+## Step 5 — Update wrangler.jsonc
 
 Open `services/auth/wrangler.jsonc`. Find the `<env>` block inside `"env"` and fill in the real values from Terraform output:
 
@@ -58,7 +78,7 @@ Open `services/auth/wrangler.jsonc`. Find the `<env>` block inside `"env"` and f
 
 Only update the values that are still placeholders. If they already contain real IDs (non-placeholder strings), leave them alone.
 
-## Step 5 — Run database migration
+## Step 6 — Run database migration
 
 ```
 npx nx run auth:db-migrate:<env>
@@ -66,7 +86,7 @@ npx nx run auth:db-migrate:<env>
 
 This applies `schema/0000_init.sql` to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has D1 Edit permissions (see README for the full permissions table).
 
-## Step 6 — Deploy the worker
+## Step 7 — Deploy the worker
 
 ```
 npx nx run auth:deploy:<env>
@@ -74,7 +94,7 @@ npx nx run auth:deploy:<env>
 
 This builds the app, runs Terraform (idempotent), and deploys to Cloudflare. The worker must be deployed before secrets can be set in the next step.
 
-## Step 7 — Set secrets
+## Step 8 — Set secrets
 
 Explain to the user that secrets are never stored in files — they are set directly in Cloudflare via Wrangler and injected at runtime.
 
@@ -107,11 +127,11 @@ npx wrangler secret list -e <env>
 
 `BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
 
-## Step 8 — Enable the service in Nx
+## Step 9 — Enable the service in Nx
 
 Remove `services/auth` from `.nxignore` at the repo root. Once removed, Nx will include the auth service in `nx affected` runs and CI pipelines.
 
-## Step 9 — Verify
+## Step 10 — Verify
 
 Run these checks to confirm everything is working:
 

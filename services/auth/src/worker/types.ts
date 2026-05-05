@@ -1,6 +1,7 @@
 export type Bindings = {
   ENVIRONMENT: string;
   PROJECT_NAME: string;
+  MULTITENANCY_ENABLED?: string;
   BETTER_AUTH_URL: string;
   TRUSTED_ORIGINS: string;
   BETTER_AUTH_SECRETS: string;
