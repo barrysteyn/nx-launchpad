@@ -6,7 +6,8 @@ type LoginSearch = { redirect_uri?: string };
 
 export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
-    redirect_uri: typeof search.redirect_uri === 'string' ? search.redirect_uri : undefined,
+    redirect_uri:
+      typeof search.redirect_uri === 'string' ? search.redirect_uri : undefined,
   }),
   component: LoginPage,
 });
@@ -67,13 +68,20 @@ function LoginPage() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">{error}</p>
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
       )}
 
       {tab === 'password' && (
         <form onSubmit={handlePasswordSignIn} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -84,7 +92,12 @@ function LoginPage() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
             <input
               id="password"
               type="password"
@@ -102,7 +115,9 @@ function LoginPage() {
           </button>
           <p className="text-center text-sm text-gray-500">
             No account?{' '}
-            <a href="/signup" className="text-blue-600 hover:underline">Sign up</a>
+            <a href="/signup" className="text-blue-600 hover:underline">
+              Sign up
+            </a>
           </p>
         </form>
       )}
@@ -110,7 +125,12 @@ function LoginPage() {
       {tab === 'magic-link' && !magicSent && (
         <form onSubmit={handleMagicLink} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -132,7 +152,9 @@ function LoginPage() {
       {tab === 'magic-link' && magicSent && (
         <div className="text-center space-y-2">
           <p className="text-gray-700 font-medium">Check your inbox</p>
-          <p className="text-sm text-gray-500">We sent a magic link to <strong>{email}</strong></p>
+          <p className="text-sm text-gray-500">
+            We sent a magic link to <strong>{email}</strong>
+          </p>
         </div>
       )}
     </div>
