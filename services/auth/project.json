@@ -85,9 +85,6 @@
         "cwd": "{projectRoot}"
       },
       "configurations": {
-        "local": {
-          "command": "npx wrangler d1 execute DB --local --file=schema/0000_init.sql"
-        },
         "staging": {
           "command": "npx wrangler d1 execute DB --remote -e staging --file=schema/0000_init.sql"
         },

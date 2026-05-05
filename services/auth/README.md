@@ -172,15 +172,15 @@ npx wrangler secret list -e staging
 
 ## Local development
 
-```bash
-# Apply schema to local D1
-npx nx run auth:db-migrate:local
+The auth service itself does not run locally. Session cookies are set with the `Secure` flag scoped to `.$URL` — they are not sent over HTTP, so local auth flows do not work.
 
-# Start dev server (React SPA + Worker)
-npx nx run auth:serve
+For developing consumer apps locally, point them at the staging auth service by setting `VITE_AUTH_URL` in the app's `.env.local`:
+
+```bash
+VITE_AUTH_URL=https://auth.staging.nimrox.ai
 ```
 
-The worker runs at `http://localhost:5173`. No secrets are needed locally — emails are not sent, and `BETTER_AUTH_SECRETS` defaults to a dev placeholder if not set.
+The staging auth service already has `http://localhost:5173` in its `TRUSTED_ORIGINS`, so CORS and cookie redirects work when running an app locally against staging auth.
 
 ---
 
@@ -194,7 +194,7 @@ The worker runs at `http://localhost:5173`. No secrets are needed locally — em
 | `lint` / `format` | Lint and format checks |
 | `typecheck` | TypeScript check (app + worker) |
 | `db-generate` | Regenerate `src/worker/schema.ts` and `schema/0000_init.sql` from the better-auth config |
-| `db-migrate:local` / `:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
+| `db-migrate:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
 | `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
 | `tf-plan:staging` / `:production` | Preview infra changes |
 | `tf-destroy:staging` / `:production` | Destroy Cloudflare infra |
