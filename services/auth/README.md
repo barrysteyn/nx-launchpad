@@ -1,6 +1,6 @@
 # Auth Service
 
-Centralised authentication service for all apps in this monorepo. Built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a React SPA for login/signup flows.
+Centralised authentication service for all apps in this monorepo. Built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a D1 database.
 
 ## What it does
 
@@ -9,19 +9,19 @@ Centralised authentication service for all apps in this monorepo. Built on [bett
 - **JWT tokens** (EdDSA, 1 hour TTL) — apps verify tokens without hitting this service on every request
 - **API keys** — for machine-to-machine auth
 - **JWKS endpoint** at `/.well-known/jwks.json` — public key discovery for token verification
-- **Cross-subdomain cookies** — a session established on `auth.nimrox.ai` is automatically valid across all `*.nimrox.ai` apps
+- **Cross-subdomain cookies** — a session established on `auth.$URL` is automatically valid across all `*.$URL` apps
 
 Emails (verification, magic link, password reset) are sent via AWS SES when configured. Without SES secrets, email features are silently disabled — useful for staging environments where you don't need email flows.
 
 ## How auth works
 
-When a user visits a protected app (e.g. `staging.nimrox.ai`) without a session, the app redirects them here:
+When a user visits a protected app without a session, the app redirects them to the login page:
 
 ```
-https://auth.staging.nimrox.ai/login?redirect_uri=https://staging.nimrox.ai/
+https://auth.staging.$URL/login?redirect_uri=https://staging.$URL/
 ```
 
-After signing in, better-auth sets a session cookie scoped to `.nimrox.ai` and redirects the browser directly back to `redirect_uri`. The app's `useSession()` hook reads the cookie on load — no token in the URL, no intermediate redirect page.
+After signing in, better-auth sets a session cookie scoped to `.$URL` and redirects the browser directly back to `redirect_uri`. The app's `useSession()` hook reads the cookie on load — no token in the URL, no intermediate redirect page.
 
 For API calls that require authentication, apps request a short-lived JWT from this service (`authClient.token()`) and send it as a `Bearer` token. The receiving worker verifies the JWT locally using the public JWKS — no round-trip to this service on every request.
 
@@ -44,7 +44,11 @@ JWKS key pairs are stored in D1, encrypted at rest by better-auth using your `BE
 
 ## First-time setup
 
-Use the `/setup-auth-service` Claude command — it walks through every step interactively and fills in the wrangler.jsonc database IDs for you. The manual steps are documented below for reference.
+> [!TIP]
+> Use the `/setup-auth-service` Claude command — it walks through every step interactively and fills in the wrangler.jsonc database IDs for you.
+
+<details>
+<summary>Manual setup steps</summary>
 
 ### Prerequisites
 
@@ -59,7 +63,7 @@ The following must be present in your root `.env` file:
 
 ```bash
 PROJECT_NAME=your-project-name
-URL=nimrox.ai
+URL=your-domain.com       # e.g. nimrox.ai — drives all staging/production URLs
 ENVIRONMENT=staging
 CLOUDFLARE_ACCOUNT_ID=...
 CLOUDFLARE_API_TOKEN=...
@@ -115,15 +119,18 @@ This applies `schema/0000_init.sql` to the remote D1 database. Run this again wh
 npx nx run auth:deploy:staging
 ```
 
-This runs Terraform (idempotent — no changes if infra is already up), then deploys the Worker. The Worker must exist in Cloudflare before secrets can be set in the next step.
+This runs Terraform (idempotent — no changes if infra is already up), then deploys the Worker.
+
+> [!NOTE]
+> The Worker must exist in Cloudflare before secrets can be set in the next step.
 
 ### Step 6 — Set secrets
 
-Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflare via the Wrangler CLI and injected into the Worker at runtime. The Worker must already be deployed (Step 5) before these commands will work.
+Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflare via the Wrangler CLI and injected into the Worker at runtime.
 
 #### better-auth secrets (required)
 
-`BETTER_AUTH_SECRETS` is required. It is a versioned, comma-separated list of signing secrets — this design supports rotation from day one without ever needing a second variable.
+`BETTER_AUTH_SECRETS` is a versioned, comma-separated list of signing secrets — this design supports rotation from day one without ever needing a second variable.
 
 Generate a secret value:
 
@@ -159,11 +166,11 @@ npx wrangler secret list -e staging
 
 `BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
 
+</details>
+
 ---
 
 ## Local development
-
-Local dev uses an in-process D1 database (no real Cloudflare resources needed):
 
 ```bash
 # Apply schema to local D1
@@ -173,7 +180,7 @@ npx nx run auth:db-migrate:local
 npx nx run auth:serve
 ```
 
-The worker runs at `http://localhost:5173`. The React login UI is served at the same origin. No secrets are needed locally — emails are not sent, and `BETTER_AUTH_SECRETS` defaults to a dev placeholder if not set.
+The worker runs at `http://localhost:5173`. No secrets are needed locally — emails are not sent, and `BETTER_AUTH_SECRETS` defaults to a dev placeholder if not set.
 
 ---
 
@@ -221,7 +228,8 @@ Sign out:
 await authClient.signOut();
 ```
 
-`useSession()` is cross-tab aware — signing out in one tab updates all other open tabs within a second via BroadcastChannel.
+> [!NOTE]
+> `useSession()` is cross-tab aware — signing out in one tab updates all other open tabs within a second via BroadcastChannel.
 
 ### Worker (Hono API)
 
@@ -245,7 +253,7 @@ app.get('/api/me', (c) => {
 
 The middleware verifies the JWT against the auth service's public JWKS, caches the key set, and sets `c.var.user` for downstream handlers. Any route not in `PUBLIC_API_ROUTES` returns `401` if the request has no valid Bearer token.
 
-The `AUTH_URL` binding must be set in `wrangler.jsonc` pointing to the auth service (e.g. `https://auth.staging.nimrox.ai`).
+The `AUTH_URL` worker binding must be set in `wrangler.jsonc` pointing to the auth service (e.g. `https://auth.staging.$URL`).
 
 ### Public vs protected routes
 
@@ -264,11 +272,11 @@ To rotate secrets without invalidating existing sessions:
 
 1. Generate a new secret: `openssl rand -base64 256 | tr -d '\n'; echo`
 2. Update `BETTER_AUTH_SECRETS` with the new version prepended:
-   ```
+   ```bash
    npx wrangler secret put BETTER_AUTH_SECRETS -e staging
    # Enter: 2:newSecret,1:oldSecret
    ```
 3. After all sessions signed with version 1 have expired (1 hour), remove the old entry:
-   ```
+   ```bash
    # Enter: 2:newSecret
    ```
