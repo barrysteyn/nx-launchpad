@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { jwt, magicLink, admin, organization } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { eq } from 'drizzle-orm';
 import { db } from './db';
 import * as schema from './schema';
 import { sendSESEmail } from './email';
@@ -106,7 +107,20 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
 
     // ── plugins ──────────────────────────────────────────────────
     plugins: [
-      ...(isMultiTenant ? [organization()] : [admin()]),
+      ...(isMultiTenant
+        ? [
+            organization({
+              organizationHooks: {
+                afterAddMember: async ({ user, organization: org }) => {
+                  await db(env)
+                    .update(schema.session)
+                    .set({ activeOrganizationId: org.id } as Record<string, unknown>)
+                    .where(eq(schema.session.userId, user.id));
+                },
+              },
+            }),
+          ]
+        : [admin()]),
       jwt({
         jwt: {
           expirationTime: '1h',
