@@ -7,7 +7,10 @@ interface SendEmailOptions {
   url: string;
 }
 
-export function sendSESEmail(opts: SendEmailOptions, env: Bindings): Promise<unknown> {
+export function sendSESEmail(
+  opts: SendEmailOptions,
+  env: Bindings,
+): Promise<unknown> {
   const client = new SESClient({
     region: env.AWS_SES_REGION,
     credentials: {

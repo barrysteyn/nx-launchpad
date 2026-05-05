@@ -9,7 +9,9 @@ let _origins: Set<string> | null = null;
 
 app.use('*', (c, next) => {
   if (!_origins) {
-    _origins = new Set((c.env.TRUSTED_ORIGINS ?? '').split(',').filter(Boolean));
+    _origins = new Set(
+      (c.env.TRUSTED_ORIGINS ?? '').split(',').filter(Boolean),
+    );
   }
   return cors({
     origin: (origin) => (_origins!.has(origin) ? origin : null),

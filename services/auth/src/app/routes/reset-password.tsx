@@ -35,11 +35,22 @@ function ResetPasswordPage() {
 
   return (
     <div className="bg-white rounded-xl shadow p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 text-center">Reset password</h1>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <h1 className="text-2xl font-bold text-gray-900 text-center">
+        Reset password
+      </h1>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
           <input
             id="email"
             type="email"
@@ -56,7 +67,9 @@ function ResetPasswordPage() {
           Send reset link
         </button>
         <p className="text-center text-sm">
-          <a href="/login" className="text-blue-600 hover:underline">Back to sign in</a>
+          <a href="/login" className="text-blue-600 hover:underline">
+            Back to sign in
+          </a>
         </p>
       </form>
     </div>

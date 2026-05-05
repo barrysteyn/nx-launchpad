@@ -39,18 +39,40 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
           hash: async (password) => {
             const enc = new TextEncoder();
             const salt = crypto.getRandomValues(new Uint8Array(16));
-            const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-            const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' }, key, 256);
-            const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+            const key = await crypto.subtle.importKey(
+              'raw',
+              enc.encode(password),
+              'PBKDF2',
+              false,
+              ['deriveBits'],
+            );
+            const bits = await crypto.subtle.deriveBits(
+              { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+              key,
+              256,
+            );
+            const b64 = (buf: ArrayBuffer) =>
+              btoa(String.fromCharCode(...new Uint8Array(buf)));
             return `pbkdf2:${b64(salt.buffer)}:${b64(bits)}`;
           },
           verify: async ({ hash, password }) => {
             const [, saltB64, hashB64] = hash.split(':');
             const enc = new TextEncoder();
             const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
-            const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-            const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' }, key, 256);
-            const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+            const key = await crypto.subtle.importKey(
+              'raw',
+              enc.encode(password),
+              'PBKDF2',
+              false,
+              ['deriveBits'],
+            );
+            const bits = await crypto.subtle.deriveBits(
+              { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+              key,
+              256,
+            );
+            const b64 = (buf: ArrayBuffer) =>
+              btoa(String.fromCharCode(...new Uint8Array(buf)));
             return b64(bits) === hashB64;
           },
         },

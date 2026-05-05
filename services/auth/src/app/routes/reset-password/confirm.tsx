@@ -42,7 +42,10 @@ function ConfirmResetPage() {
       <div className="bg-white rounded-xl shadow p-8 text-center space-y-4">
         <h1 className="text-2xl font-bold text-gray-900">Password reset</h1>
         <p className="text-sm text-gray-500">Your password has been updated.</p>
-        <a href="/login" className="inline-block text-blue-600 hover:underline text-sm">
+        <a
+          href="/login"
+          className="inline-block text-blue-600 hover:underline text-sm"
+        >
           Sign in
         </a>
       </div>
@@ -51,11 +54,22 @@ function ConfirmResetPage() {
 
   return (
     <div className="bg-white rounded-xl shadow p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 text-center">New password</h1>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <h1 className="text-2xl font-bold text-gray-900 text-center">
+        New password
+      </h1>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">New password</label>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700"
+          >
+            New password
+          </label>
           <input
             id="password"
             type="password"
@@ -67,7 +81,12 @@ function ConfirmResetPage() {
           />
         </div>
         <div>
-          <label htmlFor="confirm" className="block text-sm font-medium text-gray-700">Confirm password</label>
+          <label
+            htmlFor="confirm"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Confirm password
+          </label>
           <input
             id="confirm"
             type="password"

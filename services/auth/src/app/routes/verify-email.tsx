@@ -26,15 +26,25 @@ function VerifyEmailPage() {
     <div className="bg-white rounded-xl shadow p-8 space-y-6 text-center">
       <h1 className="text-2xl font-bold text-gray-900">Verify your email</h1>
       <p className="text-sm text-gray-500">
-        Check your inbox for a verification link. If you didn't receive it, enter your email below to resend.
+        Check your inbox for a verification link. If you didn't receive it,
+        enter your email below to resend.
       </p>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       {sent ? (
         <p className="text-sm text-green-600">Verification email sent!</p>
       ) : (
         <form onSubmit={handleResend} className="space-y-4 text-left">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
             <input
               id="email"
               type="email"

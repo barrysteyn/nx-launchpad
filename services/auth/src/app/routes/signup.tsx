@@ -39,11 +39,22 @@ function SignupPage() {
 
   return (
     <div className="bg-white rounded-xl shadow p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 text-center">Create account</h1>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <h1 className="text-2xl font-bold text-gray-900 text-center">
+        Create account
+      </h1>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Name
+          </label>
           <input
             id="name"
             type="text"
@@ -54,7 +65,12 @@ function SignupPage() {
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
           <input
             id="email"
             type="email"
@@ -65,7 +81,12 @@ function SignupPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Password
+          </label>
           <input
             id="password"
             type="password"
@@ -84,7 +105,9 @@ function SignupPage() {
         </button>
         <p className="text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-600 hover:underline">Sign in</a>
+          <a href="/login" className="text-blue-600 hover:underline">
+            Sign in
+          </a>
         </p>
       </form>
     </div>
