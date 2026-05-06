@@ -4,236 +4,108 @@ Centralised authentication service for all apps in this monorepo. Built on [bett
 
 ## What it does
 
-- **Email + password** auth — email verification is optional (enabled when AWS SES secrets are configured)
-- **Magic link** login via email (requires AWS SES secrets)
-- **JWT tokens** (EdDSA, 1 hour TTL) — apps verify tokens without hitting this service on every request
-- **API keys** — for machine-to-machine auth
-- **JWKS endpoint** at `/.well-known/jwks.json` — public key discovery for token verification
-- **Cross-subdomain cookies** — a session established on `auth.$URL` is automatically valid across all `*.$URL` apps
-
-Emails (verification, magic link, password reset) are sent via AWS SES when configured. Without SES secrets, email features are silently disabled — useful for staging environments where you don't need email flows.
+- **Email + password** auth with optional email verification (requires AWS SES)
+- **Magic link** login via email (requires AWS SES)
+- **JWT tokens** (EdDSA, 1 hour TTL) — verified by consumer apps without a round-trip to this service
+- **API keys** for machine-to-machine auth
+- **JWKS endpoint** at `/.well-known/jwks.json` for public key discovery
+- **Cross-subdomain cookies** — a session on `auth.$URL` is valid across all `*.$URL` apps
 
 ## How auth works
 
-When a user visits a protected app without a session, the app redirects them to the login page:
-
-```
-https://auth.staging.$URL/login?redirect_uri=https://staging.$URL/
-```
-
-After signing in, better-auth sets a session cookie scoped to `.$URL` and redirects the browser directly back to `redirect_uri`. The app's `useSession()` hook reads the cookie on load — no token in the URL, no intermediate redirect page.
-
-For API calls that require authentication, apps request a short-lived JWT from this service (`authClient.token()`) and send it as a `Bearer` token. The receiving worker verifies the JWT locally using the public JWKS — no round-trip to this service on every request.
-
-## Architecture
-
-```
-Browser / App
-    │
-    ├── /api/auth/*            → better-auth handler (sessions, sign-in, sign-up, etc.)
-    ├── /.well-known/jwks.json → public JWKS for JWT verification by other workers
-    └── /*                     → React SPA (login, signup, verify-email, reset-password)
-
-Infrastructure
-    └── D1 database  → user accounts, sessions, API keys, JWKS key pairs
-```
-
-JWKS key pairs are stored in D1, encrypted at rest by better-auth using your `BETTER_AUTH_SECRETS`. Only the public key is ever exposed via the JWKS endpoint.
+1. Unauthenticated user visits a protected app → redirected to `https://auth.staging.$URL/login?redirect_uri=...`
+2. After sign-in, better-auth sets a session cookie scoped to `.$URL` and redirects back
+3. For API calls, apps call `authClient.token()` to get a short-lived JWT, sent as `Bearer` token
+4. Consumer workers verify JWTs locally via JWKS — no round-trip to this service
 
 ---
 
-## First-time setup
+## Setup and teardown
 
-> [!TIP]
-> Use the `/setup-auth-service` Claude command — it walks through every step interactively and fills in the wrangler.jsonc database IDs for you.
+Use the Claude Code skills — they handle every step interactively:
 
-<details>
-<summary>Manual setup steps</summary>
-
-### Prerequisites
-
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.10
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm`)
-- A Cloudflare account with D1 enabled
-- AWS credentials (for Terraform S3 state backend)
-
-### Step 1 — Set environment variables
-
-The following must be present in your root `.env` file:
-
-```bash
-PROJECT_NAME=your-project-name
-URL=your-domain.com       # e.g. nimrox.ai — drives all staging/production URLs
-ENVIRONMENT=staging
-CLOUDFLARE_ACCOUNT_ID=...
-CLOUDFLARE_API_TOKEN=...
-AWS_PROFILE=your-aws-profile   # used by Terraform for S3 state backend
-```
-
-Your Cloudflare API token must have the following permissions:
-
-| Scope | Resource | Permission |
-|---|---|---|
-| Account | D1 | Edit |
-| Account | Cloudflare Workers Scripts | Edit |
-| Zone | Workers Routes | Edit |
-
-Create or update your token at **Cloudflare dashboard → My Profile → API Tokens**.
-
-### Step 2 — Provision infrastructure
-
-This creates the D1 database in your Cloudflare account:
-
-```bash
-npx nx run auth:tf-apply:staging
-```
-
-Note the output values — you'll need them in the next step:
-
-```
-d1_database_id   = "xxxxxxxxxxxx"
-d1_database_name = "your-project-staging-auth"
-```
-
-### Step 3 — Update wrangler.jsonc
-
-Fill in the real IDs from the Terraform output into `wrangler.jsonc`:
-
-```jsonc
-"staging": {
-  "d1_databases": [{ "binding": "DB", "database_name": "...", "database_id": "<paste d1_database_id>" }]
-}
-```
-
-### Step 4 — Run the database migration
-
-```bash
-npx nx run auth:db-migrate:staging
-```
-
-This applies `schema/0000_init.sql` to the remote D1 database. Run this again whenever the schema changes (after running `db-generate`).
-
-### Step 5 — Deploy
-
-```bash
-npx nx run auth:deploy:staging
-```
-
-This runs Terraform (idempotent — no changes if infra is already up), then deploys the Worker.
-
-> [!NOTE]
-> The Worker must exist in Cloudflare before secrets can be set in the next step.
-
-### Step 6 — Set secrets
-
-Secrets are never stored in `wrangler.jsonc`. They are set directly in Cloudflare via the Wrangler CLI and injected into the Worker at runtime.
-
-#### better-auth secrets (required)
-
-`BETTER_AUTH_SECRETS` is a versioned, comma-separated list of signing secrets — this design supports rotation from day one without ever needing a second variable.
-
-Generate a secret value:
-
-```bash
-openssl rand -base64 256 | tr -d '\n'; echo
-```
-
-```bash
-npx wrangler secret put BETTER_AUTH_SECRETS -e staging
-# When prompted, enter: 1:<your-generated-value>
-```
-
-The version prefix (`1:`) is required — it enables rotation later without invalidating active sessions. See [Secret rotation](#secret-rotation) below.
-
-#### AWS SES secrets (optional)
-
-Required to send verification emails, magic links, and password reset emails. Without these, email features are silently disabled — signups work without email verification. The IAM user needs the `ses:SendEmail` permission on your verified sending domain.
-
-```bash
-npx wrangler secret put AWS_SES_ACCESS_KEY -e staging
-npx wrangler secret put AWS_SES_SECRET_KEY -e staging
-npx wrangler secret put AWS_SES_REGION -e staging
-# Enter the AWS region where SES is configured, e.g. us-east-1
-```
-
-The `FROM_EMAIL` address is a plain `var` in `wrangler.jsonc` — it does not need to be a secret, but the domain must be verified in SES.
-
-#### Verify secrets
-
-```bash
-npx wrangler secret list -e staging
-```
-
-`BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
-
-</details>
+- `/setup-auth-service` — provision D1, migrate schema, deploy worker, set secrets
+- `/teardown-auth-service` — delete worker, destroy D1, reset repo to pre-setup state
 
 ---
 
-## Local development
+## Authorization modes
 
-The auth service itself does not run locally. Session cookies are set with the `Secure` flag scoped to `.$URL` — they are not sent over HTTP, so local auth flows do not work.
+The service supports two mutually exclusive modes, chosen at setup time and baked into the DB schema. Switching modes on an existing database requires a manual migration.
 
-For developing consumer apps locally, point them at the staging auth service by setting `VITE_AUTH_URL` in the app's `.env.local`:
+| Mode | `multitenancyEnabled` in `package.json` | Plugin | JWT payload |
+|---|---|---|---|
+| Single-tenant (default) | `false` | `admin` | `{ id, email, role }` |
+| Multi-tenant | `true` | `organization` | `{ id, email, orgId }` |
 
+### Single-tenant mode
+
+Uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin). Every user has a `role` field (`admin` or `user`).
+
+**Bootstrap first admin** (write directly to D1):
 ```bash
-VITE_AUTH_URL=https://auth.staging.nimrox.ai
+npx wrangler d1 execute DB --remote -e staging \
+  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
 ```
 
-The staging auth service already has `http://localhost:5173` in its `TRUSTED_ORIGINS`, so CORS and cookie redirects work when running an app locally against staging auth.
+**Promote/demote via client** (requires an existing admin session):
+```typescript
+await authClient.admin.setRole({ userId: 'user_abc123', role: 'admin' });
+```
+
+**Enforce in a worker:**
+```typescript
+app.get('/api/admin', (c) => {
+  if (c.get('user').role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+});
+```
+
+### Multi-tenant mode
+
+Uses better-auth's [organization plugin](https://better-auth.com/docs/plugins/organization). Users belong to organisations; roles are per-org (`owner`, `admin`, `member`).
+
+**How org activation works:** when a user creates or joins an organisation, a server-side `afterAddMember` hook automatically sets `activeOrganizationId` on all their sessions. The active org is included in every subsequent JWT — no client-side `setActive()` call needed.
+
+**JWT payload in multi-tenant mode:**
+```json
+{ "id": "user_abc123", "email": "alice@example.com", "orgId": "org_xyz" }
+```
+
+**Enforce tenancy in a worker:**
+```typescript
+app.get('/api/data', (c) => {
+  const { orgId } = c.get('user');
+  if (!orgId) return c.json({ error: 'No active organisation' }, 403);
+  // scope DB queries to orgId
+});
+```
+
+**Switching modes on an existing database:**
+1. Change `multitenancyEnabled` in `services/auth/package.json`
+2. Run `npx nx run auth:db-generate` to produce a new migration
+3. Apply the migration manually via `db-migrate`
+4. Redeploy
 
 ---
 
-## Nx targets
-
-| Target | Description |
-|---|---|
-| `serve` | Start local dev server |
-| `build:staging` / `build:production` | Build for deployment |
-| `test` | Run unit tests |
-| `lint` / `format` | Lint and format checks |
-| `typecheck` | TypeScript check (app + worker) |
-| `db-generate` | Regenerate `src/worker/schema.ts` and `schema/0000_init.sql` from the better-auth config |
-| `db-migrate:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
-| `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
-| `tf-plan:staging` / `:production` | Preview infra changes |
-| `tf-destroy:staging` / `:production` | Destroy Cloudflare infra |
-| `deploy:staging` / `:production` | Terraform + wrangler deploy |
-
----
-
-## Using auth in other apps
+## Using auth in consumer apps
 
 ### Browser (React SPA)
-
-Create an auth client in your app using the shared library:
 
 ```typescript
 // src/app/lib/auth-client.ts
 import { createBrowserAuthClient } from '@nx-launchpad/auth-browser';
-
-export const AUTH_URL = import.meta.env.VITE_AUTH_URL as string | undefined;
-export const authClient = createBrowserAuthClient(AUTH_URL);
+export const authClient = createBrowserAuthClient(import.meta.env.VITE_AUTH_URL);
 ```
 
-Use `useSession()` to read the current user and guard routes:
-
 ```typescript
-const { data: session, isPending } = authClient.useSession();
-```
-
-Sign out:
-
-```typescript
+const { data: session } = authClient.useSession();
 await authClient.signOut();
 ```
 
-> [!NOTE]
-> `useSession()` is cross-tab aware — signing out in one tab updates all other open tabs within a second via BroadcastChannel.
+`useSession()` is cross-tab aware — signing out in one tab updates all others within a second.
 
 ### Worker (Hono API)
-
-Protect all API routes by default using the global JWT middleware from `@nx-launchpad/auth-node`:
 
 ```typescript
 import { jwtMiddleware } from '@nx-launchpad/auth-node';
@@ -244,165 +116,56 @@ app.use('/api/*', (c, next) => {
   if (PUBLIC_API_ROUTES.has(c.req.path)) return next();
   return jwtMiddleware(c.env.AUTH_URL)(c, next);
 });
-
-app.get('/api/me', (c) => {
-  const user = c.get('user'); // { id, email, emailVerified, name }
-  return c.json(user);
-});
 ```
 
-The middleware verifies the JWT against the auth service's public JWKS, caches the key set, and sets `c.var.user` for downstream handlers. Any route not in `PUBLIC_API_ROUTES` returns `401` if the request has no valid Bearer token.
+After the middleware, `c.get('user')` contains `{ id, email, emailVerified, name, role? }` (single-tenant) or `{ id, email, emailVerified, name, orgId? }` (multi-tenant).
 
-The `AUTH_URL` worker binding must be set in `wrangler.jsonc` pointing to the auth service (e.g. `https://auth.staging.$URL`).
+The `AUTH_URL` binding in `wrangler.jsonc` must point to the auth service (e.g. `https://auth.staging.$URL`).
 
-### Public vs protected routes
-
-Both the browser and worker layers use a **protected by default, opt out explicitly** pattern:
+### Protected by default
 
 | Layer | Protected by default | Opt out |
 |---|---|---|
-| React pages | `__root.tsx` redirect via `useSession()` | Add `staticData: { isPublic: true }` to the route |
-| API endpoints | Global `jwtMiddleware` on `/api/*` | Add the path to `PUBLIC_API_ROUTES` |
+| React pages | `__root.tsx` redirect via `useSession()` | `staticData: { isPublic: true }` on the route |
+| API endpoints | Global `jwtMiddleware` on `/api/*` | Add path to `PUBLIC_API_ROUTES` |
 
 ---
 
-## Authorization / Roles
+## Local development
 
-The auth service supports two mutually exclusive authorization modes, controlled by the `MULTITENANCY_ENABLED` env var in `wrangler.jsonc`. The mode is chosen once during initial setup (via `/setup-auth-service`) and baked into the DB schema — switching modes on an existing database requires a manual migration.
-
-| Mode | `MULTITENANCY_ENABLED` | Plugin | JWT payload |
-|---|---|---|---|
-| Single-tenant (default) | `"false"` | `admin` plugin | `{ id, email, role }` |
-| Multi-tenant | `"true"` | `organization` plugin | `{ id, email, orgId }` |
-
-### Single-tenant mode
-
-Uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin) for role-based authorization.
-
-### How roles work
-
-Every user has a `role` field in the database (defaults to `null`, treated as `"user"`). The role is included in the JWT payload so downstream workers can enforce access without a round-trip to the auth service:
-
-```json
-{
-  "id": "user_abc123",
-  "email": "alice@example.com",
-  "role": "admin"
-}
-```
-
-Two roles exist out of the box: `admin` (full control) and `user` (no admin privileges).
-
-### Checking roles in a worker
-
-After JWT verification, `c.var.user.role` is available in any Hono handler:
-
-```typescript
-app.get('/api/admin/users', (c) => {
-  const user = c.get('user');
-  if (user.role !== 'admin') {
-    return c.json({ error: 'Forbidden' }, 403);
-  }
-  // ...
-});
-```
-
-> [!NOTE]
-> The JWT is issued at sign-in and has a 1-hour TTL. A role change takes effect when the user's current JWT expires or they re-authenticate — session cookies reflect the new role immediately.
-
-### Bootstrapping the first admin
-
-The admin plugin requires an existing admin to promote other users. Bootstrap your first admin by writing directly to D1:
-
-**Staging:**
-```bash
-npx wrangler d1 execute DB --remote -e staging \
-  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
-```
-
-**Production:**
-```bash
-npx wrangler d1 execute DB --remote -e production \
-  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
-```
-
-### Promoting or demoting a user
-
-Once you have at least one admin, use the admin API from a trusted client context (e.g. an admin UI or a server-side script). The caller's session must belong to an admin.
-
-**Client-side (from an admin session):**
-```typescript
-// Promote to admin
-await authClient.admin.setRole({ userId: 'user_abc123', role: 'admin' });
-
-// Demote back to user
-await authClient.admin.setRole({ userId: 'user_abc123', role: 'user' });
-```
-
-**Server-side (Hono route or script):**
-```typescript
-await auth.api.setRole({
-  body: { userId: 'user_abc123', role: 'admin' },
-  headers: request.headers, // must carry an admin session cookie
-});
-```
-
-### Verifying a role change
-
-Check the updated role directly in D1:
+The auth service does not run locally — session cookies require HTTPS scoped to `.$URL`. Point local apps at staging instead:
 
 ```bash
-npx wrangler d1 execute DB --remote -e staging \
-  --command "SELECT id, email, role FROM user WHERE email = 'your@email.com'"
+# apps/<name>/.env.local
+VITE_AUTH_URL=https://auth.staging.$URL
 ```
 
-### Multi-tenant mode
-
-Uses better-auth's [organization plugin](https://better-auth.com/docs/plugins/organization). Each organisation is a tenant. Users join organisations via invitation and hold a role within that org (`owner`, `admin`, or `member` by default).
-
-The active organisation is stored in the session cookie. The JWT includes `orgId` (the active organisation ID) so downstream workers can scope requests to the correct tenant without a round-trip to the auth service.
-
-#### Activating a tenant session (client-side)
-
-```typescript
-await authClient.organization.setActive({ organizationId: 'org_abc123' });
-```
-
-This writes `activeOrganizationId` into the session. All subsequent `/api/auth/token` calls will include that `orgId` in the JWT.
-
-#### Enforcing tenancy in a Hono worker
-
-```typescript
-app.get('/api/data', (c) => {
-  const user = c.get('user');         // from jwtMiddleware
-  const orgId = user.orgId;           // from JWT payload
-  if (!orgId) return c.json({ error: 'No active organisation' }, 403);
-  // scope your DB query to orgId
-});
-```
-
-#### Switching modes on an existing database
-
-Flipping `MULTITENANCY_ENABLED` without a migration will cause runtime errors. The correct process is:
-
-1. Change `MULTITENANCY_ENABLED` in `wrangler.jsonc` and `auth.generate.ts`
-2. Run `npx nx run auth:db-generate` to produce a new migration
-3. Apply the migration manually (the auto-generated SQL will be additive or require `ALTER TABLE` depending on direction)
-4. Redeploy
+The staging auth service has `http://localhost:5173` in `TRUSTED_ORIGINS`.
 
 ---
 
 ## Secret rotation
 
-To rotate secrets without invalidating existing sessions:
+`BETTER_AUTH_SECRETS` is a versioned comma-separated list: `<version>:<secret>`. To rotate:
 
 1. Generate a new secret: `openssl rand -base64 256 | tr -d '\n'; echo`
-2. Update `BETTER_AUTH_SECRETS` with the new version prepended:
+2. Prepend the new version:
    ```bash
    npx wrangler secret put BETTER_AUTH_SECRETS -e staging
    # Enter: 2:newSecret,1:oldSecret
    ```
-3. After all sessions signed with version 1 have expired (1 hour), remove the old entry:
-   ```bash
-   # Enter: 2:newSecret
-   ```
+3. After all sessions signed with v1 expire (1 hour), drop the old entry.
+
+---
+
+## Nx targets
+
+| Target | Description |
+|---|---|
+| `build:staging` / `:production` | Build for deployment |
+| `deploy:staging` / `:production` | Terraform + wrangler deploy |
+| `db-generate` | Regenerate schema from better-auth config |
+| `db-migrate:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
+| `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
+| `tf-destroy:staging` / `:production` | Destroy Cloudflare infra |
+| `test` / `lint` / `format` / `typecheck` | Standard quality targets |
