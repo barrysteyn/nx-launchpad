@@ -1,0 +1,30 @@
+{
+  "name": "<%= name %>",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "workers_dev": true,
+  "env": {
+    "preview": {
+      "name": "<%= name %>-preview",
+      "preview_urls": true
+    },
+    "staging": {
+      "name": "<%= name %>-staging",
+      "route": {
+        "pattern": "<%= stagingDomain %>",
+        "custom_domain": true
+      }
+    },
+    "production": {
+      "name": "<%= name %>-production",
+      "workers_dev": false,
+      "route": {
+        "pattern": "<%= productionDomain %>",
+        "custom_domain": true
+      }
+    }
+  }
+}
