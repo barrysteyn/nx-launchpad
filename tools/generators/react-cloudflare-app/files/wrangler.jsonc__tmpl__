@@ -33,7 +33,7 @@
   },
   "env": {
     "preview": {
-      "name": "<%= name %>-staging",
+      "name": "<%= name %>-preview",
       "vars": {
         "ENVIRONMENT": "staging"
       },
