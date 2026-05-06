@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "id": "astro-cloudflare-app",
+  "title": "Generate an Astro Static Site for Cloudflare Workers",
+  "description": "Scaffolds a static Astro site with React components deployed on Cloudflare Workers",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Application name in kebab-case (e.g. my-astro-site)",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What is the application name? (kebab-case)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short human-readable description of the application",
+      "default": "",
+      "x-prompt": "Short description of the application?"
+    }
+  },
+  "required": ["name"]
+}
