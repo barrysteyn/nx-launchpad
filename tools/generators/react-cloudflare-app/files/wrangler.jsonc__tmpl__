@@ -55,11 +55,11 @@
           "binding": "CONFIG_KV",
           "id": "<staging-kv-namespace-id>"
         }
-      ]<% if (stagingDomain) { %>,
+      ],
       "route": {
         "pattern": "<%= stagingDomain %>",
         "custom_domain": true
-      }<% } %>
+      }
     },
     "production": {
       "name": "<%= name %>-production",
@@ -72,11 +72,11 @@
           "id": "<production-kv-namespace-id>"
         }
       ],
-      "workers_dev": false<% if (productionDomain) { %>,
+      "workers_dev": false,
       "route": {
         "pattern": "<%= productionDomain %>",
         "custom_domain": true
-      }<% } %>
+      }
     }
   }
 }
