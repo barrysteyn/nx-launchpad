@@ -1,6 +1,24 @@
-import { addProjectConfiguration, formatFiles, generateFiles, Tree } from '@nx/devkit';
+import { addProjectConfiguration, formatFiles, generateFiles, logger, Tree } from '@nx/devkit';
+import * as fs from 'fs';
 import * as path from 'path';
 import type { ReactCloudflareAppGeneratorSchema } from './schema';
+
+function readUrlFromEnv(): string {
+  const PLACEHOLDER = 'your-domain.com';
+  const FALLBACK = 'example.com';
+  try {
+    const envContent = fs.readFileSync('.env', 'utf-8');
+    const match = envContent.match(/^URL=(.+)$/m);
+    const url = match?.[1]?.trim();
+    if (url && url !== PLACEHOLDER) return url;
+  } catch {
+    // .env not found
+  }
+  logger.warn(
+    `URL not set or still placeholder in root .env — using '${FALLBACK}' for wrangler.jsonc domains. Update wrangler.jsonc after generation.`,
+  );
+  return FALLBACK;
+}
 
 export async function reactCloudflareAppGenerator(
   tree: Tree,
@@ -9,8 +27,9 @@ export async function reactCloudflareAppGenerator(
   const appName = options.name;
   const appDir = `apps/${appName}`;
   const description = options.description ?? `${appName} application`;
-  const stagingDomain = options.stagingDomain ?? '';
-  const productionDomain = options.productionDomain ?? '';
+  const url = readUrlFromEnv();
+  const stagingDomain = `staging.${url}`;
+  const productionDomain = url;
   const title = appName
     .split('-')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

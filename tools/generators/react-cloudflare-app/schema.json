@@ -17,18 +17,6 @@
       "description": "Short human-readable description of the application",
       "default": "",
       "x-prompt": "Short description of the application?"
-    },
-    "stagingDomain": {
-      "type": "string",
-      "description": "Custom domain for the staging environment (e.g. staging.example.com). Leave blank to skip.",
-      "default": "",
-      "x-prompt": "Staging custom domain? (leave blank to skip)"
-    },
-    "productionDomain": {
-      "type": "string",
-      "description": "Custom domain for the production environment (e.g. example.com). Leave blank to skip.",
-      "default": "",
-      "x-prompt": "Production custom domain? (leave blank to skip)"
     }
   },
   "required": ["name"]
