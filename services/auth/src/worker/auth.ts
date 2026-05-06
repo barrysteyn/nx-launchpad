@@ -12,7 +12,11 @@ let _auth: ReturnType<typeof betterAuth> | null = null;
 let _cacheKey = '';
 
 function activeOrgId(session: unknown): string | null {
-  return ((session as Record<string, unknown>).activeOrganizationId as string | undefined) ?? null;
+  return (
+    ((session as Record<string, unknown>).activeOrganizationId as
+      | string
+      | undefined) ?? null
+  );
 }
 
 function userRole(user: unknown): string | null {
@@ -124,7 +128,10 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
                 afterAddMember: async ({ user, organization: org }) => {
                   await dbInstance
                     .update(schema.session)
-                    .set({ activeOrganizationId: org.id } as Record<string, unknown>)
+                    .set({ activeOrganizationId: org.id } as Record<
+                      string,
+                      unknown
+                    >)
                     .where(eq(schema.session.userId, user.id));
                 },
               },
@@ -137,8 +144,16 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
           issuer: env.BETTER_AUTH_URL,
           audience: env.BETTER_AUTH_URL,
           definePayload: isMultiTenant
-            ? ({ user, session }) => ({ id: user.id, email: user.email, orgId: activeOrgId(session) })
-            : ({ user }) => ({ id: user.id, email: user.email, role: userRole(user) }),
+            ? ({ user, session }) => ({
+                id: user.id,
+                email: user.email,
+                orgId: activeOrgId(session),
+              })
+            : ({ user }) => ({
+                id: user.id,
+                email: user.email,
+                role: userRole(user),
+              }),
         },
         jwks: {
           keyPairConfig: { alg: 'EdDSA' },

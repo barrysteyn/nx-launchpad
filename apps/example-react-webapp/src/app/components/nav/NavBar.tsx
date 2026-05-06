@@ -37,7 +37,13 @@ export function NavBar() {
       {role && (
         <span className="ml-auto text-xs text-gray-400">
           role:{' '}
-          <span className={role === ADMIN_ROLE ? 'text-green-600 font-medium' : 'text-gray-500'}>
+          <span
+            className={
+              role === ADMIN_ROLE
+                ? 'text-green-600 font-medium'
+                : 'text-gray-500'
+            }
+          >
             {role}
           </span>
         </span>
