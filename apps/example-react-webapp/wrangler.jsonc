@@ -35,7 +35,7 @@
   "workers_dev": true,
   "env": {
     "preview": {
-      "name": "example-react-webapp-staging",
+      "name": "example-react-webapp-preview",
       "vars": {
         "ENVIRONMENT": "staging",
         "AUTH_URL": "https://auth.staging.nimrox.ai"
