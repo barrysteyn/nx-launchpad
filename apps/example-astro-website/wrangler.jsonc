@@ -1,0 +1,30 @@
+{
+  "name": "example-astro-website",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+  },
+  "workers_dev": true,
+  "env": {
+    "preview": {
+      "name": "example-astro-website-preview",
+      "preview_urls": true,
+    },
+    "staging": {
+      "name": "example-astro-website-staging",
+      "route": {
+        "pattern": "staging.nimrox.ai",
+        "custom_domain": true,
+      },
+    },
+    "production": {
+      "name": "example-astro-website-production",
+      "workers_dev": false,
+      "route": {
+        "pattern": "nimrox.ai",
+        "custom_domain": true,
+      },
+    },
+  },
+}
