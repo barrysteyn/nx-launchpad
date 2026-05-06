@@ -70,10 +70,11 @@ htmlcov/
 !.env.production
 
 # ------------------------------------------------------------
-# Vite / Cloudflare
+# Vite / Cloudflare / Astro
 # ------------------------------------------------------------
 .vite/
 .wrangler/
+.astro/
 
 # Generated resolved config files
 config/files/*.resolved.json
