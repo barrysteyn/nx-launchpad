@@ -14,6 +14,11 @@
       "factory": "./generators/node-app/generator",
       "schema": "./generators/node-app/schema.json",
       "description": "Generate a Node.js/TypeScript CLI app deployable as an AWS Lambda"
+    },
+    "astro-cloudflare-app": {
+      "factory": "./generators/astro-cloudflare-app/generator",
+      "schema": "./generators/astro-cloudflare-app/schema.json",
+      "description": "Generate a static Astro site with React components deployed on Cloudflare Workers"
     }
   }
 }
