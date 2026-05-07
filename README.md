@@ -296,3 +296,43 @@ Or type `/generate-react-cloudflare-app` in Claude Code.
 | `build` | Vite build → `dist/client/` |
 | `serve` | Start React HMR + Hono worker at `http://localhost:5173` |
 | `deploy:preview` / `deploy:staging` / `deploy:production` | Deploy to Cloudflare Workers |
+
+---
+
+### Astro Static Site (Cloudflare Workers Static Assets)
+
+Generates a purely static Astro site deployed to Cloudflare via Workers Static Assets. Includes React components (`@astrojs/react`), Tailwind CSS v4, Vitest, ESLint, Prettier, and preview / staging / production Cloudflare environments. No server-side runtime — every page is pre-rendered to static HTML at build time.
+
+> [!IMPORTANT]
+> **Prerequisite:** set `URL=your-domain.com` in your root `.env` file before generating. The generator derives `staging.your-domain.com` and `your-domain.com` from this value automatically.
+
+```bash
+npx nx generate @nx-launchpad/tools:astro-cloudflare-app <app-name>
+```
+
+Or type `/generate-astro-cloudflare-app` in Claude Code.
+
+| Target | Description |
+|---|---|
+| `lint` / `format` | Lint and format |
+| `typecheck` | Type-check with `astro check` + `tsc --noEmit` |
+| `test` | Run Vitest |
+| `build` | Astro build → `dist/` (static HTML/CSS/JS) |
+| `serve` | Start Astro dev server with HMR at `http://localhost:4321` |
+| `deploy:preview` | Deploy to a unique `workers.dev` preview URL; prints `PREVIEW_URL` |
+| `deploy:staging` | Deploy to `staging.your-domain.com` |
+| `deploy:production` | Deploy to `your-domain.com` |
+
+**Local development:**
+
+```bash
+npx nx run <app-name>:serve
+```
+
+**Deploying** (requires `CLOUDFLARE_API_TOKEN`):
+
+```bash
+npx nx run <app-name>:deploy:preview     # prints PREVIEW_URL after deploy
+npx nx run <app-name>:deploy:staging
+npx nx run <app-name>:deploy:production
+```
