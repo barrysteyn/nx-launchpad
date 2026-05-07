@@ -12,7 +12,7 @@ Follow these steps:
 
 2. **Run the generator** with the collected answers:
    ```
-   npx nx generate @nx-launchpad/tools:node-app <app-name>
+   npx nx generate tools:node-app <app-name>
    ```
    The generator automatically runs `npm install --legacy-peer-deps` after writing files to keep the lock file in sync.
 

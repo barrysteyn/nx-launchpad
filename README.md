@@ -223,7 +223,7 @@ VITE_AUTH_URL=https://auth.staging.your-domain.com
 
 ## Generating Apps
 
-This workspace includes generators to scaffold new applications. All generators are available via the `@nx-launchpad/tools` package.
+This workspace includes generators to scaffold new applications. All generators are available via the `tools` package.
 
 > [!TIP]
 > Every generator has a matching Claude Code skill (e.g. `/generate-python-app`) that prompts for all options, runs the generator, verifies the scaffold, and runs all checks — no manual steps required.
@@ -235,7 +235,7 @@ This workspace includes generators to scaffold new applications. All generators 
 Generates a Python application with uv, pytest, ruff, and optional AWS Lambda + API Gateway infrastructure.
 
 ```bash
-npx nx generate @nx-launchpad/tools:python-app <app-name>
+npx nx generate tools:python-app <app-name>
 ```
 
 Or type `/generate-python-app` in Claude Code.
@@ -255,7 +255,7 @@ Or type `/generate-python-app` in Claude Code.
 Generates a Node.js/TypeScript app compiled to CommonJS, deployable as an AWS Lambda.
 
 ```bash
-npx nx generate @nx-launchpad/tools:node-app <app-name>
+npx nx generate tools:node-app <app-name>
 ```
 
 Or type `/generate-node-app` in Claude Code.
@@ -283,7 +283,7 @@ The app is split into two runtime environments:
 During local development (`serve`), both run simultaneously via the `@cloudflare/vite-plugin` — React with full HMR, the Hono worker in the real workerd runtime. No second process needed.
 
 ```bash
-npx nx generate @nx-launchpad/tools:react-cloudflare-app <app-name>
+npx nx generate tools:react-cloudflare-app <app-name>
 ```
 
 Or type `/generate-react-cloudflare-app` in Claude Code.
@@ -307,7 +307,7 @@ Generates a purely static Astro site deployed to Cloudflare via Workers Static A
 > **Prerequisite:** set `URL=your-domain.com` in your root `.env` file before generating. The generator derives `staging.your-domain.com` and `your-domain.com` from this value automatically.
 
 ```bash
-npx nx generate @nx-launchpad/tools:astro-cloudflare-app <app-name>
+npx nx generate tools:astro-cloudflare-app <app-name>
 ```
 
 Or type `/generate-astro-cloudflare-app` in Claude Code.
