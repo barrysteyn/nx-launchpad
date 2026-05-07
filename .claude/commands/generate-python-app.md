@@ -12,7 +12,7 @@ Follow these steps:
 
 2. **Run the generator** with the collected answers:
    ```
-   npx nx generate @nx-launchpad/tools:python-app <app-name>
+   npx nx generate tools:python-app <app-name>
    ```
 
 3. **Verify the generated files:**

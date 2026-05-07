@@ -20,7 +20,7 @@ If it is still `your-domain.com` (the placeholder), warn the user that the gener
 
 2. **Run the generator:**
    ```
-   npx nx generate @nx-launchpad/tools:astro-cloudflare-app <app-name> --description "<description>"
+   npx nx generate tools:astro-cloudflare-app <app-name> --description "<description>"
    ```
 
 3. **Verify the generated files:**
