@@ -133,12 +133,12 @@ Per-language runtime loaders. Reads the pre-resolved config blob from DynamoDB (
 
 ## Generating Apps
 
-Use the `@nx-launchpad/tools` generators to scaffold new applications. Never create app scaffolding by hand.
+Use the `tools` generators to scaffold new applications. Never create app scaffolding by hand.
 
 ### Python (uv)
 
 ```bash
-npx nx generate @nx-launchpad/tools:python-app <app-name>
+npx nx generate tools:python-app <app-name>
 ```
 
 Or use the `/generate-python-app` skill in Claude Code — it will prompt for all options and run the full generation and verification flow automatically.
@@ -155,7 +155,7 @@ After generating, commit `pyproject.toml` and `uv.lock`. Do not commit `requirem
 ### Node.js (TypeScript)
 
 ```bash
-npx nx generate @nx-launchpad/tools:node-app <app-name>
+npx nx generate tools:node-app <app-name>
 ```
 
 Or use the `/generate-node-app` skill in Claude Code — it will prompt for all options, run the generator, verify the scaffold, and run lint/format/typecheck/test/build to confirm everything works — no manual steps required.
@@ -283,7 +283,7 @@ npx nx run <app>:deploy:staging      # init + plan + apply staging
 ### Generating
 
 ```bash
-npx nx generate @nx-launchpad/tools:react-cloudflare-app <app-name>
+npx nx generate tools:react-cloudflare-app <app-name>
 ```
 
 Or use the `/generate-react-cloudflare-app` skill in Claude Code — it will prompt for all options, run the generator, verify the scaffold, and run lint/format/typecheck/test/build to confirm everything works — no manual steps required.
