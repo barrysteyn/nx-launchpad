@@ -11,66 +11,86 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 ---
 
 > [!IMPORTANT]
-> ### One-Time Setup — Delete This Section When Done
+> ## Onboarding
 >
-> Complete each step below after forking this repo, then **delete this entire callout block** before your first real commit.
+> **Note:** Onboarding currently supports macOS only.
 >
-> - [ ] **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
+> Run `/onboard` in Claude Code from the repo root. The skill installs
+> dev tooling, verifies prerequisites, deploys staging config, optionally
+> generates a static site, and offers to enable services.
 >
-> - [ ] **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
->   ```bash
->   aws s3api create-bucket --bucket your-bucket-name --region us-east-1
->   aws s3api put-bucket-versioning --bucket your-bucket-name \
->     --versioning-configuration Status=Enabled
->   ```
->   Versioning is required — it allows state recovery if something goes wrong.
->   Once created, update `libs/infra/backend.hcl` with your bucket name.
+> If you're a contributor joining an already-onboarded fork, run
+> `/dev-onboard` instead — it only sets up the local dev environment
+> (tooling install + git config + husky).
 >
-> - [ ] **Add to your root `.env` file** (copy from `.env.example`):
->   ```bash
->   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
->   URL=example.com                     # Used as the A domain for the project
->   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
->   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
->   AWS_REGION=us-east-1                # AWS region for DynamoDB, SSM, and Lambda
->   CLOUDFLARE_API_TOKEN=your-api-token
->   CLOUDFLARE_ACCOUNT_ID=your-account-id  # Cloudflare dashboard → right-hand sidebar
->   ```
->   `PROJECT_NAME` becomes a permanent prefix for all infra (`${project_name}-${environment}-${app_name}`). Nx targets derive `TF_VAR_project_name` from it automatically.
+> <details>
+> <summary>Without Claude Code — manual one-time setup</summary>
 >
-> - [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
+> 1. **Bootstrap dev tooling**: `bash scripts/setup.sh`
+>    (set `INSTALL_JAVA=true` if you need Java)
 >
->   | Name | Type |
->   |---|---|
->   | `AWS_ACCESS_KEY_ID` | Secret |
->   | `AWS_SECRET_ACCESS_KEY` | Secret |
->   | `CLOUDFLARE_API_TOKEN` | Secret |
->   | `CLOUDFLARE_ACCOUNT_ID` | Secret |
->   | `PROJECT_NAME` | Variable |
->   | `URL` | Variable |
+> 2. **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
 >
->   `AWS_REGION` is hardcoded to `us-east-1` in the deploy workflow — no need to add it here.
+> 3. **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
 >
-> - [ ] **Deploy config to staging and production** — this runs Terraform to create the shared Cloudflare KV namespaces that every React + Cloudflare Worker app binds to for config:
->   ```bash
->   npx nx run config:deploy-config --configuration=staging
->   npx nx run config:deploy-config --configuration=production
->   ```
->   Complete the `.env` and GitHub Secrets steps above before running these. Each command applies Terraform (creating the KV namespace) and seeds it with your resolved config.
+>    ```bash
+>    aws s3api create-bucket --bucket your-bucket-name --region us-east-1
+>    aws s3api put-bucket-versioning --bucket your-bucket-name \
+>      --versioning-configuration Status=Enabled
+>    ```
 >
-> - [ ] **Hardcode the KV namespace IDs** — after the deploys above succeed, run:
->   ```bash
->   npx wrangler kv namespace list
->   ```
->   Note the IDs for `${PROJECT_NAME}-staging-config` and `${PROJECT_NAME}-production-config`, then tell Claude Code:
->   ```
->   Please hardcode the Cloudflare KV namespace IDs into all wrangler.jsonc files and the
->   generator template. The staging ID is <staging-id> and the production ID is <production-id>.
->   ```
->   Claude will update every `wrangler.jsonc` in the monorepo and the generator template in one step.
+>    Update `libs/infra/backend.hcl` with your bucket name.
 >
-> - [ ] **Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. This ensures CI always runs against the latest `main` before a PR can merge, making the post-merge CI run unnecessary.
+> 4. **Add to your root `.env` file** (copy from `.env.example`):
 >
+>    ```bash
+>    PROJECT_NAME=your-project-name
+>    URL=example.com
+>    ENVIRONMENT=local
+>    AWS_PROFILE=your-aws-profile         # or use AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+>    AWS_REGION=us-east-1
+>    CLOUDFLARE_API_TOKEN=your-api-token
+>    CLOUDFLARE_ACCOUNT_ID=your-account-id
+>    ```
+>
+> 5. **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
+>
+>    | Name | Type |
+>    |---|---|
+>    | `AWS_ACCESS_KEY_ID` | Secret |
+>    | `AWS_SECRET_ACCESS_KEY` | Secret |
+>    | `CLOUDFLARE_API_TOKEN` | Secret |
+>    | `CLOUDFLARE_ACCOUNT_ID` | Secret |
+>    | `PROJECT_NAME` | Variable |
+>    | `URL` | Variable |
+>
+> 6. **Deploy staging config**:
+>
+>    ```bash
+>    npx nx run config:deploy-config:staging
+>    ```
+>
+> 7. **Hardcode the staging KV namespace ID** — after the deploy succeeds:
+>
+>    ```bash
+>    npx wrangler kv namespace list
+>    ```
+>
+>    Note the ID for `${PROJECT_NAME}-staging-config`, then update the staging block in every `wrangler.jsonc` (apps, services, and generator templates).
+>
+> 8. **Set up repo-local git config**:
+>
+>    ```bash
+>    git config pull.rebase true
+>    git config push.autoSetupRemote true
+>    git config user.name "Your Name"
+>    git config user.email "you@example.com"
+>    ```
+>
+> 9. **(Optional) Enable branch protection on `main`** — requires a paid GitHub plan for private repos.
+>
+> </details>
+
 ---
 
 ## Getting Started
