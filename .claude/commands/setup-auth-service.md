@@ -126,7 +126,7 @@ fi
 
 If `aws ssm put-parameter` fails with `AccessDeniedException`, halt and tell the user: their IAM user needs `ssm:PutParameter` and `ssm:GetParameter` permissions on `arn:aws:ssm:*:*:parameter/${PROJECT_NAME}/*`.
 
-Now sync the value from SSM to Cloudflare (mirrors `sync-auth-secrets.yml` lines 77–86):
+Now sync the value from SSM to Cloudflare (mirrors the `Sync BETTER_AUTH_SECRETS` step in `.github/workflows/sync-auth-secrets.yml`):
 
 ```bash
 aws ssm get-parameter \
@@ -137,7 +137,7 @@ aws ssm get-parameter \
 | (cd services/auth && npx wrangler secret put BETTER_AUTH_SECRETS -e <env>)
 ```
 
-The subshell wrapper preserves the parent shell's cwd — without it, every command after this line would run from `services/auth/`.
+The subshell wrapper groups the `cd` and `wrangler` together on the right side of the pipe, and (more importantly for the standalone commands below) preserves the parent shell's cwd.
 
 ### AWS SES secrets (optional)
 
