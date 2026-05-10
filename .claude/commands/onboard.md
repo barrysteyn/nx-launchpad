@@ -194,3 +194,53 @@ Show the user the diff. Ask:
 If they say no, revert with `git checkout -- apps services tools/generators` and halt for them to investigate.
 
 If they say yes, do **not** commit yet — the commit happens in Step 8 with everything else.
+
+## Step 5 — Static site (optional)
+
+Ask the user:
+
+> "Generate an Astro static site for staging now? [y/N]"
+
+If they answer no, skip ahead to Step 6.
+
+If they answer yes:
+
+1. Invoke `/generate-astro-cloudflare-app` inline. It will prompt for the app name and description, run the generator, and verify with lint / typecheck / test / build.
+2. After the generator completes, capture the chosen app name (it's the value the user passed when prompted by the generator skill).
+3. Deploy the new app to staging:
+
+   ```bash
+   npx nx run <app-name>:deploy:staging
+   ```
+
+4. After the deploy, print the staging worker URL (visible in the wrangler output) so the user can verify it loads.
+
+If the deploy fails, halt and surface the error — most failures here are missing GitHub Variables (URL, PROJECT_NAME) flowing into the build, or the new app's `wrangler.jsonc` not having the staging KV ID populated (Step 4 should have written it; if a fresh app was generated *after* Step 4 ran, its `wrangler.jsonc` came from the template which already has the right ID — so this should not happen).
+
+## Step 6 — Services loop
+
+Read the root `.nxignore` for `services/*` entries:
+
+```bash
+grep -E '^services/' .nxignore
+```
+
+For each subdirectory in `services/` that appears in `.nxignore`:
+
+1. Ask the user:
+
+   > "Enable the `<svc>` service now? It will be deployed to staging. [y/N]"
+
+2. If they say no, skip this service.
+
+3. If they say yes:
+   - Check whether `.claude/commands/setup-<svc>.md` exists.
+   - If it does **not** exist, print a warning and skip:
+
+     > "No setup skill found at `.claude/commands/setup-<svc>.md`. Skipping `<svc>` — set it up manually if needed."
+
+   - If it exists, invoke `/setup-<svc>` inline. The skill is responsible for: applying its Terraform, removing the `services/<svc>` line from `.nxignore`, deploying the worker to staging, and setting any required secrets.
+
+After the loop completes, print:
+
+> "Services step done. Skipped, enabled, or warned-as-missing services: <list>."
