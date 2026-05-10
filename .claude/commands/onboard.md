@@ -81,24 +81,62 @@ gh auth status
 
 If exit code is non-zero, halt with: "Run `gh auth login` to authenticate the GitHub CLI, then re-run `/onboard`."
 
-### 2.3 — Terraform state bucket configured
+### 2.3 — Terraform state bucket (create-if-missing)
 
-Read `libs/infra/backend.hcl` line 1. If the bucket value is `terraform-state-nx-launchpad-randomstringhere`, halt with:
-
-> "`libs/infra/backend.hcl` still has the placeholder bucket name. Create your S3 bucket (`aws s3api create-bucket --bucket <unique-name> --region us-east-1` then `aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled`) and update `libs/infra/backend.hcl` line 1 with the real bucket name."
-
-### 2.4 — S3 bucket exists
-
-Extract the bucket name from `libs/infra/backend.hcl`:
+Read `libs/infra/backend.hcl` line 1 to see the configured bucket name:
 
 ```bash
 BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+echo "Configured bucket: $BUCKET"
+```
+
+**If the bucket value is still the placeholder** (`terraform-state-nx-launchpad-randomstringhere`):
+
+1. Read `PROJECT_NAME` from `.env` and propose a unique bucket name:
+
+   ```bash
+   PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
+   PROPOSED="terraform-state-${PROJECT_NAME}-$(openssl rand -hex 4)"
+   echo "Proposed bucket name: $PROPOSED"
+   ```
+
+2. Ask the user:
+
+   > "I can create the S3 bucket for Terraform state now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
+   >
+   > Press Enter to accept, type a custom name to override, or `n` to halt and create manually."
+
+3. If they accept (Enter) or provide a custom name, set `BUCKET` to that value and run:
+
+   ```bash
+   aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+   aws s3api put-bucket-versioning \
+     --bucket "$BUCKET" \
+     --versioning-configuration Status=Enabled
+   ```
+
+   If `create-bucket` fails with `BucketAlreadyOwnedByYou`, the bucket exists in your account — proceed. If it fails with `BucketAlreadyExists`, the name is taken globally — ask the user for a different name and retry.
+
+4. After the bucket is created (or confirmed-exists), patch `libs/infra/backend.hcl` line 1 to set the bucket name. Use the Edit tool to replace the placeholder `terraform-state-nx-launchpad-randomstringhere` with `$BUCKET`.
+
+5. Show the user the `git diff libs/infra/backend.hcl` and confirm before continuing.
+
+6. If they answered `n` (halt and create manually), print the manual instructions and halt:
+
+   > "Create the bucket yourself:
+   >     aws s3api create-bucket --bucket <unique-name> --region us-east-1
+   >     aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled
+   > Update `libs/infra/backend.hcl` line 1 with the bucket name, then re-run `/onboard`."
+
+**If the bucket value is NOT the placeholder** (a real name is already in backend.hcl): verify it exists:
+
+```bash
 aws s3api head-bucket --bucket "$BUCKET"
 ```
 
-If `head-bucket` exits non-zero, halt with: "S3 bucket `$BUCKET` (from `libs/infra/backend.hcl`) was not found or is not accessible. Verify it exists and your AWS credentials have access to it."
+If `head-bucket` exits non-zero, halt with: "S3 bucket `$BUCKET` (from `libs/infra/backend.hcl`) was not found or is not accessible. Verify it exists, your AWS credentials have access, and the region in `backend.hcl` matches the bucket's region."
 
-### 2.5 — GitHub Secrets
+### 2.4 — GitHub Secrets
 
 ```bash
 secrets=$(gh secret list --json name --jq '.[].name')
@@ -109,7 +147,7 @@ done
 
 If any are missing, halt with: "Add missing GitHub Actions Secrets at `https://github.com/<owner>/<repo>/settings/secrets/actions`. Required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID."
 
-### 2.6 — GitHub Variables
+### 2.5 — GitHub Variables
 
 ```bash
 vars=$(gh variable list --json name --jq '.[].name')
@@ -120,7 +158,7 @@ done
 
 If any are missing, halt with: "Add missing GitHub Actions Variables at `https://github.com/<owner>/<repo>/settings/variables/actions`. Required: PROJECT_NAME, URL."
 
-### 2.7 — Cocogitto bot installed
+### 2.6 — Cocogitto bot installed
 
 Programmatic detection of installed GitHub Apps from a user PAT is unreliable. Ask the user directly:
 
@@ -136,7 +174,7 @@ Programmatic detection of installed GitHub Apps from a user PAT is unreliable. A
 
 If they answer no or skip, halt with: "Install the Cocogitto bot at https://github.com/apps/cocogitto-bot, then re-run `/onboard`."
 
-### 2.8 — Branch protection on `main` (WARN-ONLY)
+### 2.7 — Branch protection on `main` (WARN-ONLY)
 
 ```bash
 gh api "/repos/{owner}/{repo}/branches/main/protection" >/dev/null 2>&1
@@ -146,7 +184,7 @@ If exit code non-zero, **do not halt**. Print this warning and continue:
 
 > "**Warning:** Branch protection on `main` is not configured. This is recommended but not required (it needs a paid GitHub plan for private repos). Add it later at the repo's Settings → Branches when available."
 
-### 2.9 — All checks passed
+### 2.8 — All checks passed
 
 Print:
 
