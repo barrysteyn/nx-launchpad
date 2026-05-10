@@ -16,7 +16,7 @@ Do not proceed unless the user explicitly confirms.
 ## Step 2 — Delete the Cloudflare Worker
 
 ```
-cd services/auth && npx wrangler delete -e <env>
+(cd services/auth && npx wrangler delete -e <env>)
 ```
 
 When prompted to confirm deletion, enter `y`. This removes the Worker from Cloudflare but leaves the infrastructure (D1) intact.
