@@ -122,3 +122,75 @@ If exit code non-zero, **do not halt**. Print this warning and continue:
 Print:
 
 > "All cloud prerequisites verified. Proceeding to deploy staging config."
+
+## Step 3 — Deploy staging config
+
+Run:
+
+```bash
+npx nx run config:deploy-config:staging
+```
+
+This:
+1. Runs Terraform to create the Cloudflare KV namespace (`${PROJECT_NAME}-staging-config`) and AWS DynamoDB table (`${PROJECT_NAME}-staging-config`).
+2. Resolves `config/files/{default,staging}.yaml` and merges with SSM-referenced values.
+3. Pushes the resolved blob to both stores.
+
+Confirm success: the command should exit 0 and the trailing log lines should mention writing to KV and DynamoDB.
+
+If it fails, common causes:
+- `CLOUDFLARE_API_TOKEN` missing the `Workers KV Storage:Edit` permission.
+- `aws s3api head-bucket` for the Terraform state bucket failed silently and Terraform can't acquire state lock.
+- `PROJECT_NAME` contains characters disallowed by Cloudflare (must be DNS-safe lowercase kebab-case).
+
+Halt and surface the error to the user — do not auto-retry.
+
+## Step 4 — Extract & hardcode staging KV namespace ID
+
+Read `PROJECT_NAME` from `.env`:
+
+```bash
+PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
+```
+
+List KV namespaces and grab the staging one:
+
+```bash
+STAGING_KV_ID=$(npx wrangler kv namespace list 2>/dev/null \
+  | jq -r --arg t "${PROJECT_NAME}-staging-config" '.[] | select(.title == $t) | .id')
+
+if [ -z "$STAGING_KV_ID" ]; then
+  echo "ERROR: KV namespace ${PROJECT_NAME}-staging-config not found"
+  exit 1
+fi
+
+echo "Staging KV ID: $STAGING_KV_ID"
+```
+
+If `STAGING_KV_ID` is empty, halt: the namespace should have been created in Step 3 — investigate before continuing.
+
+Now rewrite the staging KV ID in every relevant file. The placeholder is `<staging-kv-namespace-id>`. Files to update:
+
+```
+apps/*/wrangler.jsonc
+services/*/wrangler.jsonc
+tools/generators/*/files/wrangler.jsonc__tmpl__
+```
+
+For each file, find the `staging` env block (the one whose key is `"staging"` inside `"env":{...}`) and replace `"id": "<staging-kv-namespace-id>"` with `"id": "$STAGING_KV_ID"`.
+
+Use the Edit tool with `old_string`/`new_string` per file rather than a global sed — the production block (which contains `"id": "<production-kv-namespace-id>"`) must not be touched.
+
+Verification: after the edits, run:
+
+```bash
+git diff -- apps services tools/generators
+```
+
+Show the user the diff. Ask:
+
+> "I'm about to commit these KV-ID changes (still on the `onboarding-and-setup` branch). Diff looks correct? [Y/n]"
+
+If they say no, revert with `git checkout -- apps services tools/generators` and halt for them to investigate.
+
+If they say yes, do **not** commit yet — the commit happens in Step 8 with everything else.
