@@ -22,20 +22,20 @@ else
   info "Homebrew already installed"
 fi
 
-# ── NVM + Node ────────────────────────────────────────────────────────────────
-if [ ! -d "$HOME/.nvm" ]; then
-  info "Installing NVM..."
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+# ── Volta + Node ──────────────────────────────────────────────────────────────
+if ! command -v volta &>/dev/null; then
+  info "Installing Volta..."
+  curl https://get.volta.sh | bash
+else
+  info "Volta already installed: $(volta --version)"
 fi
 
-export NVM_DIR="$HOME/.nvm"
-# shellcheck source=/dev/null
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+# Make Volta available in this shell session even on first install
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
 
-info "Installing Node $NODE_VERSION via NVM..."
-nvm install "$NODE_VERSION"
-nvm alias default "$NODE_VERSION"
-nvm use default
+info "Installing Node $NODE_VERSION via Volta..."
+volta install node@"$NODE_VERSION"
 
 # ── uv (Python) ───────────────────────────────────────────────────────────────
 if ! command -v uv &>/dev/null; then
@@ -54,18 +54,36 @@ else
   info "Maven already installed: $(mvn --version | head -1)"
 fi
 
-# ── Java 21 (Temurin) ─────────────────────────────────────────────────────────
-if java -version 2>&1 | grep -q "21"; then
-  info "Java 21 already installed"
+# ── Cloud CLIs ────────────────────────────────────────────────────────────────
+for cli in gh awscli terraform jq; do
+  if ! brew list "$cli" &>/dev/null; then
+    info "Installing $cli..."
+    brew install "$cli"
+  else
+    info "$cli already installed"
+  fi
+done
+
+# ── Java 21 (Temurin) — optional ──────────────────────────────────────────────
+if [ "${INSTALL_JAVA:-false}" = "true" ]; then
+  if java -version 2>&1 | grep -q "21"; then
+    info "Java 21 already installed"
+  else
+    info "Installing Java 21 (Temurin)..."
+    brew install --cask temurin@21
+  fi
 else
-  info "Installing Java 21 (Temurin)..."
-  brew install --cask temurin@21
+  info "Java install skipped (set INSTALL_JAVA=true to install)"
 fi
 
 # ── Node modules ──────────────────────────────────────────────────────────────
 info "Installing node modules..."
 cd "$REPO_ROOT"
 npm ci --legacy-peer-deps
+
+# ── Husky pre-commit hooks ────────────────────────────────────────────────────
+info "Setting up husky pre-commit hooks..."
+npm run prepare
 
 # ── VSCode extensions ─────────────────────────────────────────────────────────
 if command -v code &>/dev/null && [ -f "$REPO_ROOT/.vscode/extensions.json" ]; then
@@ -77,9 +95,9 @@ fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
-warn "Don't forget to configure git if you haven't already:"
-echo "  git config --global pull.rebase true"
-echo "  git config user.name \"Your Name\""
-echo "  git config user.email \"your.name@project.com\""
-echo ""
 info "Setup complete! Open a new terminal to ensure all PATH changes take effect."
+info "If invoked outside /dev-onboard, configure git manually:"
+echo "  git config pull.rebase true"
+echo "  git config push.autoSetupRemote true"
+echo "  git config user.name \"Your Name\""
+echo "  git config user.email \"you@example.com\""
