@@ -45,7 +45,19 @@ If any are missing, halt with: "Dev tooling installation incomplete. Open a new 
 
 ## Step 2 — Verify cloud prereqs
 
-Run each check below in order. **Halt** on the first failure (with the listed remediation message) unless the row is marked `WARN`.
+Before running the checks, remind the user about Cloudflare token permissions (this skill's most common silent-failure mode is an under-permissioned token):
+
+> "Your `CLOUDFLARE_API_TOKEN` needs these permissions, set as a Custom token in the Cloudflare dashboard:
+>
+> - Account / Workers Scripts / **Edit** (worker deploys)
+> - Account / Workers KV Storage / **Edit** (config KV)
+> - Account / D1 / **Edit** (auth service, if you opt in)
+>
+> Optional Zone-level (only if using custom domains): Workers Routes / Edit, DNS / Edit.
+>
+> If your token is missing any of these, regenerate it at https://dash.cloudflare.com/profile/api-tokens before continuing."
+
+Now run each check below in order. **Halt** on the first failure (with the listed remediation message) unless the row is marked `WARN`.
 
 ### 2.1 — `.env` keys
 

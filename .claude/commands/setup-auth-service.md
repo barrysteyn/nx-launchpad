@@ -84,7 +84,7 @@ Only update the values that are still placeholders. If they already contain real
 npx nx run auth:db-migrate:<env>
 ```
 
-This applies `schema/0000_init.sql` to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has D1 Edit permissions (see README for the full permissions table).
+This applies `schema/0000_init.sql` to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has `Account / D1 / Edit`. The full permissions table for the token is in the root `README.md` onboarding section.
 
 ## Step 7 — Deploy the worker
 
