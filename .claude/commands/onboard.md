@@ -283,10 +283,10 @@ Delete every line from the opening `> [!IMPORTANT]` through and including that c
 Verification:
 
 ```bash
-grep -c "\[!IMPORTANT\]" README.md
+grep -c "^> ## Onboarding" README.md
 ```
 
-Expected: `0` (the callout is gone).
+Expected: `0` (the onboarding callout is gone). Note: other `> [!IMPORTANT]` callouts elsewhere in the README (e.g. the Astro generator prereq note) are unrelated and stay.
 
 ```bash
 grep -n "## What to add next\|## Deployments" README.md
