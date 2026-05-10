@@ -96,36 +96,68 @@ This builds the app, runs Terraform (idempotent), and deploys to Cloudflare. The
 
 ## Step 8 — Set secrets
 
-Explain to the user that secrets are never stored in files — they are set directly in Cloudflare via Wrangler and injected at runtime.
+Secrets are never stored in files. `BETTER_AUTH_SECRETS` lives in AWS SSM (encrypted, source of truth) and is synced into Cloudflare via Wrangler — exactly the same flow that `.github/workflows/sync-auth-secrets.yml` runs in CI. AWS SES credentials are pushed directly to Wrangler (their source of truth is GitHub Secrets in CI; locally we just push them).
 
-### BETTER_AUTH_SECRETS
+### BETTER_AUTH_SECRETS (required)
 
-Generate a secret:
-```
-openssl rand -base64 256 | tr -d '\n'; echo
+Read `PROJECT_NAME` from `.env` and form the SSM path:
+
+```bash
+PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
+SSM_PATH="/${PROJECT_NAME}/<env>/auth/better-auth-secrets"
 ```
 
-Then set it (run this and prompt the user to enter `1:<generated-value>`):
+Check whether the SSM parameter already exists. **If it does, do not regenerate** — that would invalidate every JWT signed with the old secret:
+
+```bash
+if aws ssm get-parameter --name "$SSM_PATH" --with-decryption \
+     --query "Parameter.Value" --output text >/dev/null 2>&1; then
+  echo "BETTER_AUTH_SECRETS already exists in SSM at $SSM_PATH — using existing value."
+else
+  echo "Generating new BETTER_AUTH_SECRETS and writing to SSM..."
+  SECRET=$(openssl rand -base64 256 | tr -d '\n')
+  aws ssm put-parameter \
+    --name "$SSM_PATH" \
+    --value "$SECRET" \
+    --type SecureString \
+    --description "BetterAuth signing secret for <env>"
+fi
 ```
-npx wrangler secret put BETTER_AUTH_SECRETS -e <env>
+
+If `aws ssm put-parameter` fails with `AccessDeniedException`, halt and tell the user: their IAM user needs `ssm:PutParameter` and `ssm:GetParameter` permissions on `arn:aws:ssm:*:*:parameter/${PROJECT_NAME}/*`.
+
+Now sync the value from SSM to Cloudflare (mirrors `sync-auth-secrets.yml` lines 77–86):
+
+```bash
+aws ssm get-parameter \
+  --name "$SSM_PATH" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+| (cd services/auth && npx wrangler secret put BETTER_AUTH_SECRETS -e <env>)
 ```
+
+The subshell wrapper preserves the parent shell's cwd — without it, every command after this line would run from `services/auth/`.
 
 ### AWS SES secrets (optional)
 
 These enable email features (verification emails, magic links, password reset). Without them, those features are silently disabled — signups work without email verification. The IAM user needs `ses:SendEmail` permission.
 
 ```
-npx wrangler secret put AWS_SES_ACCESS_KEY -e <env>
-npx wrangler secret put AWS_SES_SECRET_KEY -e <env>
-npx wrangler secret put AWS_SES_REGION -e <env>
+(cd services/auth && npx wrangler secret put AWS_SES_ACCESS_KEY -e <env>)
+(cd services/auth && npx wrangler secret put AWS_SES_SECRET_KEY -e <env>)
+(cd services/auth && npx wrangler secret put AWS_SES_REGION -e <env>)
 ```
 
 After setting all secrets, verify:
+
 ```
-npx wrangler secret list -e <env>
+(cd services/auth && npx wrangler secret list -e <env>)
 ```
 
 `BETTER_AUTH_SECRETS` is required. The three SES secrets are optional.
+
+> **Note for re-runs:** if you re-invoke this skill, the SSM `get-parameter` check above will detect the existing `BETTER_AUTH_SECRETS` and reuse it. Active sessions and JWTs survive. To rotate intentionally, run `aws ssm delete-parameter --name "$SSM_PATH"` first, then re-run the skill.
 
 ## Step 9 — Enable the service in Nx
 
