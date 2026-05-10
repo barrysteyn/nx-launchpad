@@ -10,15 +10,14 @@ Ask the user:
 
 > "Install Java 21 (Temurin) now? It's only needed if you'll be working with JVM apps in this workspace. You can re-run `/dev-onboard` later if you change your mind. [y/N]"
 
-If they answer yes, set `INSTALL_JAVA=true` for the next step. Otherwise leave it unset.
+Remember their answer for Step 2 — you'll inline it on the `bash scripts/setup.sh` command if they said yes.
 
 ## Step 2 — Run the install script
 
 Run:
 
-```bash
-INSTALL_JAVA="${INSTALL_JAVA:-false}" bash scripts/setup.sh
-```
+- If the user answered **yes** in Step 1: `INSTALL_JAVA=true bash scripts/setup.sh`
+- If the user answered **no** (default): `bash scripts/setup.sh`
 
 Watch for errors. If any of these fail (Homebrew install, Volta install, brew formula install, npm ci), halt and report the exact error to the user — most failures here need manual investigation.
 
