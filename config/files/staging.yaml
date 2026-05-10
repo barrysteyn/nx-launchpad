@@ -1,2 +1,11 @@
+# Staging overlay. Values here override default.yaml for the staging environment.
+#
+# To reference an AWS SSM parameter, use the `ssm:` prefix with the path
+# convention `/{project_name}/{environment}/{service}/{secret}`:
+#
+#   STRIPE_SECRET_KEY: ssm:/your-project-name/staging/stripe/secret-key
+#
+# Write your real project name in the path — the resolver does NOT do shell
+# expansion on SSM paths.
+
 TEST_KEY: staging config test
-TEST_SECRET_KEY: ssm:/nx-launchpad/staging/nx-launchpad/test-secret
