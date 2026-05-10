@@ -53,6 +53,18 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >    CLOUDFLARE_ACCOUNT_ID=your-account-id
 >    ```
 >
+>    Your Cloudflare API token must have these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
+>
+>    | Scope | Resource | Permission | Used by |
+>    |---|---|---|---|
+>    | Account | Workers Scripts | **Edit** | All worker deploys (config push, apps, auth) |
+>    | Account | Workers KV Storage | **Edit** | Config KV namespace create/read/write |
+>    | Account | D1 | **Edit** | Auth service database (only if you opt into auth) |
+>    | Zone (optional) | Workers Routes | Edit | Custom domain routes — skip if not using custom domains |
+>    | Zone (optional) | DNS | Edit | Auto-created DNS records — skip if not using custom domains |
+>
+>    Set "Account Resources" to your account. Add the Zone-level permissions only when wiring up real domains.
+>
 > 5. **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
 >
 >    | Name | Type |
