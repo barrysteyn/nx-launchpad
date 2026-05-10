@@ -7,7 +7,7 @@ Tear down all staging cloud resources provisioned by /onboard. Used by the test 
 - Does **not** delete the S3 bucket holding Terraform state.
 - Does **not** modify `~/.gitconfig` or repo-local git settings.
 
-The mutation surface is staging cloud resources only: Cloudflare Workers / KV / D1, AWS DynamoDB tables and Lambdas.
+The mutation surface is staging cloud resources only: Cloudflare Workers / KV / D1, and the AWS DynamoDB table that holds resolved config blobs.
 
 Follow these steps in order.
 
@@ -39,48 +39,61 @@ Service-specific teardown is the responsibility of the service's own skill — t
 
 ## Step 3 — Tear down deployed Cloudflare Workers (apps)
 
-List Cloudflare Workers in the account whose name begins with `${PROJECT_NAME}-staging-`:
+There is no `wrangler` command to enumerate all Workers in an account. Use the Cloudflare REST API directly to list scripts whose names start with `${PROJECT_NAME}-staging-`:
 
 ```bash
 PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
-npx wrangler deployments list --json 2>/dev/null \
-  | jq -r --arg p "${PROJECT_NAME}-staging-" '.[]?.script_name | select(startswith($p))' \
-  | sort -u
+[ -n "$PROJECT_NAME" ] || { echo "PROJECT_NAME not set in .env"; exit 1; }
+
+# Source CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from .env (export both)
+set -a; . .env; set +a
+
+WORKERS=$(curl -fsS \
+  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" \
+  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+  | jq -r --arg p "${PROJECT_NAME}-staging-" '.result[]?.id | select(startswith($p))' | sort -u)
+
+echo "$WORKERS"
 ```
 
-For each worker name printed, delete it:
+If the list is empty, there are no staging workers to delete — proceed to Step 4.
+
+For each worker name in the list, delete it. `wrangler delete` is interactive and prompts for confirmation; accept the prompt for each:
 
 ```bash
-npx wrangler delete --name <worker-name>
+for w in $WORKERS; do
+  echo "Deleting worker: $w"
+  npx wrangler delete --name "$w"
+done
 ```
 
-If `wrangler deployments list` doesn't expose the names cleanly, fall back to asking the user:
-
-> "I couldn't auto-detect deployed workers. Please run `npx wrangler deployments list` and tell me which workers (matching `${PROJECT_NAME}-staging-*`) to delete."
-
-Then run `npx wrangler delete --name <name>` for each name they confirm.
+If the API call returns an authentication error, the user's `CLOUDFLARE_API_TOKEN` may not have `Workers Scripts:Edit` permission. Halt and tell them to update the token's permissions.
 
 ## Step 4 — Tear down config infrastructure
 
-Run:
+Run terraform destroy directly against the staging environment of the `config` project. (There is no `nx run config:tf-destroy:staging` target — config destroy is one-off enough that we run terraform manually.)
+
+The state-file `key` is hard-coded in `config/infra/environments/staging/backend.tf`, so the init command only needs the shared `backend.hcl` — the same pattern `deploy-config:staging` uses.
 
 ```bash
-npx nx run config:tf-destroy:staging
-```
+PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
+set -a; . .env; set +a
 
-This destroys the Cloudflare KV namespace and the AWS DynamoDB table created by `/onboard`'s Step 3. The S3 bucket for Terraform state is left intact.
-
-If `tf-destroy:staging` is not yet defined as a target on the `config` project, fall back to:
-
-```bash
 cd config/infra/environments/staging
+terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
+
 TF_VAR_environment=staging \
 TF_VAR_project_name="$PROJECT_NAME" \
 TF_VAR_cloudflare_account_id="$CLOUDFLARE_ACCOUNT_ID" \
 TF_VAR_cloudflare_api_token="$CLOUDFLARE_API_TOKEN" \
 terraform destroy -auto-approve
+
 cd -
 ```
+
+This destroys the Cloudflare KV namespace and the AWS DynamoDB table that `/onboard`'s Step 3 created. The S3 bucket holding Terraform state is left intact so subsequent `/onboard` runs can reuse it.
+
+If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.hcl` against the bucket name and rerun.
 
 ## Step 5 — Final message
 
