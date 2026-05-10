@@ -43,37 +43,13 @@ echo "All cloud CLIs available."
 
 If any are missing, halt with: "Dev tooling installation incomplete. Open a new terminal (PATH may not be loaded) and re-run `/onboard`."
 
-## Step 2 — Verify cloud prereqs
+## Step 2 — Gather credentials and configure prerequisites
 
-Before running the checks, remind the user about Cloudflare token permissions (this skill's most common silent-failure mode is an under-permissioned token):
+This step walks through each credential the workspace needs: gathering it (where to find/create), storing it locally in `.env`, and mirroring non-sensitive values to GitHub Variables and sensitive ones to GitHub Secrets so CI/CD can use them.
 
-> "Your `CLOUDFLARE_API_TOKEN` needs these permissions, set as a Custom token in the Cloudflare dashboard:
->
-> - Account / Workers Scripts / **Edit** (worker deploys)
-> - Account / Workers KV Storage / **Edit** (config KV)
-> - Account / D1 / **Edit** (auth service, if you opt in)
->
-> Optional Zone-level (only if using custom domains): Workers Routes / Edit, DNS / Edit.
->
-> If your token is missing any of these, regenerate it at https://dash.cloudflare.com/profile/api-tokens before continuing."
+**Sensitive values never flow through this chat.** For tokens, secret keys, and account IDs, the skill instructs you to paste them directly into `.env` via your editor. The skill then reads them from `.env` to mirror to GitHub Secrets using `$(grep ...)` command substitution — Claude only sees the command template, never the value.
 
-Now run each check below in order. **Halt** on the first failure (with the listed remediation message) unless the row is marked `WARN`.
-
-### 2.1 — `.env` keys
-
-Read `.env`. For each row below, check the predicate. On failure, print the listed message and halt.
-
-| Row | Predicate | Failure message |
-|---|---|---|
-| ENVIRONMENT | `grep -q '^ENVIRONMENT=local$' .env` | "`.env` must set `ENVIRONMENT=local`. Production/staging are set by CI/CD automatically." |
-| PROJECT_NAME | `grep '^PROJECT_NAME=' .env` exists and value is not `your-project-name` | "Set `PROJECT_NAME` in `.env` to a unique kebab-case name (currently placeholder)." |
-| URL | `grep '^URL=' .env` exists and value is not `your-domain.com` | "Set `URL` in `.env` to your domain (currently placeholder)." |
-| AWS auth | `grep -q '^AWS_PROFILE=' .env` OR (`grep -q '^AWS_ACCESS_KEY_ID=' .env` AND `grep -q '^AWS_SECRET_ACCESS_KEY=' .env`) | "Set either `AWS_PROFILE` or both `AWS_ACCESS_KEY_ID`+`AWS_SECRET_ACCESS_KEY` in `.env`." |
-| AWS_REGION | `grep '^AWS_REGION=' .env` non-empty | "Set `AWS_REGION` in `.env` (e.g. `us-east-1`)." |
-| CLOUDFLARE_API_TOKEN | exists and not `your-api-token` | "Set `CLOUDFLARE_API_TOKEN` in `.env` (currently placeholder)." |
-| CLOUDFLARE_ACCOUNT_ID | exists and not `your-account-id` | "Set `CLOUDFLARE_ACCOUNT_ID` in `.env` (currently placeholder)." |
-
-### 2.2 — `gh auth status`
+### 2.1 — `gh auth status`
 
 ```bash
 gh auth status
@@ -81,7 +57,184 @@ gh auth status
 
 If exit code is non-zero, halt with: "Run `gh auth login` to authenticate the GitHub CLI, then re-run `/onboard`."
 
-### 2.3 — Terraform state bucket (create-if-missing)
+### 2.2 — Set up `.env` (interactive)
+
+Ensure `.env` exists:
+
+```bash
+[ -f .env ] || cp .env.example .env
+```
+
+Walk through each entry below in order. For each, check if it's set to a non-placeholder value. If so, skip. Otherwise follow the per-row instructions.
+
+#### `ENVIRONMENT=local` (auto-set, no prompt)
+
+If `.env` doesn't already have `ENVIRONMENT=local`, set it:
+
+```bash
+if ! grep -q '^ENVIRONMENT=local$' .env; then
+  # Replace any existing ENVIRONMENT line, or append if absent
+  if grep -q '^ENVIRONMENT=' .env; then
+    sed -i.bak 's|^ENVIRONMENT=.*|ENVIRONMENT=local|' .env && rm .env.bak
+  else
+    echo "ENVIRONMENT=local" >> .env
+  fi
+fi
+```
+
+CI/CD overrides this per environment; locally it stays `local`.
+
+#### `PROJECT_NAME` (ask in chat — non-sensitive)
+
+If `.env` has `PROJECT_NAME=your-project-name` or empty, ask:
+
+> "Choose a `PROJECT_NAME`. This becomes the prefix for every AWS and Cloudflare resource (`${project_name}-${env}-${app}`). Must be kebab-case, lowercase, DNS-safe (e.g. `mycompany-app`)."
+
+After they answer, use the Edit tool to replace the placeholder in `.env`.
+
+#### `URL` (ask in chat — non-sensitive)
+
+If `.env` has `URL=your-domain.com` or empty, ask:
+
+> "Choose a `URL`. This is the root domain for your apps (e.g. `mycompany.com`). For test forks without real DNS, use a placeholder like `example.com` — the skill won't fail, but custom-domain features won't resolve."
+
+Update `.env`.
+
+#### `AWS_REGION` (ask in chat — non-sensitive)
+
+If `.env` has `AWS_REGION=` empty or missing:
+
+> "Which AWS region? (Default: `us-east-1`)"
+
+Update `.env`.
+
+#### AWS auth — choose form (ask in chat)
+
+Ask:
+
+> "How are your AWS credentials configured locally?
+> a) `AWS_PROFILE` (a named profile in `~/.aws/credentials`)
+> b) Raw `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`"
+
+If they answer **(a)** AWS_PROFILE:
+- Ask: "Which profile name?"
+- Update `.env` so it has `AWS_PROFILE=<name>` (replace the placeholder line, or append).
+- Note for later: CI still needs raw access keys in GitHub Secrets; the skill handles this in Step 2.4.
+
+If they answer **(b)** raw keys:
+- Tell them:
+
+  > "Open `.env` in your editor (`code .env`, `nano .env`, etc.). Add these two lines, replacing the values with your actual keys:
+  >
+  >     AWS_ACCESS_KEY_ID=<your-access-key>
+  >     AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+  >
+  > Where to get them: AWS Console → IAM → Users → your user → Security credentials → Create access key.
+  >
+  > Save and close. Press Enter here when done."
+
+- After they confirm, verify both keys are present and non-empty:
+
+  ```bash
+  grep -qE '^AWS_ACCESS_KEY_ID=.+' .env && grep -qE '^AWS_SECRET_ACCESS_KEY=.+' .env
+  ```
+
+- If either is still missing, halt with: "AWS access keys still missing from `.env`. Paste them and re-run `/onboard`."
+
+If using **(a)** AWS_PROFILE, also delete the placeholder `AWS_PROFILE=your-aws-profile` line and replace with the real profile name. Make sure raw key lines are NOT present in `.env`.
+
+#### `CLOUDFLARE_API_TOKEN` (direct to editor — sensitive)
+
+If `.env` still has `CLOUDFLARE_API_TOKEN=your-api-token`, first remind the user of required permissions:
+
+> "Your `CLOUDFLARE_API_TOKEN` needs these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
+>
+> - Account / Workers Scripts / **Edit** (worker deploys)
+> - Account / Workers KV Storage / **Edit** (config KV)
+> - Account / D1 / **Edit** (auth service, if you opt in)
+>
+> Optional Zone-level (only if using custom domains): Workers Routes / Edit, DNS / Edit.
+>
+> Create one at https://dash.cloudflare.com/profile/api-tokens — set 'Account Resources' to your account."
+
+Then direct them:
+
+> "Open `.env` in your editor. Replace `CLOUDFLARE_API_TOKEN=your-api-token` with your real token. Save and close. Press Enter here when done."
+
+After they confirm, verify:
+
+```bash
+grep '^CLOUDFLARE_API_TOKEN=' .env | grep -qv 'your-api-token$'
+```
+
+If still placeholder, halt and ask them to try again.
+
+#### `CLOUDFLARE_ACCOUNT_ID` (direct to editor — sensitive)
+
+If `.env` still has `CLOUDFLARE_ACCOUNT_ID=your-account-id`:
+
+> "Open `.env` in your editor. Replace `CLOUDFLARE_ACCOUNT_ID=your-account-id` with your Cloudflare Account ID.
+>
+> Find it at: Cloudflare dashboard → right sidebar → Account ID (click to copy).
+>
+> Save and close. Press Enter here when done."
+
+Verify like `CLOUDFLARE_API_TOKEN` above.
+
+### 2.3 — Mirror non-sensitive values to GitHub Variables
+
+`PROJECT_NAME` and `URL` are needed in CI as `vars.PROJECT_NAME` and `vars.URL`. Mirror them automatically:
+
+```bash
+for v in PROJECT_NAME URL; do
+  value=$(grep "^${v}=" .env | cut -d= -f2-)
+  current=$(gh variable list --json name,value --jq ".[] | select(.name == \"${v}\") | .value")
+  if [ "$current" = "$value" ]; then
+    echo "GitHub Variable ${v} already up-to-date"
+  else
+    gh variable set "${v}" --body "$value"
+    echo "Set GitHub Variable: ${v}"
+  fi
+done
+```
+
+### 2.4 — Mirror sensitive values to GitHub Secrets
+
+Cloudflare values are already in `.env`. Mirror them to GitHub Secrets — Claude only sees the command template (`$(grep ...)`), never the resolved value:
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN --body "$(grep '^CLOUDFLARE_API_TOKEN=' .env | cut -d= -f2-)"
+gh secret set CLOUDFLARE_ACCOUNT_ID --body "$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)"
+```
+
+**For AWS access keys, branch on the form chosen in Step 2.2:**
+
+If the user chose **(b) raw keys** (so `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` are in `.env`), mirror automatically:
+
+```bash
+gh secret set AWS_ACCESS_KEY_ID --body "$(grep '^AWS_ACCESS_KEY_ID=' .env | cut -d= -f2-)"
+gh secret set AWS_SECRET_ACCESS_KEY --body "$(grep '^AWS_SECRET_ACCESS_KEY=' .env | cut -d= -f2-)"
+```
+
+If the user chose **(a) AWS_PROFILE**, the access keys aren't in `.env`. Tell them:
+
+> "You're using `AWS_PROFILE` locally, so CI still needs raw access keys set manually as GitHub Secrets. Run these in your own terminal — each prompts for the value privately (it won't be echoed to terminal or this chat):
+>
+>     gh secret set AWS_ACCESS_KEY_ID
+>     gh secret set AWS_SECRET_ACCESS_KEY
+>
+> Press Enter here when done."
+
+After they confirm, verify both secrets exist:
+
+```bash
+count=$(gh secret list --json name --jq '.[].name' | grep -cE '^(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)$')
+[ "$count" = "2" ]
+```
+
+If the count is not 2, halt with: "AWS access key secrets still missing from GitHub. Set them and re-run `/onboard`."
+
+### 2.5 — Terraform state bucket (create-if-missing)
 
 Read `libs/infra/backend.hcl` line 1 to see the configured bucket name:
 
@@ -135,28 +288,6 @@ aws s3api head-bucket --bucket "$BUCKET"
 ```
 
 If `head-bucket` exits non-zero, halt with: "S3 bucket `$BUCKET` (from `libs/infra/backend.hcl`) was not found or is not accessible. Verify it exists, your AWS credentials have access, and the region in `backend.hcl` matches the bucket's region."
-
-### 2.4 — GitHub Secrets
-
-```bash
-secrets=$(gh secret list --json name --jq '.[].name')
-for s in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
-  echo "$secrets" | grep -qx "$s" || { echo "missing: $s"; exit 1; }
-done
-```
-
-If any are missing, halt with: "Add missing GitHub Actions Secrets at `https://github.com/<owner>/<repo>/settings/secrets/actions`. Required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID."
-
-### 2.5 — GitHub Variables
-
-```bash
-vars=$(gh variable list --json name --jq '.[].name')
-for v in PROJECT_NAME URL; do
-  echo "$vars" | grep -qx "$v" || { echo "missing: $v"; exit 1; }
-done
-```
-
-If any are missing, halt with: "Add missing GitHub Actions Variables at `https://github.com/<owner>/<repo>/settings/variables/actions`. Required: PROJECT_NAME, URL."
 
 ### 2.6 — Cocogitto bot installed
 
