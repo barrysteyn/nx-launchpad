@@ -93,59 +93,20 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 
 ---
 
-## Getting Started
+## What to add next
 
-### Prerequisites
+This section is the entry point for adding services, apps, and infrastructure to the workspace.
 
-This project supports Python (uv) and Node.js. On a clean checkout, the setup script handles everything automatically — including installing Node modules:
-
-```bash
-bash scripts/setup.sh
-```
-
-Then open a new terminal to ensure all PATH changes take effect.
-
-> [!NOTE]
-> All commands below assume you are running from the **NX root folder**.
-
-<details>
-<summary>Manual setup steps</summary>
-
-**Node.js** — install NVM and use the required version:
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-nvm install 24.12.0
-nvm alias default 24.12.0
-```
-
-**Python** — install uv (manages Python versions and virtual environments automatically):
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-**Node modules:**
-
-```bash
-npm ci --legacy-peer-deps
-```
-
-**VSCode extensions:**
-
-```bash
-cd .vscode && cat extensions.json | jq -r '.recommendations[]' | xargs -n 1 code --install-extension && cd ..
-```
-
-**Git config:**
-
-```bash
-git config --global pull.rebase true
-git config user.name "Your Name"
-git config user.email "your.name@project.com"
-```
-
-</details>
+- **Add a service** (services live under `services/` and are opt-in via `.nxignore`):
+  - `/setup-auth-service` — authentication service (better-auth on Cloudflare D1)
+  - For new services you've added, run the matching `/setup-<svc>` skill
+- **Add an app**:
+  - `/generate-astro-cloudflare-app` — static Astro site
+  - `/generate-react-cloudflare-app` — React + Hono on Cloudflare Workers
+  - `/generate-node-app` — Node.js Lambda (AWS)
+  - `/generate-python-app` — Python (uv) Lambda (AWS)
+- **Re-run onboarding to add more later**: `/onboard` is idempotent
+- **Wipe staging resources** (test loop): `/teardown-onboarding`
 
 ---
 
