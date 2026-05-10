@@ -27,7 +27,18 @@ Confirm with `git rev-parse --abbrev-ref HEAD` — should print `onboarding-and-
 Invoke `/dev-onboard` inline now and wait for it to complete. After it returns, confirm the cloud CLIs are on PATH:
 
 ```bash
-command -v gh && command -v aws && command -v terraform && command -v wrangler 2>/dev/null || npx wrangler --version
+missing=()
+for cmd in gh aws terraform; do
+  command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+done
+# wrangler may not be on PATH but npx wrangler always works
+npx wrangler --version >/dev/null 2>&1 || missing+=("wrangler")
+
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "Missing: ${missing[*]}"
+  exit 1
+fi
+echo "All cloud CLIs available."
 ```
 
 If any are missing, halt with: "Dev tooling installation incomplete. Open a new terminal (PATH may not be loaded) and re-run `/onboard`."
@@ -99,13 +110,19 @@ If any are missing, halt with: "Add missing GitHub Actions Variables at `https:/
 
 ### 2.7 — Cocogitto bot installed
 
-```bash
-gh api "/repos/{owner}/{repo}/installation" 2>/dev/null \
-  | jq -r '.app_slug // empty' \
-  | grep -qx "cocogitto-bot"
-```
+Programmatic detection of installed GitHub Apps from a user PAT is unreliable. Ask the user directly:
 
-If exit code non-zero, halt with: "Install the Cocogitto bot at https://github.com/apps/cocogitto-bot — required for Conventional Commits enforcement on PRs."
+> "Is the Cocogitto bot installed on this repo? It's a GitHub App that enforces Conventional Commits on PRs.
+>
+> Verify at: https://github.com/<owner>/<repo>/settings/installations
+>
+> If not installed, install it now from https://github.com/apps/cocogitto-bot — it's free.
+>
+> Confirm installed? [y/N]"
+
+(Replace `<owner>/<repo>` by parsing `gh repo view --json nameWithOwner --jq .nameWithOwner` — substitute the value into the prompt text before showing it to the user.)
+
+If they answer no or skip, halt with: "Install the Cocogitto bot at https://github.com/apps/cocogitto-bot, then re-run `/onboard`."
 
 ### 2.8 — Branch protection on `main` (WARN-ONLY)
 
@@ -169,25 +186,27 @@ echo "Staging KV ID: $STAGING_KV_ID"
 
 If `STAGING_KV_ID` is empty, halt: the namespace should have been created in Step 3 — investigate before continuing.
 
-Now rewrite the staging KV ID in every relevant file. The placeholder is `<staging-kv-namespace-id>`. Files to update:
+Now rewrite the staging KV ID in every relevant file. The placeholder is `<staging-kv-namespace-id>`. Find files that still contain it:
 
-```
-apps/*/wrangler.jsonc
-services/*/wrangler.jsonc
-tools/generators/*/files/wrangler.jsonc__tmpl__
+```bash
+FILES_TO_UPDATE=$(grep -lE '<staging-kv-namespace-id>' \
+  apps/*/wrangler.jsonc services/*/wrangler.jsonc \
+  tools/generators/*/files/wrangler.jsonc__tmpl__ 2>/dev/null || true)
 ```
 
-For each file, find the `staging` env block (the one whose key is `"staging"` inside `"env":{...}`) and replace `"id": "<staging-kv-namespace-id>"` with `"id": "$STAGING_KV_ID"`.
+If `FILES_TO_UPDATE` is empty, the staging KV IDs are already hardcoded. Print "Staging KV IDs already hardcoded — skipping." and continue to Step 5.
+
+If `FILES_TO_UPDATE` lists files, edit each one. For each file, find the staging env block (the one whose key is `"staging"` inside `"env":{...}`) and replace `"id": "<staging-kv-namespace-id>"` with `"id": "<the literal value of STAGING_KV_ID printed earlier>"` — substitute the actual ID, not the shell variable.
 
 Use the Edit tool with `old_string`/`new_string` per file rather than a global sed — the production block (which contains `"id": "<production-kv-namespace-id>"`) must not be touched.
 
-Verification: after the edits, run:
+After the edits, run:
 
 ```bash
 git diff -- apps services tools/generators
 ```
 
-Show the user the diff. Ask:
+Show the user the diff. If the diff is empty (nothing to update), skip the confirmation. Otherwise ask:
 
 > "I'm about to commit these KV-ID changes (still on the `onboarding-and-setup` branch). Diff looks correct? [Y/n]"
 
@@ -215,17 +234,20 @@ If they answer yes:
 
 4. After the deploy, print the staging worker URL (visible in the wrangler output) so the user can verify it loads.
 
-If the deploy fails, halt and surface the error — most failures here are missing GitHub Variables (URL, PROJECT_NAME) flowing into the build, or the new app's `wrangler.jsonc` not having the staging KV ID populated (Step 4 should have written it; if a fresh app was generated *after* Step 4 ran, its `wrangler.jsonc` came from the template which already has the right ID — so this should not happen).
+If the deploy fails, halt and surface the error — most failures here are missing values in the root `.env` (URL, PROJECT_NAME) needed at build time, or the new app's `wrangler.jsonc` not having the staging KV ID populated (Step 4 should have written it; if a fresh app was generated *after* Step 4 ran, its `wrangler.jsonc` came from the template which already has the right ID — so this should not happen).
 
 ## Step 6 — Services loop
 
 Read the root `.nxignore` for `services/*` entries:
 
 ```bash
-grep -E '^services/' .nxignore
+SVCS=$(grep -E '^services/' .nxignore | sed 's|services/||')
+echo "$SVCS"
 ```
 
-For each subdirectory in `services/` that appears in `.nxignore`:
+If no services are listed, print "No opt-in services found in .nxignore. Skipping services step." and continue to Step 7.
+
+For each subdirectory listed:
 
 1. Ask the user:
 
@@ -241,9 +263,9 @@ For each subdirectory in `services/` that appears in `.nxignore`:
 
    - If it exists, invoke `/setup-<svc>` inline. The skill is responsible for: applying its Terraform, removing the `services/<svc>` line from `.nxignore`, deploying the worker to staging, and setting any required secrets.
 
-After the loop completes, print:
+While iterating, track each service's outcome (`enabled`, `skipped`, or `missing-skill`). After the loop, print a one-line summary:
 
-> "Services step done. Skipped, enabled, or warned-as-missing services: <list>."
+> "Services step done. enabled: <list> | skipped: <list> | missing-skill: <list>"
 
 ## Step 7 — Remove the onboarding callout from README
 
@@ -300,13 +322,12 @@ If yes:
 git push -u origin onboarding-and-setup
 ```
 
-Then print the GitHub PR-create URL:
+Then print the GitHub PR-create URL using the actual repo name:
 
 ```bash
-echo "Open a PR: https://github.com/<owner>/<repo>/compare/main...onboarding-and-setup"
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+echo "Open a PR: https://github.com/${REPO}/compare/main...onboarding-and-setup"
 ```
-
-(Replace `<owner>/<repo>` by parsing `gh repo view --json nameWithOwner --jq .nameWithOwner` if available.)
 
 ### 8.3 — Tail message
 
