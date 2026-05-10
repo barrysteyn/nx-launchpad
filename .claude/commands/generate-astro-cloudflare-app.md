@@ -4,23 +4,28 @@ This generator scaffolds a static Astro site with React components and Tailwind 
 
 ## Prerequisite
 
-Before running, check that `URL` is set to a real domain in the root `.env`:
+Before running, check that `URL` is set in the root `.env`:
 
 ```
 URL=mysite.com
 ```
 
-If it is still `your-domain.com` (the placeholder), warn the user that the generated `wrangler.jsonc` will contain dummy domains (`staging.example.com` / `example.com`) and they must update it manually before deploying.
+If it is still `your-domain.com` (the placeholder), the prompts below will offer fallback defaults (`staging.example.com` / `example.com`).
 
 ## Steps
 
 1. **Ask the user for:**
    - App name (must be kebab-case, e.g. `my-astro-site`)
    - Short description of the app
+   - **Staging domain** — read `URL` from root `.env`. If non-placeholder, propose `staging.<URL>` as the default; otherwise propose `staging.example.com`. Ask: *"Staging domain for the site? [default: `<proposed>`]"*. If user presses Enter, use the default; if they type a value, use that.
+   - **Production domain** — same pattern. Propose `<URL>` (or `example.com` if placeholder). Ask: *"Production domain for the site? [default: `<proposed>`]"*.
 
-2. **Run the generator:**
+2. **Run the generator** (pass the captured domains so they end up in `wrangler.jsonc`):
    ```
-   npx nx generate tools:astro-cloudflare-app <app-name> --description "<description>"
+   npx nx generate tools:astro-cloudflare-app <app-name> \
+     --description "<description>" \
+     --stagingDomain "<staging-domain>" \
+     --productionDomain "<production-domain>"
    ```
 
 3. **Verify the generated files:**

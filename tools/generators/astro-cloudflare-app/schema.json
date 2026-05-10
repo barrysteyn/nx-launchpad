@@ -17,6 +17,14 @@
       "description": "Short human-readable description of the application",
       "default": "",
       "x-prompt": "Short description of the application?"
+    },
+    "stagingDomain": {
+      "type": "string",
+      "description": "Staging domain for wrangler.jsonc (e.g. staging.example.com). If omitted, derived from URL in root .env."
+    },
+    "productionDomain": {
+      "type": "string",
+      "description": "Production domain for wrangler.jsonc (e.g. example.com). If omitted, derived from URL in root .env."
     }
   },
   "required": ["name"]
