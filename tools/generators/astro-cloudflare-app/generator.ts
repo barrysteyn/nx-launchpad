@@ -27,9 +27,9 @@ export async function astroCloudflareAppGenerator(
   const appName = options.name;
   const appDir = `apps/${appName}`;
   const description = options.description ?? `${appName} application`;
-  const url = readUrlFromEnv();
-  const stagingDomain = `staging.${url}`;
-  const productionDomain = url;
+  const urlFromEnv = readUrlFromEnv();
+  const stagingDomain = options.stagingDomain ?? `staging.${urlFromEnv}`;
+  const productionDomain = options.productionDomain ?? urlFromEnv;
   const title = appName
     .split('-')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
