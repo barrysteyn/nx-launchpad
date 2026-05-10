@@ -55,12 +55,15 @@ else
 fi
 
 # ── Cloud CLIs ────────────────────────────────────────────────────────────────
-for cli in gh awscli terraform jq; do
-  if ! brew list "$cli" &>/dev/null; then
-    info "Installing $cli..."
-    brew install "$cli"
+# Map: brew formula → binary name (awscli installs `aws`)
+for entry in "gh:gh" "awscli:aws" "terraform:terraform" "jq:jq"; do
+  formula="${entry%:*}"
+  bin="${entry#*:}"
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    info "Installing $formula..."
+    brew install "$formula"
   else
-    info "$cli already installed"
+    info "$formula already installed ($bin on PATH)"
   fi
 done
 
@@ -76,14 +79,12 @@ else
   info "Java install skipped (set INSTALL_JAVA=true to install)"
 fi
 
-# ── Node modules ──────────────────────────────────────────────────────────────
-info "Installing node modules..."
+# ── Node modules + husky hooks ────────────────────────────────────────────────
+# `npm ci` runs the `prepare` lifecycle script (which calls `husky`) automatically,
+# so no separate `npm run prepare` step is needed.
+info "Installing node modules (also registers husky pre-commit hooks via prepare)..."
 cd "$REPO_ROOT"
 npm ci --legacy-peer-deps
-
-# ── Husky pre-commit hooks ────────────────────────────────────────────────────
-info "Setting up husky pre-commit hooks..."
-npm run prepare
 
 # ── VSCode extensions ─────────────────────────────────────────────────────────
 if command -v code &>/dev/null && [ -f "$REPO_ROOT/.vscode/extensions.json" ]; then
