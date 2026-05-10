@@ -96,7 +96,7 @@ This builds the app, runs Terraform (idempotent), and deploys to Cloudflare. The
 
 ## Step 8 — Set secrets
 
-Secrets are never stored in files. `BETTER_AUTH_SECRETS` lives in AWS SSM (encrypted, source of truth) and is synced into Cloudflare via Wrangler — exactly the same flow that `.github/workflows/sync-auth-secrets.yml` runs in CI. AWS SES credentials are pushed directly to Wrangler. Note: the CI sync workflow (`.github/workflows/sync-auth-secrets.yml`) reads them from SSM at `/${PROJECT_NAME}/${env}/auth/aws-ses-{access-key,secret-key,region}` — if you want CI re-runs to preserve them, mirror them into SSM yourself with `aws ssm put-parameter --type SecureString` after this skill completes. (For BETTER_AUTH_SECRETS the skill handles SSM automatically; SES is currently kept manual.)
+Secrets are never stored in files. `BETTER_AUTH_SECRETS` lives in AWS SSM (encrypted, source of truth) and is synced into Cloudflare via Wrangler — exactly the same flow that `.github/workflows/sync-auth-secrets.yml` runs in CI. AWS SES credentials are pushed directly to Wrangler here; their source of truth is GitHub Actions Secrets (`AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`, `AWS_SES_REGION`), which the CI sync workflow reads from. Set them in your repo's GitHub Secrets so CI re-syncs preserve them.
 
 ### BETTER_AUTH_SECRETS (required)
 
