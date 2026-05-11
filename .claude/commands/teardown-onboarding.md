@@ -147,11 +147,59 @@ If 4b fails partway through, you should still run 4c — leaving `prevent_destro
 
 If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.hcl` against the bucket name and rerun.
 
-## Step 5 — Final message
+## Step 5 — Reset hardcoded KV namespace IDs back to placeholders
+
+After destroy, the KV namespace IDs that `/onboard` Step 4 wrote into every `wrangler.jsonc` are now stale — they reference namespaces that no longer exist. The next `/onboard` run will create new namespaces with new IDs, but Step 4's stale-ID detection only catches them if the files don't already have a known placeholder. Reset the files now so the next `/onboard` sees a clean placeholder state.
+
+For each `wrangler.jsonc` file:
+
+```bash
+for f in apps/*/wrangler.jsonc services/*/wrangler.jsonc tools/generators/*/files/wrangler.jsonc__tmpl__; do
+  [ -f "$f" ] || continue
+
+  # Parse the current staging/production IDs out of the file.
+  # wrangler.jsonc files allow JSONC comments + trailing commas — strip before jq.
+  STRIPPED=$(sed -E 's|//[^"]*$||; s|/\*[^*]*\*+([^/*][^*]*\*+)*/||g' "$f" \
+    | tr '\n' ' ' \
+    | sed -E 's/,(\s*[}\]])/\1/g')
+
+  STAGING_ID=$(echo "$STRIPPED" | jq -r '.env.staging.kv_namespaces[]?.id // empty' 2>/dev/null)
+  PRODUCTION_ID=$(echo "$STRIPPED" | jq -r '.env.production.kv_namespaces[]?.id // empty' 2>/dev/null)
+
+  if [ -n "$STAGING_ID" ] && [ "$STAGING_ID" != "<staging-kv-namespace-id>" ]; then
+    # Replace the exact captured ID with the placeholder. Scoped to that literal value, so
+    # we won't accidentally touch other IDs (e.g. an unrelated namespace_id elsewhere).
+    sed -i.bak "s|\"id\": \"$STAGING_ID\"|\"id\": \"<staging-kv-namespace-id>\"|g" "$f"
+    rm -f "$f.bak"
+    echo "Reset staging KV ID in: $f"
+  fi
+
+  if [ -n "$PRODUCTION_ID" ] && [ "$PRODUCTION_ID" != "<production-kv-namespace-id>" ]; then
+    sed -i.bak "s|\"id\": \"$PRODUCTION_ID\"|\"id\": \"<production-kv-namespace-id>\"|g" "$f"
+    rm -f "$f.bak"
+    echo "Reset production KV ID in: $f"
+  fi
+done
+```
+
+Notes:
+- If a file has no `env.staging.kv_namespaces` or no `env.production.kv_namespaces` (e.g. the astro generator template, which is static-assets-only), the jq query returns empty and that env is skipped — no false replacements.
+- The sed pattern matches the exact captured ID value, so if two files contain the same real ID (the normal case), both get reset in a single pass without interference.
+- After this step, `git diff` should show every formerly-hardcoded wrangler.jsonc reverted to placeholders.
+
+## Step 6 — Final message
 
 Print:
 
-> "Staging resources wiped. To get back to a clean repo state for the next test run:
+> "Staging resources wiped and KV-ID placeholders restored in wrangler.jsonc files.
+>
+> Review the diff:
+>
+>     git diff apps services tools/generators
+>
+> The wrangler.jsonc files should be back to their placeholder state.
+>
+> To get back to a fully clean repo state for the next test run:
 >
 >     git fetch upstream
 >     git reset --hard upstream/main
