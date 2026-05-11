@@ -37,37 +37,46 @@ For each subdirectory under `services/` that is **not** listed in the root `.nxi
 
 Service-specific teardown is the responsibility of the service's own skill — this orchestrator just sequences the calls.
 
-## Step 3 — Tear down deployed Cloudflare Workers (apps)
+## Step 3 — Tear down deployed Cloudflare Workers (apps + services)
 
-There is no `wrangler` command to enumerate all Workers in an account. Use the Cloudflare REST API directly to list scripts whose names start with `${PROJECT_NAME}-staging-`:
+Enumerate worker names by reading the `env.staging.name` field of every `wrangler.jsonc` in the repo. This catches all naming conventions (including those that don't follow the `${project_name}-${env}-${app}` prefix) and avoids relying on Cloudflare API enumeration matching a hard-coded prefix.
 
 ```bash
-PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
-[ -n "$PROJECT_NAME" ] || { echo "PROJECT_NAME not set in .env"; exit 1; }
-
 # Source CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from .env (export both)
 set -a; . .env; set +a
 
-WORKERS=$(curl -fsS \
-  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" \
-  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-  | jq -r --arg p "${PROJECT_NAME}-staging-" '.result[]?.id | select(startswith($p))' | sort -u)
+# wrangler.jsonc files allow JSONC comments + trailing commas; strip them before jq
+WORKERS=$(
+  for f in apps/*/wrangler.jsonc services/*/wrangler.jsonc; do
+    [ -f "$f" ] || continue
+    # Remove // line comments and /* */ block comments; tolerate trailing commas
+    sed -E 's|//[^"]*$||; s|/\*[^*]*\*+([^/*][^*]*\*+)*/||g' "$f" \
+      | tr '\n' ' ' \
+      | sed -E 's/,(\s*[}\]])/\1/g' \
+      | jq -r '.env.staging.name // empty' 2>/dev/null
+  done | sort -u
+)
 
-echo "$WORKERS"
+if [ -z "$WORKERS" ]; then
+  echo "No worker names found in apps/*/wrangler.jsonc or services/*/wrangler.jsonc — skipping."
+else
+  echo "Staging workers to delete:"
+  echo "$WORKERS"
+fi
 ```
 
-If the list is empty, there are no staging workers to delete — proceed to Step 4.
-
-For each worker name in the list, delete it. `wrangler delete` is interactive and prompts for confirmation; accept the prompt for each:
+For each worker name in the list, delete it via wrangler. The worker may not actually exist in Cloudflare (if a prior teardown already removed it, or it was never deployed) — in that case wrangler returns `code: 10007` and we just log and continue.
 
 ```bash
 for w in $WORKERS; do
   echo "Deleting worker: $w"
-  npx wrangler delete --name "$w"
+  npx wrangler delete --name "$w" 2>&1 | tail -5 || true
 done
 ```
 
-If the API call returns an authentication error, the user's `CLOUDFLARE_API_TOKEN` may not have `Workers Scripts:Edit` permission. Halt and tell them to update the token's permissions.
+If wrangler can't authenticate, the user's `CLOUDFLARE_API_TOKEN` may be missing `Workers Scripts:Edit`. Halt and tell them to update the token's permissions.
+
+If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS Lambda apps that don't use wrangler at all), they're simply skipped — that's fine, those are torn down by their own `tf-destroy` targets, not by this skill.
 
 ## Step 4 — Tear down config infrastructure
 
