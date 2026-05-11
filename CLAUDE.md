@@ -267,7 +267,42 @@ Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, an
 | `aws/dynamodb` | `libs/infra/modules/aws/dynamodb` | `${project_name}-${environment}-${app_name}` |
 | `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
 
-**Rule:** when adding a new module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.
+## Universal naming convention — `${project_name}-${environment}-${app_name}`
+
+This is the **strict** naming convention for every cloud resource in the workspace. It applies to AWS resources (Lambda, API Gateway, DynamoDB, SSM paths), Cloudflare resources (Workers, KV namespaces, D1 databases), and any new resource type added later.
+
+**Hard rules (must follow):**
+
+1. **Shared Terraform modules** (`libs/infra/modules/*`): accept `project_name`, `app_name`, `environment` as input variables and compute the resource name internally. Never accept a pre-composed name string.
+
+2. **Cloudflare Worker names in `wrangler.jsonc`** (apps and services): every `env.<env>.name` field uses the pattern `${project_name}-${environment}-${app_name}`. The top-level (root) `"name"` field is **intentionally** bare (`${app_name}` only) — it's used only by `wrangler dev` for local development, where the environment prefix would be misleading.
+
+   ```jsonc
+   {
+     "name": "my-app",                                   // bare — local dev only
+     "env": {
+       "preview":    { "name": "myproj-preview-my-app" },
+       "staging":    { "name": "myproj-staging-my-app" },
+       "production": { "name": "myproj-production-my-app" }
+     }
+   }
+   ```
+
+3. **SSM parameter paths**: `/${project_name}/${environment}/${service}/${secret}`. The environment is embedded in the path, so SSM references belong in environment overlay files only — never in `default.yaml`.
+
+**Rules for new generators:**
+
+When adding a new generator under `tools/generators/`, it **must**:
+
+- Read `PROJECT_NAME` from the root `.env` at generate time. Hard-error if missing or still placeholder — the entire naming convention falls apart without it. See `tools/generators/astro-cloudflare-app/generator.ts` (`readProjectNameFromEnv()`) for the reference pattern.
+- Pass `projectName` (and the resolved value, not the env-var reference) into `generateFiles(...)` so every templated file can substitute it.
+- For Cloudflare apps: the generated `wrangler.jsonc` template must use `<%= projectName %>-<env>-<%= name %>` for `env.<env>.name` and leave the top-level `"name"` bare.
+- For AWS-deploying apps: use the shared `libs/infra/modules/aws/*` modules — they handle naming for you. Never name AWS resources directly inside generator templates.
+- For Cloudflare-deploying apps that use KV: use `libs/infra/modules/cloudflare/kv` and let it name the namespace.
+
+**Rules for new shared modules:**
+
+When adding a module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.
 
 ### Useful Terraform targets
 
