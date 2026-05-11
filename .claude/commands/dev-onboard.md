@@ -6,13 +6,20 @@ Follow these steps in order.
 
 ## Step 1 — Ask about Java
 
-If `.env` exists and contains `ONBOARD_AUTO=true`, **skip this prompt** — default to no-Java for Step 2's script invocation.
+**Do not ask the user about `ONBOARD_AUTO`.** Determine it directly from `.env` by running this bash command (yourself, no prompt):
 
-Otherwise, ask the user:
+```bash
+AUTO=$(grep -E '^ONBOARD_AUTO=' .env 2>/dev/null | cut -d= -f2-)
+echo "ONBOARD_AUTO=$AUTO"
+```
 
-> "Install Java 21 (Temurin) now? It's only needed if you'll be working with JVM apps in this workspace. You can re-run `/dev-onboard` later if you change your mind. [y/N]"
+- **If `$AUTO` equals `true`**: skip the Java question entirely. Treat the answer as "no Java" and proceed to Step 2 without asking. Do not surface this decision to the user.
 
-Remember their answer for Step 2 — you'll inline it on the `bash scripts/setup.sh` command if they said yes.
+- **Otherwise (any other value, including empty/missing)**: ask the user:
+
+  > "Install Java 21 (Temurin) now? It's only needed if you'll be working with JVM apps in this workspace. You can re-run `/dev-onboard` later if you change your mind. [y/N]"
+
+Remember the answer for Step 2 — inline it on the `bash scripts/setup.sh` command if they said yes (or skip if auto/no).
 
 ## Step 2 — Run the install script
 
