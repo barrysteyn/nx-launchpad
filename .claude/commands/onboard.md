@@ -338,7 +338,9 @@ If `head-bucket` exits non-zero, halt with: "S3 bucket `$BUCKET` (from `libs/inf
 
 ### 2.6 — Cocogitto bot installed
 
-Programmatic detection of installed GitHub Apps from a user PAT is unreliable. Ask the user directly:
+If `$AUTO` is `true`, assume the bot is installed (test-loop forks always have it). Print `Auto-assuming Cocogitto bot installed (ONBOARD_AUTO=true)` and continue.
+
+Otherwise, programmatic detection of installed GitHub Apps from a user PAT is unreliable — ask the user directly:
 
 > "Is the Cocogitto bot installed on this repo? It's a GitHub App that enforces Conventional Commits on PRs.
 >
@@ -462,7 +464,9 @@ Either way, do **not** commit yet — the commit happens in Step 8 with everythi
 
 ## Step 5 — Static site (optional)
 
-Ask the user:
+If `$AUTO` is `true`, skip this step automatically — generators are one-off, explicit operations and shouldn't run on every test-loop iteration. Print `Auto-skipping static site generation (ONBOARD_AUTO=true)` and continue to Step 6.
+
+Otherwise, ask the user:
 
 > "Generate an Astro static site for staging now? [y/N]"
 
@@ -484,7 +488,7 @@ If the deploy fails, halt and surface the error — most failures here are missi
 
 ## Step 6 — Services loop
 
-Read the root `.nxignore` for `services/*` entries:
+Read the root `.nxignore` for `services/*` entries. These are services that exist on disk but are **opt-in** — listed in `.nxignore` so Nx ignores them until the user enables them by removing the line.
 
 ```bash
 SVCS=$(grep -E '^services/' .nxignore | sed 's|services/||')
@@ -493,7 +497,9 @@ echo "$SVCS"
 
 If no services are listed, print "No opt-in services found in .nxignore. Skipping services step." and continue to Step 7.
 
-For each subdirectory listed:
+**AUTO mode behavior:** if `$AUTO` is `true`, skip enabling any service listed in `.nxignore`. The whole point of `.nxignore` is that these services are opt-in — the user has to explicitly decide to turn them on, and the test loop should never make that decision for them. Print `Auto-skipping all opt-in services (ONBOARD_AUTO=true)` and continue to Step 7. Services NOT in `.nxignore` (i.e. already enabled or never gated) are untouched either way.
+
+Otherwise (interactive mode), for each subdirectory listed:
 
 1. Ask the user:
 
