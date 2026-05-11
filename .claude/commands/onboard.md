@@ -215,16 +215,28 @@ Verify like `CLOUDFLARE_API_TOKEN` above.
 
 ### 2.3 — Mirror non-sensitive values to GitHub Variables
 
+First, resolve the fork's repo name from the `origin` remote and reuse it on every `gh` call. Without `-R`, `gh` defaults to the alphabetically first remote — which silently writes to `upstream` when both `origin` and `upstream` are configured.
+
+```bash
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)
+if [ -z "$REPO" ]; then
+  # gh ambiguates between multiple remotes; derive from origin explicitly.
+  REPO=$(git config --get remote.origin.url | sed -E 's|.*[:/]([^/]+/[^/.]+)(\.git)?$|\1|')
+fi
+[ -n "$REPO" ] || { echo "Could not determine repo name from origin"; exit 1; }
+echo "Targeting GitHub repo: $REPO"
+```
+
 `PROJECT_NAME` and `URL` are needed in CI as `vars.PROJECT_NAME` and `vars.URL`. Mirror them automatically:
 
 ```bash
 for v in PROJECT_NAME URL; do
   value=$(grep "^${v}=" .env | cut -d= -f2-)
-  current=$(gh variable list --json name,value --jq ".[] | select(.name == \"${v}\") | .value")
+  current=$(gh variable list -R "$REPO" --json name,value --jq ".[] | select(.name == \"${v}\") | .value")
   if [ "$current" = "$value" ]; then
     echo "GitHub Variable ${v} already up-to-date"
   else
-    gh variable set "${v}" --body "$value"
+    gh variable set "${v}" -R "$REPO" --body "$value"
     echo "Set GitHub Variable: ${v}"
   fi
 done
@@ -235,8 +247,8 @@ done
 Cloudflare values are already in `.env`. Mirror them to GitHub Secrets — Claude only sees the command template (`$(grep ...)`), never the resolved value:
 
 ```bash
-gh secret set CLOUDFLARE_API_TOKEN --body "$(grep '^CLOUDFLARE_API_TOKEN=' .env | cut -d= -f2-)"
-gh secret set CLOUDFLARE_ACCOUNT_ID --body "$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)"
+gh secret set CLOUDFLARE_API_TOKEN -R "$REPO" --body "$(grep '^CLOUDFLARE_API_TOKEN=' .env | cut -d= -f2-)"
+gh secret set CLOUDFLARE_ACCOUNT_ID -R "$REPO" --body "$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)"
 ```
 
 **For AWS access keys, branch on the form chosen in Step 2.2:**
@@ -244,23 +256,23 @@ gh secret set CLOUDFLARE_ACCOUNT_ID --body "$(grep '^CLOUDFLARE_ACCOUNT_ID=' .en
 If the user chose **(b) raw keys** (so `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` are in `.env`), mirror automatically:
 
 ```bash
-gh secret set AWS_ACCESS_KEY_ID --body "$(grep '^AWS_ACCESS_KEY_ID=' .env | cut -d= -f2-)"
-gh secret set AWS_SECRET_ACCESS_KEY --body "$(grep '^AWS_SECRET_ACCESS_KEY=' .env | cut -d= -f2-)"
+gh secret set AWS_ACCESS_KEY_ID -R "$REPO" --body "$(grep '^AWS_ACCESS_KEY_ID=' .env | cut -d= -f2-)"
+gh secret set AWS_SECRET_ACCESS_KEY -R "$REPO" --body "$(grep '^AWS_SECRET_ACCESS_KEY=' .env | cut -d= -f2-)"
 ```
 
 If the user chose **(a) AWS_PROFILE**, the access keys aren't in `.env`. Tell them:
 
 > "You're using `AWS_PROFILE` locally, so CI still needs raw access keys set manually as GitHub Secrets. Run these in your own terminal — each prompts for the value privately (it won't be echoed to terminal or this chat):
 >
->     gh secret set AWS_ACCESS_KEY_ID
->     gh secret set AWS_SECRET_ACCESS_KEY
+>     gh secret set AWS_ACCESS_KEY_ID -R <owner>/<repo>
+>     gh secret set AWS_SECRET_ACCESS_KEY -R <owner>/<repo>
 >
-> Press Enter here when done."
+> Substitute `<owner>/<repo>` with the value `$REPO` printed in Step 2.3 (e.g. `your-name/your-fork`). Press Enter here when done."
 
-After they confirm, verify both secrets exist:
+After they confirm, verify both secrets exist on the fork:
 
 ```bash
-count=$(gh secret list --json name --jq '.[].name' | grep -cE '^(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)$')
+count=$(gh secret list -R "$REPO" --json name --jq '.[].name' | grep -cE '^(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)$')
 [ "$count" = "2" ]
 ```
 
@@ -336,14 +348,14 @@ Programmatic detection of installed GitHub Apps from a user PAT is unreliable. A
 >
 > Confirm installed? [y/N]"
 
-(Replace `<owner>/<repo>` by parsing `gh repo view --json nameWithOwner --jq .nameWithOwner` — substitute the value into the prompt text before showing it to the user.)
+(Replace `<owner>/<repo>` with `$REPO` from Step 2.3 — substitute the value into the prompt text before showing it to the user.)
 
 If they answer no or skip, halt with: "Install the Cocogitto bot at https://github.com/apps/cocogitto-bot, then re-run `/onboard`."
 
 ### 2.7 — Branch protection on `main` (WARN-ONLY)
 
 ```bash
-gh api "/repos/{owner}/{repo}/branches/main/protection" >/dev/null 2>&1
+gh api "/repos/${REPO}/branches/main/protection" >/dev/null 2>&1
 ```
 
 If exit code non-zero, **do not halt**. Print this warning and continue:
@@ -547,10 +559,9 @@ If yes (or `$AUTO=true`):
 git push -u origin onboarding-and-setup
 ```
 
-Then print the GitHub PR-create URL using the actual repo name:
+Then print the GitHub PR-create URL using `$REPO` (resolved earlier in Step 2.3 — if the shell session was reset between steps, re-derive it the same way):
 
 ```bash
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 echo "Open a PR: https://github.com/${REPO}/compare/main...onboarding-and-setup"
 ```
 
