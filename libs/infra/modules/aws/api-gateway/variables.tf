@@ -4,7 +4,7 @@ variable "project_name" {
 }
 
 variable "app_name" {
-  description = "Application name (e.g. example-node-cli)"
+  description = "Application name (kebab-case, e.g. my-api)"
   type        = string
 }
 
