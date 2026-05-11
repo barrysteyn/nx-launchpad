@@ -39,7 +39,7 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 >      --versioning-configuration Status=Enabled
 >    ```
 >
->    Update `libs/infra/backend.hcl` with your bucket name.
+>    Create `libs/infra/backend.local.hcl` (gitignored) with one line: `bucket = "your-bucket-name"`. The committed `libs/infra/backend.hcl` only holds shared backend config (region, versioning, encryption) — the bucket name is per-fork and lives in the `.local` file so `git reset --hard upstream/main` doesn't wipe it.
 >
 > 4. **Add to your root `.env` file** (copy from `.env.example`):
 >

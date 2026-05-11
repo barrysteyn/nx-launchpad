@@ -278,63 +278,82 @@ count=$(gh secret list -R "$REPO" --json name --jq '.[].name' | grep -cE '^(AWS_
 
 If the count is not 2, halt with: "AWS access key secrets still missing from GitHub. Set them and re-run `/onboard`."
 
-### 2.5 — Terraform state bucket (create-if-missing)
+### 2.5 — Terraform state bucket (find-or-create) and per-fork backend.local.hcl
 
-Read `libs/infra/backend.hcl` line 1 to see the configured bucket name:
+The bucket name lives in `libs/infra/backend.local.hcl` (gitignored). The committed `libs/infra/backend.hcl` only has shared config (region, versioning, encryption). This separation keeps `git reset --hard upstream/main` from clobbering the bucket name on each iteration.
 
-```bash
-BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
-echo "Configured bucket: $BUCKET"
-```
+Determine the bucket to use, in priority order:
 
-**If the bucket value is still the placeholder** (`terraform-state-nx-launchpad-randomstringhere`):
+1. **If `libs/infra/backend.local.hcl` already exists**, parse the bucket name from it and verify the bucket is reachable:
 
-1. Read `PROJECT_NAME` from `.env` and propose a unique bucket name:
+   ```bash
+   if [ -f libs/infra/backend.local.hcl ]; then
+     BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.local.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+     echo "Configured bucket (from backend.local.hcl): $BUCKET"
+     aws s3api head-bucket --bucket "$BUCKET" || { echo "Bucket $BUCKET is configured in backend.local.hcl but is not reachable. Delete the file and re-run /onboard, or fix manually."; exit 1; }
+   fi
+   ```
+
+   If `head-bucket` succeeds, skip the rest of Step 2.5 — bucket is already wired up.
+
+2. **If `backend.local.hcl` doesn't exist**, look for an existing fork bucket matching the project prefix:
 
    ```bash
    PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
+   EXISTING=$(aws s3api list-buckets \
+     --query "Buckets[?starts_with(Name, 'terraform-state-${PROJECT_NAME}-')].Name" \
+     --output text | head -1)
+   ```
+
+   - If `$EXISTING` is non-empty, the user has already created a fork bucket (likely from a prior `/onboard` run before `backend.local.hcl` was reset). Reuse it:
+
+     ```bash
+     BUCKET="$EXISTING"
+     echo "Found existing fork bucket: $BUCKET (reusing)"
+     ```
+
+3. **If neither file nor existing bucket was found**, create a new one:
+
+   ```bash
    PROPOSED="terraform-state-${PROJECT_NAME}-$(openssl rand -hex 4)"
    echo "Proposed bucket name: $PROPOSED"
    ```
 
-2. Decide whether to ask or auto-accept:
+   - If `$AUTO` is `true`: use `$PROPOSED` directly. Print `Auto-accepting bucket name: $PROPOSED`.
+   - Otherwise, ask:
 
-   - If `$AUTO` is `true` (from the unattended-mode check at the top of Step 2): use `$PROPOSED` directly. Print `Auto-accepting bucket name: $PROPOSED` and skip the prompt.
-   - Otherwise, ask the user:
-
-     > "I can create the S3 bucket for Terraform state now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
+     > "No backend.local.hcl found and no existing fork bucket detected. I can create one now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
      >
-     > Press Enter to accept, type a custom name to override, or `n` to halt and create manually."
+     > Press Enter to accept, type a custom name to override, or `n` to halt."
 
-3. If they accept (Enter) or provide a custom name (or `$AUTO=true`), set `BUCKET` to that value and run:
+   - If the user answered `n`, halt with manual instructions:
+
+     > "Create the bucket yourself:
+     >     aws s3api create-bucket --bucket <unique-name> --region us-east-1
+     >     aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled
+     > Then write the name into libs/infra/backend.local.hcl and re-run /onboard."
+
+   - Otherwise, set `BUCKET` to the chosen value and create it:
+
+     ```bash
+     aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+     aws s3api put-bucket-versioning \
+       --bucket "$BUCKET" \
+       --versioning-configuration Status=Enabled
+     ```
+
+     If `BucketAlreadyOwnedByYou`: proceed. If `BucketAlreadyExists`: ask for a different name (or halt if `$AUTO`).
+
+4. **Write `libs/infra/backend.local.hcl`** with the chosen `$BUCKET` (whether reused or newly created):
 
    ```bash
-   aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
-   aws s3api put-bucket-versioning \
-     --bucket "$BUCKET" \
-     --versioning-configuration Status=Enabled
+   cat > libs/infra/backend.local.hcl <<EOF
+   bucket = "${BUCKET}"
+   EOF
+   echo "Wrote libs/infra/backend.local.hcl"
    ```
 
-   If `create-bucket` fails with `BucketAlreadyOwnedByYou`, the bucket exists in your account — proceed. If it fails with `BucketAlreadyExists`, the name is taken globally — ask the user for a different name and retry.
-
-4. After the bucket is created (or confirmed-exists), patch `libs/infra/backend.hcl` line 1 to set the bucket name. Use the Edit tool to replace the placeholder `terraform-state-nx-launchpad-randomstringhere` with `$BUCKET`.
-
-5. Show the user the `git diff libs/infra/backend.hcl` and confirm before continuing.
-
-6. If they answered `n` (halt and create manually), print the manual instructions and halt:
-
-   > "Create the bucket yourself:
-   >     aws s3api create-bucket --bucket <unique-name> --region us-east-1
-   >     aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled
-   > Update `libs/infra/backend.hcl` line 1 with the bucket name, then re-run `/onboard`."
-
-**If the bucket value is NOT the placeholder** (a real name is already in backend.hcl): verify it exists:
-
-```bash
-aws s3api head-bucket --bucket "$BUCKET"
-```
-
-If `head-bucket` exits non-zero, halt with: "S3 bucket `$BUCKET` (from `libs/infra/backend.hcl`) was not found or is not accessible. Verify it exists, your AWS credentials have access, and the region in `backend.hcl` matches the bucket's region."
+   The file is in `.gitignore`, so it stays across `git reset --hard upstream/main` and won't be committed.
 
 ### 2.6 — Cocogitto bot installed
 
