@@ -215,14 +215,17 @@ Verify like `CLOUDFLARE_API_TOKEN` above.
 
 ### 2.3 — Mirror non-sensitive values to GitHub Variables
 
-First, resolve the fork's repo name from the `origin` remote and reuse it on every `gh` call. Without `-R`, `gh` defaults to the alphabetically first remote — which silently writes to `upstream` when both `origin` and `upstream` are configured.
+First, resolve the fork's repo name from the **`origin` remote directly** and reuse it on every `gh` call. Do NOT use `gh repo view` for this — when both `origin` and `upstream` are configured, `gh repo view` may return the upstream's owner/repo (it picks the alphabetically-first matching remote and silently succeeds, not erroring). That would silently mirror your secrets to the upstream repo. Always derive from `git config remote.origin.url`:
 
 ```bash
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)
+# Derive from the origin remote — unambiguous on multi-remote forks.
+REPO=$(git config --get remote.origin.url | sed -E 's|.*[:/]([^/]+/[^/.]+)(\.git)?$|\1|')
+
+# Fallback to gh only if there's no origin remote at all (rare).
 if [ -z "$REPO" ]; then
-  # gh ambiguates between multiple remotes; derive from origin explicitly.
-  REPO=$(git config --get remote.origin.url | sed -E 's|.*[:/]([^/]+/[^/.]+)(\.git)?$|\1|')
+  REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)
 fi
+
 [ -n "$REPO" ] || { echo "Could not determine repo name from origin"; exit 1; }
 echo "Targeting GitHub repo: $REPO"
 ```
