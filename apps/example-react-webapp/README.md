@@ -38,7 +38,7 @@ npx nx run example-react-webapp:seed-local-kv
 
 ## Deployment
 
-Before deploying, replace the `<staging-kv-namespace-id>` and `<production-kv-namespace-id>` placeholders in `wrangler.jsonc` with the real KV namespace IDs from `terraform output kv_namespace_id`.
+`/onboard` (or its Step 4 alone) hardcodes the staging and production KV namespace IDs into `wrangler.jsonc` automatically. If you generated this app outside the `/onboard` flow, run that skill (or manually write the IDs from `npx wrangler kv namespace list` into the `env.staging.kv_namespaces` and `env.production.kv_namespaces` blocks) before deploying.
 
 ```bash
 npx nx run example-react-webapp:deploy:staging
