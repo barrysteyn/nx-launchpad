@@ -7,18 +7,33 @@ Follow these steps in order. Halt loudly on a failed prereq — never silently s
 
 ## Step 0 — Pre-flight: branch
 
-If we are not already on a branch named `onboarding-and-setup`, create or switch to it:
+**Always reset `onboarding-and-setup` to current main** so each run starts from a known clean state. Re-runs of `/onboard` should not inherit a stale branch from a prior cycle (which is what produces stash-pop conflicts on the same wrangler.jsonc paths).
+
+First, verify the working tree is clean:
 
 ```bash
-current=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current" != "onboarding-and-setup" ]; then
-  if git show-ref --verify --quiet refs/heads/onboarding-and-setup; then
-    git checkout onboarding-and-setup
-  else
-    git checkout -b onboarding-and-setup
-  fi
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "ERROR: Uncommitted changes in working tree. Commit or stash before running /onboard."
+  exit 1
 fi
 ```
+
+Then fetch origin/main (if origin exists) and reset onboarding-and-setup to it:
+
+```bash
+git fetch origin main 2>/dev/null || true
+
+# Prefer origin/main; fall back to local main if no origin
+BASE="origin/main"
+if ! git rev-parse --verify -q "$BASE" >/dev/null 2>&1; then
+  BASE="main"
+fi
+
+git checkout -B onboarding-and-setup "$BASE"
+echo "On branch onboarding-and-setup (reset to $BASE)"
+```
+
+The `checkout -B` semantics create or reset the branch in one shot, so this works whether `onboarding-and-setup` already existed (stale or fresh) or not.
 
 Confirm with `git rev-parse --abbrev-ref HEAD` — should print `onboarding-and-setup`.
 
@@ -49,14 +64,28 @@ This step walks through each credential the workspace needs: gathering it (where
 
 **Sensitive values never flow through this chat.** For tokens, secret keys, and account IDs, the skill instructs you to paste them directly into `.env` via your editor. The skill then reads them from `.env` to mirror to GitHub Secrets using `$(grep ...)` command substitution — Claude only sees the command template, never the value.
 
-**Unattended mode:** if `.env` contains `ONBOARD_AUTO=true`, the skill skips paste-and-confirm prompts (since values are already in `.env`), auto-accepts the S3 bucket proposal, auto-confirms the KV diff, and auto-pushes at the end. Read this flag once at the top of Step 2:
+**Source `.env` once at the top of Step 2** — then reference shell variables instead of grepping the file repeatedly. Some Claude Code permission configurations deny `grep .env`; sourcing once needs only a single allowed command (`set -a; . ...; set +a`) and avoids repeated reads.
 
 ```bash
-AUTO=$(grep -E '^ONBOARD_AUTO=' .env 2>/dev/null | cut -d= -f2-)
-[ "$AUTO" = "true" ] && echo "Unattended mode: ON" || echo "Unattended mode: off"
+ENV_FILE="$(git rev-parse --show-toplevel)/.env"
+[ -f "$ENV_FILE" ] || { echo "ERROR: $ENV_FILE not found"; exit 1; }
+set -a
+. "$ENV_FILE"
+set +a
 ```
 
-Reference `$AUTO` later in this step (and Step 4, Step 8) to gate the optional prompts.
+After this, every `.env` value is available as a shell variable: `$PROJECT_NAME`, `$URL`, `$AWS_REGION`, `$AWS_PROFILE`, `$AWS_ACCESS_KEY_ID`, `$AWS_SECRET_ACCESS_KEY`, `$CLOUDFLARE_API_TOKEN`, `$CLOUDFLARE_ACCOUNT_ID`, `$ONBOARD_AUTO`, `$ONBOARD_AUTO_PUSH`, `$ENVIRONMENT`. Use those throughout the rest of the skill instead of `grep '^X=' .env | cut -d= -f2-`.
+
+**Unattended mode:** if `.env` contains `ONBOARD_AUTO=true`, the skill skips paste-and-confirm prompts (since values are already in `.env`), auto-accepts the S3 bucket proposal, and auto-confirms the KV diff. Push at the end is gated by a **separate** flag, `ONBOARD_AUTO_PUSH=true` (see Step 8.3), so users with a "don't push without asking" policy can still benefit from unattended Steps 1–7.
+
+```bash
+AUTO="${ONBOARD_AUTO:-false}"
+AUTO_PUSH="${ONBOARD_AUTO_PUSH:-false}"
+[ "$AUTO" = "true" ] && echo "Unattended mode: ON" || echo "Unattended mode: off"
+[ "$AUTO_PUSH" = "true" ] && echo "Auto-push: ON" || echo "Auto-push: off (will prompt at Step 8.3)"
+```
+
+Reference `$AUTO` later in this step (and Step 4) to gate the optional prompts. Reference `$AUTO_PUSH` in Step 8.3 specifically for the push decision.
 
 ### 2.1 — `gh auth status`
 
@@ -590,8 +619,21 @@ The removals get committed in the same step as the rest of the onboarding change
 
 ### 8.2 — Commit
 
+**Stage explicitly** — never `git add -A` here. That would sweep in unrelated working-tree changes (e.g. a parallel `.claude/settings.json` edit, ad-hoc experiments) into the onboarding commit. Stage only the paths this skill is supposed to touch:
+
 ```bash
-git add -A
+# Always-touched paths
+git add README.md
+
+# KV-ID writes (Step 4) — wrangler.jsonc files across apps, services, generator templates
+git add apps/*/wrangler.jsonc services/*/wrangler.jsonc tools/generators/*/files/wrangler.jsonc__tmpl__ 2>/dev/null || true
+
+# .nxignore — modified by per-service /setup-<svc> skills
+git add .nxignore 2>/dev/null || true
+
+# Teardown skill removals (Step 8.1 on real-fork runs)
+git add .claude/commands/teardown-onboarding.md .claude/commands/teardown-auth-service.md 2>/dev/null || true
+
 git commit -m "chore(onboard): apply onboarding configuration
 
 KV namespace IDs hardcoded for staging + production, README
@@ -605,13 +647,17 @@ If `git commit` reports nothing to commit (all earlier changes were already comm
 
 ### 8.3 — Optional push
 
-`$AUTO` was already evaluated in Step 8.1; reuse it here.
+Push autonomy is gated by `ONBOARD_AUTO_PUSH` (separate from `ONBOARD_AUTO`) so users with a global "don't push without asking" policy can still get unattended Steps 1–7 without surrendering the push decision. Re-read the flag here in case the shell session was reset:
 
-If `$AUTO` is `true`, skip the prompt and push automatically. Otherwise ask the user:
+```bash
+AUTO_PUSH="${ONBOARD_AUTO_PUSH:-false}"
+```
+
+If `$AUTO_PUSH` is `true`, skip the prompt and push automatically. Otherwise ask the user:
 
 > "Push the `onboarding-and-setup` branch to origin and instruct me to open a PR to main? [Y/n]"
 
-If yes (or `$AUTO=true`):
+If yes (or `$AUTO_PUSH=true`):
 
 ```bash
 git push -u origin onboarding-and-setup
@@ -619,7 +665,7 @@ git push -u origin onboarding-and-setup
 
 **If the push fails with `[rejected]` / `non-fast-forward`** — this happens on re-runs where remote `onboarding-and-setup` has diverged from local (each `/onboard` cycle rewrites the branch). Handle by mode:
 
-- **`$AUTO` is `true`**: force-push with lease (preserves the safety check that no-one else pushed since you fetched):
+- **`$AUTO_PUSH` is `true`**: force-push with lease (preserves the safety check that no-one else pushed since you fetched):
 
   ```bash
   git push --force-with-lease origin onboarding-and-setup
