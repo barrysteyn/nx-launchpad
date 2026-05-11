@@ -33,7 +33,7 @@
   },
   "env": {
     "preview": {
-      "name": "<%= name %>-preview",
+      "name": "<%= projectName %>-preview-<%= name %>",
       "workers_dev": true,
       "vars": {
         "ENVIRONMENT": "staging"
@@ -47,7 +47,7 @@
       "preview_urls": true
     },
     "staging": {
-      "name": "<%= name %>-staging",
+      "name": "<%= projectName %>-staging-<%= name %>",
       "vars": {
         "ENVIRONMENT": "staging"
       },
@@ -63,7 +63,7 @@
       }
     },
     "production": {
-      "name": "<%= name %>-production",
+      "name": "<%= projectName %>-production-<%= name %>",
       "vars": {
         "ENVIRONMENT": "production"
       },

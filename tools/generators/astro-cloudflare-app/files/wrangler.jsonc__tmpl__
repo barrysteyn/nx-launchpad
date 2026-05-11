@@ -8,19 +8,19 @@
   "workers_dev": false,
   "env": {
     "preview": {
-      "name": "<%= name %>-preview",
+      "name": "<%= projectName %>-preview-<%= name %>",
       "workers_dev": true,
       "preview_urls": true
     },
     "staging": {
-      "name": "<%= name %>-staging",
+      "name": "<%= projectName %>-staging-<%= name %>",
       "route": {
         "pattern": "<%= stagingDomain %>",
         "custom_domain": true
       }
     },
     "production": {
-      "name": "<%= name %>-production",
+      "name": "<%= projectName %>-production-<%= name %>",
       "route": {
         "pattern": "<%= productionDomain %>",
         "custom_domain": true

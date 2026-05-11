@@ -20,6 +20,25 @@ function readUrlFromEnv(): string {
   return FALLBACK;
 }
 
+function readProjectNameFromEnv(): string {
+  const PLACEHOLDER = 'your-project-name';
+  let value: string | undefined;
+  try {
+    const envContent = fs.readFileSync('.env', 'utf-8');
+    const match = envContent.match(/^PROJECT_NAME=(.+)$/m);
+    value = match?.[1]?.trim();
+  } catch {
+    // .env not found
+  }
+  if (!value || value === PLACEHOLDER) {
+    throw new Error(
+      'PROJECT_NAME is required in root .env and must not be the placeholder. ' +
+        'Run /onboard first, or set PROJECT_NAME=<kebab-case-name> in .env.',
+    );
+  }
+  return value;
+}
+
 export async function reactCloudflareAppGenerator(
   tree: Tree,
   options: ReactCloudflareAppGeneratorSchema,
@@ -28,6 +47,7 @@ export async function reactCloudflareAppGenerator(
   const appDir = `apps/${appName}`;
   const description = options.description ?? `${appName} application`;
   const url = readUrlFromEnv();
+  const projectName = readProjectNameFromEnv();
   const stagingDomain = `staging.${url}`;
   const productionDomain = url;
   const title = appName
@@ -117,6 +137,7 @@ export async function reactCloudflareAppGenerator(
     name: appName,
     title,
     description,
+    projectName,
     stagingDomain,
     productionDomain,
     tmpl: '',
