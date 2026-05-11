@@ -3,7 +3,7 @@
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/worker/index.ts",
-  "workers_dev": true,
+  "workers_dev": false,
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
@@ -48,7 +48,6 @@
           "database_id": "<production-d1-id>"
         }
       ],
-      "workers_dev": false,
       "route": {
         "pattern": "auth.nimrox.ai",
         "custom_domain": true
