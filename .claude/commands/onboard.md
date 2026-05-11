@@ -372,25 +372,28 @@ Print:
 
 Run:
 
+Deploy to **both** staging and production. We provision the production KV namespace + DynamoDB table here (infra-only — no real workload code is deployed) so that Step 4 can hardcode both real IDs into every generator template at once. Without the production deploy, a freshly generated app's `wrangler.jsonc` would still have `<production-kv-namespace-id>` and its production deploy would fail.
+
 ```bash
 npx nx run config:deploy-config:staging
+npx nx run config:deploy-config:production
 ```
 
-This:
-1. Runs Terraform to create the Cloudflare KV namespace (`${PROJECT_NAME}-staging-config`) and AWS DynamoDB table (`${PROJECT_NAME}-staging-config`).
-2. Resolves `config/files/{default,staging}.yaml` and merges with SSM-referenced values.
+Each invocation:
+1. Runs Terraform to create the Cloudflare KV namespace (`${PROJECT_NAME}-<env>-config`) and AWS DynamoDB table (`${PROJECT_NAME}-<env>-config`).
+2. Resolves `config/files/{default,<env>}.yaml` and merges with SSM-referenced values.
 3. Pushes the resolved blob to both stores.
 
-Confirm success: the command should exit 0 and the trailing log lines should mention writing to KV and DynamoDB.
+Confirm success: each command should exit 0 and the trailing log lines should mention writing to KV and DynamoDB.
 
-If it fails, common causes:
+If either fails, common causes:
 - `CLOUDFLARE_API_TOKEN` missing the `Workers KV Storage:Edit` permission.
 - `aws s3api head-bucket` for the Terraform state bucket failed silently and Terraform can't acquire state lock.
 - `PROJECT_NAME` contains characters disallowed by Cloudflare (must be DNS-safe lowercase kebab-case).
 
 Halt and surface the error to the user — do not auto-retry.
 
-## Step 4 — Extract & hardcode staging KV namespace ID
+## Step 4 — Extract & hardcode KV namespace IDs (staging + production)
 
 Read `PROJECT_NAME` from `.env`:
 
@@ -398,43 +401,55 @@ Read `PROJECT_NAME` from `.env`:
 PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
 ```
 
-List KV namespaces and grab the staging one:
+List KV namespaces and grab both env IDs:
 
 ```bash
-STAGING_KV_ID=$(npx wrangler kv namespace list 2>/dev/null \
-  | jq -r --arg t "${PROJECT_NAME}-staging-config" '.[] | select(.title == $t) | .id')
+KV_LIST=$(npx wrangler kv namespace list 2>/dev/null)
+STAGING_KV_ID=$(echo "$KV_LIST" | jq -r --arg t "${PROJECT_NAME}-staging-config" '.[] | select(.title == $t) | .id')
+PRODUCTION_KV_ID=$(echo "$KV_LIST" | jq -r --arg t "${PROJECT_NAME}-production-config" '.[] | select(.title == $t) | .id')
 
-if [ -z "$STAGING_KV_ID" ]; then
-  echo "ERROR: KV namespace ${PROJECT_NAME}-staging-config not found"
+if [ -z "$STAGING_KV_ID" ] || [ -z "$PRODUCTION_KV_ID" ]; then
+  echo "ERROR: missing KV namespace — staging=$STAGING_KV_ID production=$PRODUCTION_KV_ID"
   exit 1
 fi
 
-echo "Staging KV ID: $STAGING_KV_ID"
+echo "Staging    KV ID: $STAGING_KV_ID"
+echo "Production KV ID: $PRODUCTION_KV_ID"
 ```
 
-If `STAGING_KV_ID` is empty, halt: the namespace should have been created in Step 3 — investigate before continuing.
+If either is empty, halt: both namespaces should have been created in Step 3.
 
-Now rewrite the staging KV ID in every relevant file. The placeholder is `<staging-kv-namespace-id>`. Find files that still contain it:
+Now rewrite both KV IDs in every relevant file. The placeholders are `<staging-kv-namespace-id>` and `<production-kv-namespace-id>`. The skill must also detect **stale hardcoded IDs** from a prior `/onboard` run (after a teardown, the namespace gets a new ID — the placeholder is gone but the previously-hardcoded value is now invalid).
+
+For each env (`staging` then `production`), build the target file list. A file is relevant if it either:
+- contains the placeholder for that env, OR
+- contains an `"id": "..."` inside the env's block whose value differs from the freshly resolved ID.
+
+For each env:
 
 ```bash
-FILES_TO_UPDATE=$(grep -lE '<staging-kv-namespace-id>' \
+ENV=staging         # then production
+TARGET_ID="$STAGING_KV_ID"   # then $PRODUCTION_KV_ID
+PLACEHOLDER="<${ENV}-kv-namespace-id>"
+
+FILES=$(grep -lE "${PLACEHOLDER}" \
   apps/*/wrangler.jsonc services/*/wrangler.jsonc \
   tools/generators/*/files/wrangler.jsonc__tmpl__ 2>/dev/null || true)
+
+# Also catch stale hardcoded IDs by checking the env block's KV id field.
+# (Implementer: for each wrangler.jsonc, parse the env.<env>.kv_namespaces[].id —
+#  if it's a 32-hex string AND not equal to $TARGET_ID, add the file to the list.)
 ```
 
-If `FILES_TO_UPDATE` is empty, the staging KV IDs are already hardcoded. Print "Staging KV IDs already hardcoded — skipping." and continue to Step 5.
+For each file in the union list, use the Edit tool to replace the KV `id` inside that env's block with `$TARGET_ID`. Do NOT use a global `sed` — multiple env blocks exist with different IDs, and the production block must not be touched when fixing staging (and vice versa). Read the file first, find the `"<env>"` block by name (in JSONC the order is preserved), then replace its `"id"` value.
 
-If `FILES_TO_UPDATE` lists files, edit each one. For each file, find the staging env block (the one whose key is `"staging"` inside `"env":{...}`) and replace `"id": "<staging-kv-namespace-id>"` with `"id": "<the literal value of STAGING_KV_ID printed earlier>"` — substitute the actual ID, not the shell variable.
-
-Use the Edit tool with `old_string`/`new_string` per file rather than a global sed — the production block (which contains `"id": "<production-kv-namespace-id>"`) must not be touched.
-
-After the edits, run:
+After all edits, run:
 
 ```bash
 git diff -- apps services tools/generators
 ```
 
-Show the user the diff. If the diff is empty (nothing to update), skip the confirmation. Otherwise:
+Show the user the diff. If the diff is empty (nothing to update — both env IDs already correct everywhere), skip the confirmation. Otherwise:
 
 - If `$AUTO` is `true`: print `Auto-accepting KV-ID diff` and continue without prompting.
 - Otherwise ask:
