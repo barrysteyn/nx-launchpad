@@ -617,6 +617,20 @@ If yes (or `$AUTO=true`):
 git push -u origin onboarding-and-setup
 ```
 
+**If the push fails with `[rejected]` / `non-fast-forward`** — this happens on re-runs where remote `onboarding-and-setup` has diverged from local (each `/onboard` cycle rewrites the branch). Handle by mode:
+
+- **`$AUTO` is `true`**: force-push with lease (preserves the safety check that no-one else pushed since you fetched):
+
+  ```bash
+  git push --force-with-lease origin onboarding-and-setup
+  ```
+
+- **Interactive mode**: ask the user:
+
+  > "Push was rejected (remote `onboarding-and-setup` has diverged — typical on re-runs). Force-push with lease? [y/N]"
+
+  If yes, run the `--force-with-lease` command above. If no, halt: the user needs to reconcile manually.
+
 Then print the GitHub PR-create URL using `$REPO` (resolved earlier in Step 2.3 — if the shell session was reset between steps, re-derive it the same way):
 
 ```bash
