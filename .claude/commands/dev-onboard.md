@@ -6,7 +6,9 @@ Follow these steps in order.
 
 ## Step 1 — Ask about Java
 
-Ask the user:
+If `.env` exists and contains `ONBOARD_AUTO=true`, **skip this prompt** — default to no-Java for Step 2's script invocation.
+
+Otherwise, ask the user:
 
 > "Install Java 21 (Temurin) now? It's only needed if you'll be working with JVM apps in this workspace. You can re-run `/dev-onboard` later if you change your mind. [y/N]"
 

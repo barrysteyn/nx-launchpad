@@ -49,6 +49,15 @@ This step walks through each credential the workspace needs: gathering it (where
 
 **Sensitive values never flow through this chat.** For tokens, secret keys, and account IDs, the skill instructs you to paste them directly into `.env` via your editor. The skill then reads them from `.env` to mirror to GitHub Secrets using `$(grep ...)` command substitution — Claude only sees the command template, never the value.
 
+**Unattended mode:** if `.env` contains `ONBOARD_AUTO=true`, the skill skips paste-and-confirm prompts (since values are already in `.env`), auto-accepts the S3 bucket proposal, auto-confirms the KV diff, and auto-pushes at the end. Read this flag once at the top of Step 2:
+
+```bash
+AUTO=$(grep -E '^ONBOARD_AUTO=' .env 2>/dev/null | cut -d= -f2-)
+[ "$AUTO" = "true" ] && echo "Unattended mode: ON" || echo "Unattended mode: off"
+```
+
+Reference `$AUTO` later in this step (and Step 4, Step 8) to gate the optional prompts.
+
 ### 2.1 — `gh auth status`
 
 ```bash
@@ -108,9 +117,18 @@ If `.env` has `AWS_REGION=` empty or missing:
 
 Update `.env`.
 
-#### AWS auth — choose form (ask in chat)
+#### AWS auth — choose form (auto-detect if possible)
 
-Ask:
+Auto-detect first by inspecting `.env`:
+
+```bash
+HAS_PROFILE=$(grep -qE '^AWS_PROFILE=.+' .env && grep -qvE '^AWS_PROFILE=your-aws-profile$' .env && echo yes || echo no)
+HAS_RAW_KEYS=$([ "$(grep -qE '^AWS_ACCESS_KEY_ID=.+' .env && grep -qE '^AWS_SECRET_ACCESS_KEY=.+' .env; echo $?)" = "0" ] && echo yes || echo no)
+```
+
+- If **HAS_RAW_KEYS=yes**: choose form (b). Skip the question.
+- Else if **HAS_PROFILE=yes**: choose form (a). Skip the question.
+- Else: ask the user:
 
 > "How are your AWS credentials configured locally?
 > a) `AWS_PROFILE` (a named profile in `~/.aws/credentials`)
@@ -145,7 +163,15 @@ If using **(a)** AWS_PROFILE, also delete the placeholder `AWS_PROFILE=your-aws-
 
 #### `CLOUDFLARE_API_TOKEN` (direct to editor — sensitive)
 
-If `.env` still has `CLOUDFLARE_API_TOKEN=your-api-token`, first remind the user of required permissions:
+First check if the value is already set:
+
+```bash
+grep '^CLOUDFLARE_API_TOKEN=' .env | grep -qv 'your-api-token$' && echo "already set, skipping" || echo "needs paste"
+```
+
+If already set, print "CLOUDFLARE_API_TOKEN already set in .env — skipping" and proceed to the next entry. Otherwise:
+
+Remind the user of required permissions:
 
 > "Your `CLOUDFLARE_API_TOKEN` needs these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
 >
@@ -171,7 +197,13 @@ If still placeholder, halt and ask them to try again.
 
 #### `CLOUDFLARE_ACCOUNT_ID` (direct to editor — sensitive)
 
-If `.env` still has `CLOUDFLARE_ACCOUNT_ID=your-account-id`:
+First check if already set:
+
+```bash
+grep '^CLOUDFLARE_ACCOUNT_ID=' .env | grep -qv 'your-account-id$' && echo "already set, skipping" || echo "needs paste"
+```
+
+If already set, print "CLOUDFLARE_ACCOUNT_ID already set in .env — skipping" and proceed. Otherwise:
 
 > "Open `.env` in your editor. Replace `CLOUDFLARE_ACCOUNT_ID=your-account-id` with your Cloudflare Account ID.
 >
@@ -253,13 +285,16 @@ echo "Configured bucket: $BUCKET"
    echo "Proposed bucket name: $PROPOSED"
    ```
 
-2. Ask the user:
+2. Decide whether to ask or auto-accept:
 
-   > "I can create the S3 bucket for Terraform state now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
-   >
-   > Press Enter to accept, type a custom name to override, or `n` to halt and create manually."
+   - If `$AUTO` is `true` (from the unattended-mode check at the top of Step 2): use `$PROPOSED` directly. Print `Auto-accepting bucket name: $PROPOSED` and skip the prompt.
+   - Otherwise, ask the user:
 
-3. If they accept (Enter) or provide a custom name, set `BUCKET` to that value and run:
+     > "I can create the S3 bucket for Terraform state now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
+     >
+     > Press Enter to accept, type a custom name to override, or `n` to halt and create manually."
+
+3. If they accept (Enter) or provide a custom name (or `$AUTO=true`), set `BUCKET` to that value and run:
 
    ```bash
    aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
@@ -387,13 +422,16 @@ After the edits, run:
 git diff -- apps services tools/generators
 ```
 
-Show the user the diff. If the diff is empty (nothing to update), skip the confirmation. Otherwise ask:
+Show the user the diff. If the diff is empty (nothing to update), skip the confirmation. Otherwise:
 
-> "I'm about to commit these KV-ID changes (still on the `onboarding-and-setup` branch). Diff looks correct? [Y/n]"
+- If `$AUTO` is `true`: print `Auto-accepting KV-ID diff` and continue without prompting.
+- Otherwise ask:
 
-If they say no, revert with `git checkout -- apps services tools/generators` and halt for them to investigate.
+  > "I'm about to commit these KV-ID changes (still on the `onboarding-and-setup` branch). Diff looks correct? [Y/n]"
 
-If they say yes, do **not** commit yet — the commit happens in Step 8 with everything else.
+  If they say no, revert with `git checkout -- apps services tools/generators` and halt for them to investigate.
+
+Either way, do **not** commit yet — the commit happens in Step 8 with everything else.
 
 ## Step 5 — Static site (optional)
 
@@ -493,11 +531,17 @@ If `git commit` reports nothing to commit (all earlier changes were already comm
 
 ### 8.2 — Optional push
 
-Ask the user:
+Re-read `$AUTO` (the unattended-mode flag from Step 2's lead-in) — it may have been a different shell invocation, so re-evaluate:
+
+```bash
+AUTO=$(grep -E '^ONBOARD_AUTO=' .env 2>/dev/null | cut -d= -f2-)
+```
+
+If `$AUTO` is `true`, skip the prompt and push automatically. Otherwise ask the user:
 
 > "Push the `onboarding-and-setup` branch to origin and instruct me to open a PR to main? [Y/n]"
 
-If yes:
+If yes (or `$AUTO=true`):
 
 ```bash
 git push -u origin onboarding-and-setup
