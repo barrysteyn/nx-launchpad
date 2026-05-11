@@ -78,11 +78,13 @@ If wrangler can't authenticate, the user's `CLOUDFLARE_API_TOKEN` may be missing
 
 If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS Lambda apps that don't use wrangler at all), they're simply skipped — that's fine, those are torn down by their own `tf-destroy` targets, not by this skill.
 
-## Step 4 — Tear down config infrastructure
+## Step 4 — Tear down config infrastructure (both envs)
 
-Run terraform destroy directly against the staging environment of the `config` project. (There is no `nx run config:tf-destroy:staging` target — config destroy is one-off enough that we run terraform manually.)
+`/onboard` Step 3 deploys config to **both** staging and production (production is infra-only — KV namespace + DynamoDB table, no real workload). Teardown must reverse both.
 
-The state-file `key` is hard-coded in `config/infra/environments/staging/backend.tf`, so the init command only needs the shared `backend.hcl` — the same pattern `deploy-config:staging` uses.
+Run terraform destroy directly against each environment of the `config` project. (There is no `nx run config:tf-destroy:<env>` target — config destroy is one-off enough that we run terraform manually.)
+
+The state-file `key` is hard-coded in `config/infra/environments/<env>/backend.tf`, so the init command only needs the shared `backend.hcl` — the same pattern `deploy-config:<env>` uses.
 
 ### 4a — Temporarily disable `prevent_destroy` on the KV module
 
@@ -106,25 +108,30 @@ lifecycle {
 
 in `libs/infra/modules/cloudflare/kv/main.tf`.
 
-### 4b — Destroy
+### 4b — Destroy (both envs)
+
+Loop over `staging` and `production` in that order. Each call destroys the KV namespace + DynamoDB table for that environment.
 
 ```bash
 PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
 set -a; . .env; set +a
 
-cd config/infra/environments/staging
-terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
+for ENV in staging production; do
+  echo "=== Destroying config infra for $ENV ==="
+  (
+    cd config/infra/environments/$ENV
+    terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
 
-TF_VAR_environment=staging \
-TF_VAR_project_name="$PROJECT_NAME" \
-TF_VAR_cloudflare_account_id="$CLOUDFLARE_ACCOUNT_ID" \
-TF_VAR_cloudflare_api_token="$CLOUDFLARE_API_TOKEN" \
-terraform destroy -auto-approve
-
-cd -
+    TF_VAR_environment=$ENV \
+    TF_VAR_project_name="$PROJECT_NAME" \
+    TF_VAR_cloudflare_account_id="$CLOUDFLARE_ACCOUNT_ID" \
+    TF_VAR_cloudflare_api_token="$CLOUDFLARE_API_TOKEN" \
+    terraform destroy -auto-approve
+  )
+done
 ```
 
-This destroys the Cloudflare KV namespace and the AWS DynamoDB table that `/onboard`'s Step 3 created. The S3 bucket holding Terraform state is left intact so subsequent `/onboard` runs can reuse it.
+This destroys both Cloudflare KV namespaces and both AWS DynamoDB tables that `/onboard`'s Step 3 created. The S3 bucket holding Terraform state is left intact so subsequent `/onboard` runs can reuse it.
 
 ### 4c — Restore `prevent_destroy`
 
