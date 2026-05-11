@@ -39,17 +39,17 @@ Service-specific teardown is the responsibility of the service's own skill — t
 
 ## Step 3 — Tear down deployed Cloudflare Workers (apps + services)
 
-Enumerate worker names by reading the `env.staging.name` field of every `wrangler.jsonc` in the repo. This catches all naming conventions (including those that don't follow the `${project_name}-${env}-${app}` prefix) and avoids relying on Cloudflare API enumeration matching a hard-coded prefix.
+Enumerate worker names from two sources and union them. The file-based pass catches everything documented on the branch; the API-based pass catches orphans — workers that were deployed by a previous iteration but whose `wrangler.jsonc` no longer exists on the current branch (e.g. renamed or deleted between cycles).
 
 ```bash
-# Source CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from .env (export both)
+# Source CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PROJECT_NAME from .env
 set -a; . .env; set +a
 
-# wrangler.jsonc files allow JSONC comments + trailing commas; strip them before jq
-WORKERS=$(
+# Pass 1 — read env.staging.name from each wrangler.jsonc on the current branch.
+# wrangler.jsonc files allow JSONC comments + trailing commas; strip them before jq.
+WORKERS_FROM_FILES=$(
   for f in apps/*/wrangler.jsonc services/*/wrangler.jsonc; do
     [ -f "$f" ] || continue
-    # Remove // line comments and /* */ block comments; tolerate trailing commas
     sed -E 's|//[^"]*$||; s|/\*[^*]*\*+([^/*][^*]*\*+)*/||g' "$f" \
       | tr '\n' ' ' \
       | sed -E 's/,(\s*[}\]])/\1/g' \
@@ -57,15 +57,29 @@ WORKERS=$(
   done | sort -u
 )
 
+# Pass 2 — list all Workers in the Cloudflare account and filter by ${PROJECT_NAME}-
+# prefix. This catches orphans that pass 1 misses.
+WORKERS_FROM_API=$(
+  curl -fsS \
+    "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" \
+    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+    | jq -r --arg p "${PROJECT_NAME}-" '.result[]?.id | select(startswith($p))' \
+    | sort -u
+)
+
+WORKERS=$(printf '%s\n%s\n' "$WORKERS_FROM_FILES" "$WORKERS_FROM_API" | sort -u | sed '/^$/d')
+
 if [ -z "$WORKERS" ]; then
-  echo "No worker names found in apps/*/wrangler.jsonc or services/*/wrangler.jsonc — skipping."
+  echo "No workers found (neither in repo files nor in CF account with prefix ${PROJECT_NAME}-) — skipping."
 else
-  echo "Staging workers to delete:"
+  echo "Workers to delete (union of file-based + CF API enumeration):"
   echo "$WORKERS"
 fi
 ```
 
-For each worker name in the list, delete it via wrangler. The worker may not actually exist in Cloudflare (if a prior teardown already removed it, or it was never deployed) — in that case wrangler returns `code: 10007` and we just log and continue.
+If pass 2's `curl` fails with `401`/`403`, the user's `CLOUDFLARE_API_TOKEN` may be missing `Workers Scripts:Read` — in that case pass 1 will still catch the on-branch workers, but you should tell the user to update the token's permissions so future teardowns catch orphans too.
+
+For each worker name in the unioned list, delete it via wrangler. The worker may not actually exist in Cloudflare (if a prior teardown already removed it, or it was never deployed) — in that case wrangler returns `code: 10007` and we just log and continue.
 
 ```bash
 for w in $WORKERS; do
@@ -76,7 +90,7 @@ done
 
 If wrangler can't authenticate, the user's `CLOUDFLARE_API_TOKEN` may be missing `Workers Scripts:Edit`. Halt and tell them to update the token's permissions.
 
-If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS Lambda apps that don't use wrangler at all), they're simply skipped — that's fine, those are torn down by their own `tf-destroy` targets, not by this skill.
+If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS Lambda apps that don't use wrangler at all), they're simply skipped in pass 1 — that's fine, those are torn down by their own `tf-destroy` targets, not by this skill. Pass 2's prefix-filter approach also leaves them alone unless they happened to be deployed as Cloudflare workers (unlikely).
 
 ## Step 4 — Tear down config infrastructure (both envs)
 
