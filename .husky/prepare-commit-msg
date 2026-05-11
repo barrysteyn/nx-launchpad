@@ -12,9 +12,11 @@ fi
 # echo "✨✨✨✨✨"
 
 # Skip cz prompt cleanly in non-interactive sessions (CI, scripted commits,
-# Claude Code's Bash tool). cz needs a TTY; without one its `exec < /dev/tty`
-# prints "/dev/tty: Device not configured" noise.
-if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+# Claude Code's Bash tool). cz needs a controlling TTY; if stdin isn't a TTY
+# the `exec < /dev/tty` further down prints "Device not configured" noise.
+# `/dev/tty` exists as a device file even without a controlling terminal,
+# so we test the actual TTY state with `-t 0` (stdin is a TTY).
+if [ ! -t 0 ]; then
   exit 0
 fi
 
