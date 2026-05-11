@@ -84,7 +84,7 @@ If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS
 
 Run terraform destroy directly against each environment of the `config` project. (There is no `nx run config:tf-destroy:<env>` target — config destroy is one-off enough that we run terraform manually.)
 
-The state-file `key` is hard-coded in `config/infra/environments/<env>/backend.tf`, so the init command only needs the shared `backend.hcl` — the same pattern `deploy-config:<env>` uses.
+The state-file `key` is hard-coded in `config/infra/environments/<env>/backend.tf`, so the init command only needs the two backend-config files (shared + per-fork bucket name) — the same pattern `deploy-config:<env>` uses.
 
 ### 4a — Temporarily disable `prevent_destroy` on the KV module
 
@@ -120,7 +120,7 @@ for ENV in staging production; do
   echo "=== Destroying config infra for $ENV ==="
   (
     cd config/infra/environments/$ENV
-    terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
+    terraform init -backend-config=../../../../libs/infra/backend.hcl -backend-config=../../../../libs/infra/backend.local.hcl -reconfigure
 
     TF_VAR_environment=$ENV \
     TF_VAR_project_name="$PROJECT_NAME" \
@@ -145,7 +145,7 @@ lifecycle {
 
 If 4b fails partway through, you should still run 4c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
 
-If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.hcl` against the bucket name and rerun.
+If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.local.hcl` exists and has the right bucket name (the committed `backend.hcl` only holds region/versioning/encryption settings).
 
 ## Step 5 — Reset hardcoded KV namespace IDs back to placeholders
 

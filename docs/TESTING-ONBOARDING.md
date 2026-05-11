@@ -33,7 +33,9 @@ aws s3api create-bucket --bucket terraform-state-<your-test-name>-<random> --reg
 aws s3api put-bucket-versioning --bucket terraform-state-<your-test-name>-<random> \
   --versioning-configuration Status=Enabled
 
-# Update libs/infra/backend.hcl line 1 with the bucket name.
+# Write the bucket name into libs/infra/backend.local.hcl (gitignored).
+# `/onboard` will create this for you automatically; to do it manually:
+#   echo 'bucket = "terraform-state-<your-test-name>-<random>"' > libs/infra/backend.local.hcl
 ```
 
 That's Phase A. Don't repeat any of this between test runs.

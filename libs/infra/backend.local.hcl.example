@@ -1,0 +1,4 @@
+# Per-fork Terraform state S3 bucket name. Copy this file to backend.local.hcl
+# (gitignored) and replace the placeholder with your actual bucket name. The
+# `/onboard` skill's Step 2.5 creates this file for you automatically.
+bucket = "terraform-state-<your-project-name>-<random>"

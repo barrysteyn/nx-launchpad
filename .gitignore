@@ -67,6 +67,9 @@ htmlcov/
 .env.*
 !.env.example
 
+# Per-fork Terraform backend config (bucket name)
+libs/infra/backend.local.hcl
+
 # ------------------------------------------------------------
 # Vite / Cloudflare / Astro
 # ------------------------------------------------------------
