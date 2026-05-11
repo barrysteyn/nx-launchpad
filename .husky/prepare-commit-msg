@@ -11,4 +11,11 @@ fi
 # echo "🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲"
 # echo "✨✨✨✨✨"
 
+# Skip cz prompt cleanly in non-interactive sessions (CI, scripted commits,
+# Claude Code's Bash tool). cz needs a TTY; without one its `exec < /dev/tty`
+# prints "/dev/tty: Device not configured" noise.
+if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+  exit 0
+fi
+
 exec < /dev/tty && npx cz --hook || true
