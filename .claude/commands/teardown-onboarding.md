@@ -84,6 +84,30 @@ Run terraform destroy directly against the staging environment of the `config` p
 
 The state-file `key` is hard-coded in `config/infra/environments/staging/backend.tf`, so the init command only needs the shared `backend.hcl` — the same pattern `deploy-config:staging` uses.
 
+### 4a — Temporarily disable `prevent_destroy` on the KV module
+
+`libs/infra/modules/cloudflare/kv/main.tf` has `lifecycle { prevent_destroy = true }` to protect against accidental KV deletion. Flip it to `false` before the destroy, then restore it afterwards (Step 4c). Without this flip, `terraform destroy` errors out with `Instance cannot be destroyed`.
+
+Use the Edit tool to change:
+
+```hcl
+lifecycle {
+  prevent_destroy = true
+}
+```
+
+to:
+
+```hcl
+lifecycle {
+  prevent_destroy = false
+}
+```
+
+in `libs/infra/modules/cloudflare/kv/main.tf`.
+
+### 4b — Destroy
+
 ```bash
 PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
 set -a; . .env; set +a
@@ -101,6 +125,18 @@ cd -
 ```
 
 This destroys the Cloudflare KV namespace and the AWS DynamoDB table that `/onboard`'s Step 3 created. The S3 bucket holding Terraform state is left intact so subsequent `/onboard` runs can reuse it.
+
+### 4c — Restore `prevent_destroy`
+
+Always restore the guard so future `terraform apply` calls (e.g. a fresh `/onboard`) re-create the namespace with the safety in place. Use the Edit tool to revert `libs/infra/modules/cloudflare/kv/main.tf`:
+
+```hcl
+lifecycle {
+  prevent_destroy = true
+}
+```
+
+If 4b fails partway through, you should still run 4c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
 
 If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.hcl` against the bucket name and rerun.
 
