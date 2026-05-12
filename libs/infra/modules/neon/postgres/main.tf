@@ -10,9 +10,10 @@ locals {
 }
 
 resource "neon_project" "this" {
-  name       = "${var.project_name}-${var.environment}-${var.app_name}"
-  region_id  = var.region_id
-  pg_version = var.pg_version
+  name                      = "${var.project_name}-${var.environment}-${var.app_name}"
+  region_id                 = var.region_id
+  pg_version                = var.pg_version
+  history_retention_seconds = 21600 # 6h — fits Neon Free plan cap (24h is paid-plan only)
 
   default_endpoint_settings {
     autoscaling_limit_min_cu = var.min_cu
