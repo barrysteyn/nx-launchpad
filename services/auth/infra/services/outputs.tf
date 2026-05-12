@@ -1,9 +1,15 @@
-output "d1_database_id" {
-  description = "D1 database ID"
-  value       = module.db.id
+output "hyperdrive_id" {
+  description = "Cloudflare Hyperdrive config id — pasted into wrangler.jsonc"
+  value       = module.hyperdrive.id
 }
 
-output "d1_database_name" {
-  description = "D1 database name"
-  value       = module.db.name
+output "neon_project_id" {
+  description = "Neon project id — surfaced for user reference"
+  value       = module.postgres.project_id
+}
+
+output "connection_uri" {
+  description = "Direct Postgres connection URI for the auth role — used by db-migrate"
+  value       = module.postgres.connection_uri
+  sensitive   = true
 }
