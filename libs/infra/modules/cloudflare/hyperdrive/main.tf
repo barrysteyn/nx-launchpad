@@ -5,7 +5,7 @@ resource "cloudflare_hyperdrive_config" "this" {
   origin = {
     scheme   = "postgres"
     host     = var.db_host
-    port     = 5432
+    port     = var.db_port
     database = var.db_database
     user     = var.db_user
     password = var.db_password

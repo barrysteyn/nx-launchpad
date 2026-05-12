@@ -44,3 +44,9 @@ variable "caching_disabled" {
   type        = bool
   default     = true
 }
+
+variable "db_port" {
+  description = "Origin database port (5432 for Postgres, 3306 for MySQL)"
+  type        = number
+  default     = 5432
+}
