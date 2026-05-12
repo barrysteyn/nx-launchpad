@@ -7,7 +7,7 @@ Tear down all staging cloud resources provisioned by /onboard. Used by the test 
 - Does **not** delete the S3 bucket holding Terraform state.
 - Does **not** modify `~/.gitconfig` or repo-local git settings.
 
-The mutation surface is staging cloud resources only: Cloudflare Workers / KV / D1, and the AWS DynamoDB table that holds resolved config blobs.
+The mutation surface is staging cloud resources only: Cloudflare Workers / KV / D1 / Hyperdrive configs, the AWS DynamoDB table that holds resolved config blobs, and Neon Postgres projects.
 
 Follow these steps in order.
 
@@ -21,7 +21,7 @@ grep '^PROJECT_NAME=' .env | cut -d= -f2
 
 Ask the user:
 
-> "This will destroy ALL staging cloud resources for `PROJECT_NAME=<value>`. Cloudflare Workers, KV namespaces, D1 databases, and AWS DynamoDB tables will be deleted. Continue? [y/N]"
+> "This will destroy ALL staging cloud resources for `PROJECT_NAME=<value>`. Cloudflare Workers, KV namespaces, D1 databases, Hyperdrive configs, AWS DynamoDB tables, and Neon Postgres projects will be deleted. Continue? [y/N]"
 
 Halt if the user does not answer yes.
 
@@ -37,7 +37,7 @@ For each subdirectory under `services/` that is **not** listed in the root `.nxi
 
 Service-specific teardown is the responsibility of the service's own skill — this orchestrator just sequences the calls.
 
-## Step 3 — Tear down deployed Cloudflare Workers (apps + services)
+## Step 3 — Tear down deployed Cloudflare resources (Workers + Hyperdrive)
 
 Enumerate worker names from two sources and union them. The file-based pass catches everything documented on the branch; the API-based pass catches orphans — workers that were deployed by a previous iteration but whose `wrangler.jsonc` no longer exists on the current branch (e.g. renamed or deleted between cycles).
 
@@ -92,7 +92,67 @@ If wrangler can't authenticate, the user's `CLOUDFLARE_API_TOKEN` may be missing
 
 If `apps/` or `services/` contains projects with no `env.staging.name` (e.g. AWS Lambda apps that don't use wrangler at all), they're simply skipped in pass 1 — that's fine, those are torn down by their own `tf-destroy` targets, not by this skill. Pass 2's prefix-filter approach also leaves them alone unless they happened to be deployed as Cloudflare workers (unlikely).
 
-## Step 4 — Tear down config infrastructure (both envs)
+### Hyperdrive configs
+
+Enumerate Cloudflare Hyperdrive configs by the same `${PROJECT_NAME}-` prefix and delete any that match. Hyperdrive configs are orphans only if `/teardown-auth-service` didn't run for a prior iteration's auth setup — Step 2's per-service teardown should already have cleaned them up via Terraform.
+
+```bash
+HYPERDRIVE_CONFIGS=$(
+  curl -fsS \
+    "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/hyperdrive/configs" \
+    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+    | jq -r --arg p "${PROJECT_NAME}-" '.result[]? | select(.name | startswith($p)) | .id' \
+    || true
+)
+
+if [ -z "$HYPERDRIVE_CONFIGS" ]; then
+  echo "No Hyperdrive configs found with prefix ${PROJECT_NAME}- — skipping."
+else
+  for hid in $HYPERDRIVE_CONFIGS; do
+    echo "Deleting Hyperdrive config: $hid"
+    curl -fsS -X DELETE \
+      "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/hyperdrive/configs/$hid" \
+      -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true
+  done
+fi
+```
+
+If the enumeration `curl` returns `401`/`403`, the `CLOUDFLARE_API_TOKEN` likely lacks `Account / Hyperdrive : Edit`. Tell the user to update the token's permissions.
+
+## Step 4 — Tear down orphan Neon Postgres projects (conditional)
+
+Neon projects are tracked in `/teardown-auth-service`'s Terraform destroy. This step is a SAFETY NET for projects orphaned by a previous iteration that didn't tear down cleanly. Only runs if `NEON_API_KEY` is set — without it, Neon projects belong to a Neon account the skill can't authenticate against.
+
+```bash
+NEON_API_KEY_VAL=$(grep '^NEON_API_KEY=' .env 2>/dev/null | cut -d= -f2-)
+if [ -z "$NEON_API_KEY_VAL" ] || [ "$NEON_API_KEY_VAL" = "your-api-key" ]; then
+  echo "NEON_API_KEY not set — skipping Neon project cleanup."
+  echo "If you set up the auth service, run /teardown-auth-service first."
+else
+  PROJECT_IDS=$(
+    curl -fsS \
+      -H "Authorization: Bearer $NEON_API_KEY_VAL" \
+      "https://console.neon.tech/api/v2/projects" \
+      | jq -r --arg p "${PROJECT_NAME}-staging-" '.projects[]? | select(.name | startswith($p)) | .id' \
+      || true
+  )
+
+  if [ -z "$PROJECT_IDS" ]; then
+    echo "No Neon staging projects found with prefix ${PROJECT_NAME}-staging- — skipping."
+  else
+    for pid in $PROJECT_IDS; do
+      echo "Deleting Neon project: $pid"
+      curl -fsS -X DELETE \
+        -H "Authorization: Bearer $NEON_API_KEY_VAL" \
+        "https://console.neon.tech/api/v2/projects/$pid" || true
+    done
+  fi
+fi
+```
+
+The cleanup is best-effort and non-fatal. If `NEON_API_KEY` is missing the skill prints a hint and continues. If the API returns errors, we log them and continue rather than halt — the next iteration's `/teardown-auth-service` or `/onboard` will retry if needed.
+
+## Step 5 — Tear down config infrastructure (both envs)
 
 `/onboard` Step 3 deploys config to **both** staging and production (production is infra-only — KV namespace + DynamoDB table, no real workload). Teardown must reverse both.
 
@@ -100,9 +160,9 @@ Run terraform destroy directly against each environment of the `config` project.
 
 The state-file `key` is hard-coded in `config/infra/environments/<env>/backend.tf`, so the init command only needs the two backend-config files (shared + per-fork bucket name) — the same pattern `deploy-config:<env>` uses.
 
-### 4a — Temporarily disable `prevent_destroy` on the KV module
+### 5a — Temporarily disable `prevent_destroy` on the KV module
 
-`libs/infra/modules/cloudflare/kv/main.tf` has `lifecycle { prevent_destroy = true }` to protect against accidental KV deletion. Flip it to `false` before the destroy, then restore it afterwards (Step 4c). Without this flip, `terraform destroy` errors out with `Instance cannot be destroyed`.
+`libs/infra/modules/cloudflare/kv/main.tf` has `lifecycle { prevent_destroy = true }` to protect against accidental KV deletion. Flip it to `false` before the destroy, then restore it afterwards (Step 5c). Without this flip, `terraform destroy` errors out with `Instance cannot be destroyed`.
 
 Use the Edit tool to change:
 
@@ -122,7 +182,7 @@ lifecycle {
 
 in `libs/infra/modules/cloudflare/kv/main.tf`.
 
-### 4b — Destroy (both envs)
+### 5b — Destroy (both envs)
 
 Loop over `staging` and `production` in that order. Each call destroys the KV namespace + DynamoDB table for that environment.
 
@@ -147,7 +207,7 @@ done
 
 This destroys both Cloudflare KV namespaces and both AWS DynamoDB tables that `/onboard`'s Step 3 created. The S3 bucket holding Terraform state is left intact so subsequent `/onboard` runs can reuse it.
 
-### 4c — Restore `prevent_destroy`
+### 5c — Restore `prevent_destroy`
 
 Always restore the guard so future `terraform apply` calls (e.g. a fresh `/onboard`) re-create the namespace with the safety in place. Use the Edit tool to revert `libs/infra/modules/cloudflare/kv/main.tf`:
 
@@ -157,13 +217,13 @@ lifecycle {
 }
 ```
 
-If 4b fails partway through, you should still run 4c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
+If 5b fails partway through, you should still run 5c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
 
 If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.local.hcl` exists and has the right bucket name (the committed `backend.hcl` only holds region/versioning/encryption settings).
 
-## Step 5 — Reset hardcoded KV namespace IDs back to placeholders
+## Step 6 — Reset hardcoded KV namespace IDs back to placeholders
 
-After destroy, the KV namespace IDs that `/onboard` Step 4 wrote into every `wrangler.jsonc` are now stale — they reference namespaces that no longer exist. The next `/onboard` run will create new namespaces with new IDs, but Step 4's stale-ID detection only catches them if the files don't already have a known placeholder. Reset the files now so the next `/onboard` sees a clean placeholder state.
+After destroy, the KV namespace IDs that `/onboard` Step 4 wrote into every `wrangler.jsonc` are now stale — they reference namespaces that no longer exist. The next `/onboard` run will create new namespaces with new IDs, but Step 5's stale-ID detection only catches them if the files don't already have a known placeholder. Reset the files now so the next `/onboard` sees a clean placeholder state.
 
 For each `wrangler.jsonc` file:
 
@@ -201,7 +261,7 @@ Notes:
 - The sed pattern matches the exact captured ID value, so if two files contain the same real ID (the normal case), both get reset in a single pass without interference.
 - After this step, `git diff` should show every formerly-hardcoded wrangler.jsonc reverted to placeholders.
 
-## Step 6 — Final message
+## Step 7 — Final message
 
 Print:
 
