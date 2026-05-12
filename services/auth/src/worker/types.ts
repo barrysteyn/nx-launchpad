@@ -9,7 +9,7 @@ export type Bindings = {
   AWS_SES_SECRET_KEY: string;
   AWS_SES_REGION: string;
   FROM_EMAIL: string;
-  DB: D1Database;
+  HYPERDRIVE: Hyperdrive;
 };
 
 export type Variables = {
