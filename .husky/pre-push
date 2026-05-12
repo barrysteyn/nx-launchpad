@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+# Prevent direct push to main / production. Use a PR instead.
+# Bypass with: git push --no-verify  (emergency hotfix escape hatch)
+
+protected_branches="main production"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  branch="${remote_ref#refs/heads/}"
+  for protected in $protected_branches; do
+    if [ "$branch" = "$protected" ]; then
+      echo ""
+      echo "❌ Direct push to '$protected' is not allowed."
+      echo ""
+      echo "   Open a PR and merge it through GitHub instead."
+      echo ""
+      echo "   If you really need to bypass (emergency hotfix):"
+      echo "     git push --no-verify"
+      echo ""
+      exit 1
+    fi
+  done
+done
+
+exit 0
