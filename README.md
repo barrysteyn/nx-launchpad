@@ -2,20 +2,12 @@
 
 [![NX](https://img.shields.io/badge/NX-143055?style=flat&logo=nx&logoColor=white)](https://nx.dev)
 ![Terraform](https://img.shields.io/badge/terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
+[![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
 [![Cloudflare Wrangler](https://img.shields.io/badge/Wrangler-F38020?style=flat&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/wrangler/)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 
 A production-ready [Nx](https://nx.dev) monorepo launchpad — fork it once, customise it, and ship apps to AWS Lambda or Cloudflare Workers without writing any of the infrastructure or CI plumbing yourself.
-
-The workspace ships with:
-
-- **Four app generators** — Python (uv), Node.js (TypeScript), React + Hono (Cloudflare Workers), and Astro static sites. Each one scaffolds a complete project with tests, build/serve/deploy targets, and (where applicable) Terraform infrastructure.
-- **Matching Claude Code skills** (`/onboard`, `/dev-onboard`, `/generate-*`, `/setup-auth-service`, `/teardown-onboarding`) that automate the workflows end-to-end.
-- **Shared libraries** in `libs/` — logger, runtime config loader, auth helpers — that any app can import via TypeScript path aliases.
-- **Centralised config** in `config/` — YAML overlays per environment, AWS SSM secret references, deploy-time resolution to DynamoDB (Lambda apps) and Cloudflare KV (Worker apps).
-- **An optional auth service** in `services/auth/` — better-auth on Cloudflare D1, opt-in via `.nxignore`.
-- **CI/CD via GitHub Actions** with `nx affected` so only changed projects build, test, and deploy.
 
 **Naming convention (strict):** every cloud resource is named `${project_name}-${environment}-${app_name}`. `PROJECT_NAME` is set once in `.env` and as a GitHub Actions Variable; everything else (Terraform modules, generator templates, the `/onboard` skill) reads from there. See [CLAUDE.md](CLAUDE.md) for the full rules.
 
@@ -89,8 +81,6 @@ The workspace ships with:
 ---
 
 ## Quick Start
-
-Once you've onboarded (above), the rest of the workspace is unlocked. The typical workflow:
 
 **Generate an app:**
 
@@ -287,4 +277,4 @@ VITE_AUTH_URL=https://auth.staging.your-domain.com
 
 ## Deployments
 
-CI/CD via GitHub Actions handles deploys automatically based on the branch and what's affected. See **[Deployments.md](Deployments.md)** for the full pipeline, manual triggers, and force-redeploy scenarios.
+CI/CD via GitHub Actions handles deploys automatically based on the branch and what's affected. See **[Deployments.md](docs/DEPLOYMENTS.md)** for the full pipeline, manual triggers, and force-redeploy scenarios.
