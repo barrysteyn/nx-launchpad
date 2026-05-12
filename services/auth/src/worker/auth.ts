@@ -25,7 +25,7 @@ function userRole(user: unknown): string | null {
 
 export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
   const isMultiTenant = env.MULTITENANCY_ENABLED === 'true';
-  const cacheKey = `${env.BETTER_AUTH_URL}|${env.MULTITENANCY_ENABLED ?? ''}|${env.BETTER_AUTH_SECRETS ?? ''}`;
+  const cacheKey = `${env.BETTER_AUTH_URL}|${env.MULTITENANCY_ENABLED ?? ''}|${env.BETTER_AUTH_SECRETS ?? ''}|${env.HYPERDRIVE.connectionString}`;
   if (_auth && _cacheKey === cacheKey) return _auth;
 
   const dbInstance = db(env);
@@ -43,7 +43,7 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
         })
       : undefined,
 
-    database: drizzleAdapter(dbInstance, { provider: 'sqlite', schema }),
+    database: drizzleAdapter(dbInstance, { provider: 'pg', schema }),
 
     emailAndPassword: {
       enabled: true,
