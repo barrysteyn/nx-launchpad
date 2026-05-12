@@ -570,30 +570,20 @@ While iterating, track each service's outcome (`enabled`, `skipped`, or `missing
 
 > "Services step done. enabled: <list> | skipped: <list> | missing-skill: <list>"
 
-## Step 7 — Remove onboarding sections from README
+## Step 7 — Remove the One-Time Setup callout from README
 
-Once `/onboard` has run successfully, the user no longer needs the onboarding callout OR the manual fallback section. Both should be deleted.
+Once `/onboard` has run successfully, the One-Time Setup callout in the README is no longer needed and should be deleted (the callout itself says "Delete This Section When Done").
 
-Open `README.md`. Locate and delete **two** blocks in order:
-
-**Block 1 — the onboarding callout.** Begins with:
+Open `README.md`. Locate the callout block — it begins with:
 
 ```markdown
 > [!IMPORTANT]
-> ## Onboarding
+> ### One-Time Setup — Delete This Section When Done
 ```
 
-…and ends at the `---` separator that closes the blockquote. Delete every line from the opening `> [!IMPORTANT]` through and including that `---`.
+…and ends at the `---` separator that closes the blockquote (the next line should be `## Quick Start`).
 
-**Block 2 — the Manual One Time Setup section.** Immediately follows the callout. Begins with:
-
-```markdown
-## Manual One Time Setup
-```
-
-…and ends at the `---` separator that closes that section (the next line should be `## Quick Start`). Delete every line from `## Manual One Time Setup` through and including that `---`.
-
-After both deletions, the README starts directly at `## Quick Start`. Do not touch `## Quick Start` or any later section — they stay.
+Delete every line from the opening `> [!IMPORTANT]` through and including that `---`. After deletion, the README starts directly at `## Quick Start`. Do not touch `## Quick Start` or any later section — they stay.
 
 Verification:
 

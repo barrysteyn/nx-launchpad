@@ -22,99 +22,69 @@ The workspace ships with:
 ---
 
 > [!IMPORTANT]
-> ## Onboarding
+> ### One-Time Setup — Delete This Section When Done
 >
-> **Note:** Onboarding currently supports macOS only.
+> **Recommended (macOS only):** run `/onboard` in Claude Code from the repo root. The skill installs dev tooling, verifies prerequisites, deploys staging config, optionally generates a static site, and offers to enable services. If you're a contributor joining an already-onboarded fork, run `/dev-onboard` instead — it only sets up the local dev environment (tooling install + git config + husky).
 >
-> Run `/onboard` in Claude Code from the repo root. The skill installs
-> dev tooling, verifies prerequisites, deploys staging config, optionally
-> generates a static site, and offers to enable services.
+> Without Claude Code, complete each step below after forking this repo, then **delete this entire callout block** before your first real commit.
 >
-> If you're a contributor joining an already-onboarded fork, run
-> `/dev-onboard` instead — it only sets up the local dev environment
-> (tooling install + git config + husky).
+> - [ ] **Bootstrap dev tooling**: `bash scripts/setup.sh` (set `INSTALL_JAVA=true` if you need Java)
 >
-> If you're not using Claude Code, follow the **Manual One Time Setup** section below instead.
-
----
-
-## Manual One Time Setup
-
-Skip this section if you ran `/onboard` — the skill performs every step here automatically. Otherwise, complete each step below after forking the repo, then **delete this entire section** before your first real commit.
-
-- [ ] **Bootstrap dev tooling**: `bash scripts/setup.sh` (set `INSTALL_JAVA=true` if you need Java)
-
-- [ ] **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
-
-- [ ] **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
-
-  ```bash
-  aws s3api create-bucket --bucket your-bucket-name --region us-east-1
-  aws s3api put-bucket-versioning --bucket your-bucket-name \
-    --versioning-configuration Status=Enabled
-  ```
-
-  Create `libs/infra/backend.local.hcl` (gitignored) with one line: `bucket = "your-bucket-name"`. The committed `libs/infra/backend.hcl` only holds shared backend config (region, versioning, encryption) — the bucket name is per-fork and lives in the `.local` file so `git reset --hard upstream/main` doesn't wipe it.
-
-- [ ] **Add to your root `.env` file** (copy from `.env.example`):
-
-  ```bash
-  PROJECT_NAME=your-project-name
-  URL=example.com
-  ENVIRONMENT=local
-  AWS_PROFILE=your-aws-profile         # or use AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
-  AWS_REGION=us-east-1
-  CLOUDFLARE_API_TOKEN=your-api-token
-  CLOUDFLARE_ACCOUNT_ID=your-account-id
-  ```
-
-  Your Cloudflare API token must have these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
-
-  | Scope | Resource | Permission | Used by |
-  |---|---|---|---|
-  | Account | Workers Scripts | **Edit** | All worker deploys (config push, apps, auth) |
-  | Account | Workers KV Storage | **Edit** | Config KV namespace create/read/write |
-  | Account | D1 | **Edit** | Auth service database (only if you opt into auth) |
-  | Zone (optional) | Workers Routes | Edit | Custom domain routes — skip if not using custom domains |
-  | Zone (optional) | DNS | Edit | Auto-created DNS records — skip if not using custom domains |
-
-  Set "Account Resources" to your account. Add the Zone-level permissions only when wiring up real domains.
-
-- [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
-
-  | Name | Type |
-  |---|---|
-  | `AWS_ACCESS_KEY_ID` | Secret |
-  | `AWS_SECRET_ACCESS_KEY` | Secret |
-  | `CLOUDFLARE_API_TOKEN` | Secret |
-  | `CLOUDFLARE_ACCOUNT_ID` | Secret |
-  | `PROJECT_NAME` | Variable |
-  | `URL` | Variable |
-
-- [ ] **Deploy staging config**:
-
-  ```bash
-  npx nx run config:deploy-config:staging
-  ```
-
-- [ ] **Hardcode the staging KV namespace ID** — after the deploy succeeds:
-
-  ```bash
-  npx wrangler kv namespace list
-  ```
-
-  Note the ID for `${PROJECT_NAME}-staging-config`, then update the staging block in every `wrangler.jsonc` (apps, services, and generator templates).
-
-- [ ] **Set up repo-local git config**:
-
-  ```bash
-  git config pull.rebase true
-  git config push.autoSetupRemote true
-  git config user.name "Your Name"
-  git config user.email "you@example.com"
-  ```
-
-- [ ] **(Optional) Enable branch protection on `main`** — requires a paid GitHub plan for private repos.
+> - [ ] **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
+>
+> - [ ] **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
+>   ```bash
+>   aws s3api create-bucket --bucket your-bucket-name --region us-east-1
+>   aws s3api put-bucket-versioning --bucket your-bucket-name \
+>     --versioning-configuration Status=Enabled
+>   ```
+>   Create `libs/infra/backend.local.hcl` (gitignored) with one line: `bucket = "your-bucket-name"`. The committed `libs/infra/backend.hcl` only holds shared backend config (region, versioning, encryption) — the bucket name is per-fork and lives in the `.local` file so `git reset --hard upstream/main` doesn't wipe it.
+>
+> - [ ] **Add to your root `.env` file** (copy from `.env.example`):
+>   ```bash
+>   PROJECT_NAME=your-project-name      # namespaces all AWS + Cloudflare resources — choose a short unique name
+>   URL=example.com                     # Used as the A domain for the project
+>   ENVIRONMENT=local                   # always local in .env — CI/CD sets this to staging/production automatically
+>   AWS_PROFILE=your-aws-profile        # local dev only — selects the AWS credentials profile to use
+>   AWS_REGION=us-east-1                # AWS region for DynamoDB, SSM, and Lambda
+>   CLOUDFLARE_API_TOKEN=your-api-token
+>   CLOUDFLARE_ACCOUNT_ID=your-account-id  # Cloudflare dashboard → right-hand sidebar
+>   ```
+>   Your Cloudflare API token needs Account-scoped permissions: `Workers Scripts: Edit`, `Workers KV Storage: Edit`, and `D1: Edit` (the last only if you opt into auth). Add Zone-scoped `Workers Routes: Edit` and `DNS: Edit` only if using custom domains.
+>
+> - [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
+>
+>   | Name | Type |
+>   |---|---|
+>   | `AWS_ACCESS_KEY_ID` | Secret |
+>   | `AWS_SECRET_ACCESS_KEY` | Secret |
+>   | `CLOUDFLARE_API_TOKEN` | Secret |
+>   | `CLOUDFLARE_ACCOUNT_ID` | Secret |
+>   | `PROJECT_NAME` | Variable |
+>   | `URL` | Variable |
+>
+> - [ ] **Deploy config to staging and production** — this runs Terraform to create the shared Cloudflare KV namespaces and DynamoDB tables that every app binds to for config:
+>   ```bash
+>   npx nx run config:deploy-config:staging
+>   npx nx run config:deploy-config:production
+>   ```
+>   Complete the `.env` and GitHub Secrets steps above before running these. Each command applies Terraform (creating the KV namespace + DynamoDB table) and seeds it with your resolved config.
+>
+> - [ ] **Hardcode the KV namespace IDs** — after the deploys above succeed, run:
+>   ```bash
+>   npx wrangler kv namespace list
+>   ```
+>   Note the IDs for `${PROJECT_NAME}-staging-config` and `${PROJECT_NAME}-production-config`, then update the `env.staging.kv_namespaces[0].id` and `env.production.kv_namespaces[0].id` fields in every `wrangler.jsonc` (apps, services, and the generator templates under `tools/generators/*/files/wrangler.jsonc__tmpl__`).
+>
+> - [ ] **Set up repo-local git config**:
+>   ```bash
+>   git config pull.rebase true
+>   git config push.autoSetupRemote true
+>   git config user.name "Your Name"
+>   git config user.email "you@example.com"
+>   ```
+>
+> - [ ] **(Optional) Enable branch protection on `main`** — in *Settings → Branches → Branch protection rules*, add a rule for `main` and enable **"Require branches to be up to date before merging"**. Requires a paid GitHub plan for private repos.
 
 ---
 
