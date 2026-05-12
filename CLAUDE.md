@@ -106,7 +106,10 @@ Currently:
 | Project | Cloudflare Terraform resources | Extra TF_VAR_ vars needed |
 |---|---|---|
 | `config` | Yes (KV namespace) | `environment`, `cloudflare_account_id`, `cloudflare_api_token` |
+| `auth` | Yes (Hyperdrive + Neon Postgres) | `environment`, `cloudflare_account_id`, `cloudflare_api_token` (Neon's provider reads `NEON_API_KEY` from env directly — see note below) |
 | Node.js / Python apps | No (Lambda + API Gateway only) | `environment` |
+
+The `kislerdm/neon` Terraform provider reads `NEON_API_KEY` from the environment directly. Unlike the Cloudflare token (which is plumbed via `TF_VAR_cloudflare_api_token` because it's passed inline to `provider "cloudflare" { api_token = ... }`), the Neon provider receives no inline argument and consumes the env var natively — so Nx targets append `NEON_API_KEY=$NEON_API_KEY` to the command line but do **not** add a `TF_VAR_neon_api_key=...` prefix.
 
 ## Shared Libraries
 
@@ -266,6 +269,8 @@ Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, an
 | `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${environment}-${app_name}` |
 | `aws/dynamodb` | `libs/infra/modules/aws/dynamodb` | `${project_name}-${environment}-${app_name}` |
 | `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
+| `cloudflare/hyperdrive` | `libs/infra/modules/cloudflare/hyperdrive` | `${project_name}-${environment}-${app_name}` |
+| `neon/postgres` | `libs/infra/modules/neon/postgres` | `${project_name}-${environment}-${app_name}` (project) |
 
 ## Universal naming convention — `${project_name}-${environment}-${app_name}`
 
