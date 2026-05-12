@@ -21,11 +21,10 @@
         "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
         "FROM_EMAIL": "noreply@staging.nimrox.ai"
       },
-      "d1_databases": [
+      "hyperdrive": [
         {
-          "binding": "DB",
-          "database_name": "nx-launchpad-staging-auth",
-          "database_id": "49703d7c-1498-4749-9b03-4620a87db280"
+          "binding": "HYPERDRIVE",
+          "id": "<placeholder-hyperdrive-id>"
         }
       ],
       "route": {
@@ -41,11 +40,10 @@
         "TRUSTED_ORIGINS": "https://nimrox.ai,https://staging.nimrox.ai",
         "FROM_EMAIL": "noreply@nimrox.ai"
       },
-      "d1_databases": [
+      "hyperdrive": [
         {
-          "binding": "DB",
-          "database_name": "auth-production",
-          "database_id": "<production-d1-id>"
+          "binding": "HYPERDRIVE",
+          "id": "<placeholder-hyperdrive-id>"
         }
       ],
       "route": {
