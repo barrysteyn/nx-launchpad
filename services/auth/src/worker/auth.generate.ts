@@ -15,7 +15,7 @@ const stubEnv: Bindings = {
   AWS_SES_SECRET_KEY: 'stub',
   AWS_SES_REGION: 'us-east-1',
   FROM_EMAIL: 'stub@stub.com',
-  DB: {} as D1Database,
+  HYPERDRIVE: {} as Hyperdrive,
 };
 
 export default getAuth(stubEnv);
