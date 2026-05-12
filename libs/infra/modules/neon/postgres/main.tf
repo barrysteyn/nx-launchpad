@@ -1,8 +1,12 @@
 locals {
   # Postgres role identifiers must not contain unquoted hyphens.
-  # project_name is conventionally hyphenated, so substitute at module level.
-  role_name_safe_project = replace(var.project_name, "-", "_")
-  role_name              = "${local.role_name_safe_project}_${var.environment}_${var.app_name}"
+  # Any component (project_name, environment, app_name) may carry hyphens
+  # in the workspace naming convention — sanitize after composition.
+  role_name = replace(
+    "${var.project_name}_${var.environment}_${var.app_name}",
+    "-",
+    "_",
+  )
 }
 
 resource "neon_project" "this" {
@@ -30,6 +34,6 @@ resource "neon_role" "this" {
 resource "neon_database" "this" {
   project_id = neon_project.this.id
   branch_id  = neon_project.this.default_branch_id
-  name       = "auth"
+  name       = var.app_name
   owner_name = neon_role.this.name
 }
