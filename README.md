@@ -34,85 +34,87 @@ The workspace ships with:
 > `/dev-onboard` instead — it only sets up the local dev environment
 > (tooling install + git config + husky).
 >
-> <details>
-> <summary>Without Claude Code — manual one-time setup</summary>
->
-> 1. **Bootstrap dev tooling**: `bash scripts/setup.sh`
->    (set `INSTALL_JAVA=true` if you need Java)
->
-> 2. **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
->
-> 3. **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
->
->    ```bash
->    aws s3api create-bucket --bucket your-bucket-name --region us-east-1
->    aws s3api put-bucket-versioning --bucket your-bucket-name \
->      --versioning-configuration Status=Enabled
->    ```
->
->    Create `libs/infra/backend.local.hcl` (gitignored) with one line: `bucket = "your-bucket-name"`. The committed `libs/infra/backend.hcl` only holds shared backend config (region, versioning, encryption) — the bucket name is per-fork and lives in the `.local` file so `git reset --hard upstream/main` doesn't wipe it.
->
-> 4. **Add to your root `.env` file** (copy from `.env.example`):
->
->    ```bash
->    PROJECT_NAME=your-project-name
->    URL=example.com
->    ENVIRONMENT=local
->    AWS_PROFILE=your-aws-profile         # or use AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
->    AWS_REGION=us-east-1
->    CLOUDFLARE_API_TOKEN=your-api-token
->    CLOUDFLARE_ACCOUNT_ID=your-account-id
->    ```
->
->    Your Cloudflare API token must have these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
->
->    | Scope | Resource | Permission | Used by |
->    |---|---|---|---|
->    | Account | Workers Scripts | **Edit** | All worker deploys (config push, apps, auth) |
->    | Account | Workers KV Storage | **Edit** | Config KV namespace create/read/write |
->    | Account | D1 | **Edit** | Auth service database (only if you opt into auth) |
->    | Zone (optional) | Workers Routes | Edit | Custom domain routes — skip if not using custom domains |
->    | Zone (optional) | DNS | Edit | Auto-created DNS records — skip if not using custom domains |
->
->    Set "Account Resources" to your account. Add the Zone-level permissions only when wiring up real domains.
->
-> 5. **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
->
->    | Name | Type |
->    |---|---|
->    | `AWS_ACCESS_KEY_ID` | Secret |
->    | `AWS_SECRET_ACCESS_KEY` | Secret |
->    | `CLOUDFLARE_API_TOKEN` | Secret |
->    | `CLOUDFLARE_ACCOUNT_ID` | Secret |
->    | `PROJECT_NAME` | Variable |
->    | `URL` | Variable |
->
-> 6. **Deploy staging config**:
->
->    ```bash
->    npx nx run config:deploy-config:staging
->    ```
->
-> 7. **Hardcode the staging KV namespace ID** — after the deploy succeeds:
->
->    ```bash
->    npx wrangler kv namespace list
->    ```
->
->    Note the ID for `${PROJECT_NAME}-staging-config`, then update the staging block in every `wrangler.jsonc` (apps, services, and generator templates).
->
-> 8. **Set up repo-local git config**:
->
->    ```bash
->    git config pull.rebase true
->    git config push.autoSetupRemote true
->    git config user.name "Your Name"
->    git config user.email "you@example.com"
->    ```
->
-> 9. **(Optional) Enable branch protection on `main`** — requires a paid GitHub plan for private repos.
->
-> </details>
+> If you're not using Claude Code, follow the **Manual One Time Setup** section below instead.
+
+---
+
+## Manual One Time Setup
+
+Skip this section if you ran `/onboard` — the skill performs every step here automatically. Otherwise, complete each step below after forking the repo, then **delete this entire section** before your first real commit.
+
+- [ ] **Bootstrap dev tooling**: `bash scripts/setup.sh` (set `INSTALL_JAVA=true` if you need Java)
+
+- [ ] **Install the [Cocogitto bot](https://github.com/cocogitto/cocogitto-bot) GitHub App** — enforces Conventional Commits on all PRs.
+
+- [ ] **Bootstrap Terraform remote state** — create an S3 bucket for Terraform state in your AWS account (one-time per account):
+
+  ```bash
+  aws s3api create-bucket --bucket your-bucket-name --region us-east-1
+  aws s3api put-bucket-versioning --bucket your-bucket-name \
+    --versioning-configuration Status=Enabled
+  ```
+
+  Create `libs/infra/backend.local.hcl` (gitignored) with one line: `bucket = "your-bucket-name"`. The committed `libs/infra/backend.hcl` only holds shared backend config (region, versioning, encryption) — the bucket name is per-fork and lives in the `.local` file so `git reset --hard upstream/main` doesn't wipe it.
+
+- [ ] **Add to your root `.env` file** (copy from `.env.example`):
+
+  ```bash
+  PROJECT_NAME=your-project-name
+  URL=example.com
+  ENVIRONMENT=local
+  AWS_PROFILE=your-aws-profile         # or use AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+  AWS_REGION=us-east-1
+  CLOUDFLARE_API_TOKEN=your-api-token
+  CLOUDFLARE_ACCOUNT_ID=your-account-id
+  ```
+
+  Your Cloudflare API token must have these permissions (Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token):
+
+  | Scope | Resource | Permission | Used by |
+  |---|---|---|---|
+  | Account | Workers Scripts | **Edit** | All worker deploys (config push, apps, auth) |
+  | Account | Workers KV Storage | **Edit** | Config KV namespace create/read/write |
+  | Account | D1 | **Edit** | Auth service database (only if you opt into auth) |
+  | Zone (optional) | Workers Routes | Edit | Custom domain routes — skip if not using custom domains |
+  | Zone (optional) | DNS | Edit | Auto-created DNS records — skip if not using custom domains |
+
+  Set "Account Resources" to your account. Add the Zone-level permissions only when wiring up real domains.
+
+- [ ] **Add to GitHub Secrets and Variables** (Settings → Secrets and variables → Actions):
+
+  | Name | Type |
+  |---|---|
+  | `AWS_ACCESS_KEY_ID` | Secret |
+  | `AWS_SECRET_ACCESS_KEY` | Secret |
+  | `CLOUDFLARE_API_TOKEN` | Secret |
+  | `CLOUDFLARE_ACCOUNT_ID` | Secret |
+  | `PROJECT_NAME` | Variable |
+  | `URL` | Variable |
+
+- [ ] **Deploy staging config**:
+
+  ```bash
+  npx nx run config:deploy-config:staging
+  ```
+
+- [ ] **Hardcode the staging KV namespace ID** — after the deploy succeeds:
+
+  ```bash
+  npx wrangler kv namespace list
+  ```
+
+  Note the ID for `${PROJECT_NAME}-staging-config`, then update the staging block in every `wrangler.jsonc` (apps, services, and generator templates).
+
+- [ ] **Set up repo-local git config**:
+
+  ```bash
+  git config pull.rebase true
+  git config push.autoSetupRemote true
+  git config user.name "Your Name"
+  git config user.email "you@example.com"
+  ```
+
+- [ ] **(Optional) Enable branch protection on `main`** — requires a paid GitHub plan for private repos.
 
 ---
 
