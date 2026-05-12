@@ -194,8 +194,9 @@ Remove `services/auth` from `.nxignore` at the repo root. Once removed, Nx will 
 
 Run these checks to confirm everything is working:
 
-1. Visit `https://auth.<env-prefix><URL>/api/auth/get-session` — should return `{"session":null,"user":null}` (not an error)
-2. Visit `https://auth.<env-prefix><URL>/.well-known/jwks.json` — should return a JSON object with a `keys` array
+1. Visit `https://auth.<env-prefix><URL>/api/auth/ok` — should return `{"ok":true}`
+2. Visit `https://auth.<env-prefix><URL>/api/auth/get-session` — should return the literal `null` (not an error)
+3. Visit `https://auth.<env-prefix><URL>/api/auth/.well-known/jwks.json` — should return `{"keys":[...]}` with at least one Ed25519 key
 
 Where `<env-prefix>` is `staging.` for staging and empty for production.
 
