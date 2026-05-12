@@ -277,4 +277,4 @@ VITE_AUTH_URL=https://auth.staging.your-domain.com
 
 ## Deployments
 
-CI/CD via GitHub Actions handles deploys automatically based on the branch and what's affected. See **[Deployments.md](docs/DEPLOYMENTS.md)** for the full pipeline, manual triggers, and force-redeploy scenarios.
+CI/CD via GitHub Actions handles deploys automatically based on the branch and what's affected. See **[DEPLOYMENTS](docs/DEPLOYMENTS.md)** for the full pipeline, manual triggers, and force-redeploy scenarios.
