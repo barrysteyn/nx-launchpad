@@ -4,8 +4,8 @@
 
 Always use these skills for setup and teardown — they handle every step:
 
-- `/setup-auth-service` — provision D1, migrate schema, deploy worker, set secrets
-- `/teardown-auth-service` — delete worker, destroy D1, reset repo to pre-setup state
+- `/setup-auth-service` — provision Neon Postgres + Hyperdrive, migrate schema, deploy worker, set secrets
+- `/teardown-auth-service` — delete worker, destroy Neon + Hyperdrive, reset repo to pre-setup state
 
 ## Key files
 
@@ -14,13 +14,13 @@ Always use these skills for setup and teardown — they handle every step:
 | `src/worker/auth.ts` | Core better-auth config — plugins, JWT payload, secrets parsing |
 | `src/worker/index.ts` | Hono entry point — routes all `/api/auth/*` and `/.well-known/*` to better-auth |
 | `src/worker/schema.ts` | Drizzle schema (auto-generated — do not edit manually) |
-| `src/worker/db.ts` | Drizzle D1 client factory |
-| `src/worker/types.ts` | `Bindings` interface — all Cloudflare Worker env bindings declared here |
+| `src/worker/db.ts` | postgres.js client over Hyperdrive (with `prepare: false`); module-scoped cache keyed on `HYPERDRIVE.connectionString` |
+| `src/worker/types.ts` | `Bindings` interface — declares the `HYPERDRIVE` binding (the Hyperdrive config exposed to the Worker) and all other Cloudflare Worker env bindings |
 | `src/worker/auth.generate.ts` | Stub env for `npx @better-auth/cli generate` — reads `multitenancyEnabled` from `package.json` |
 | `package.json` | Single source of truth for `multitenancyEnabled` (boolean) |
 | `schema/0000_init.sql` | DB migration applied via `db-migrate` target |
 | `wrangler.jsonc` | Cloudflare Worker config — staging and production environments |
-| `infra/` | Terraform for D1 database (Cloudflare) |
+| `infra/` | Terraform for Neon Postgres project + Cloudflare Hyperdrive config |
 
 ## Authorization mode
 
@@ -37,17 +37,19 @@ The deploy targets inject `MULTITENANCY_ENABLED` at runtime via `--var MULTITENA
 
 The secret is versioned: `<version>:<base64-value>` (e.g. `1:abc...==`). Multiple versions are comma-separated for rotation. The version prefix is required — better-auth uses it for key rotation. Without a valid secrets value the worker throws "You are using the default secret" and returns 500 on every request.
 
-## D1 `prevent_destroy`
+## Neon `prevent_destroy`
 
-`libs/infra/modules/cloudflare/d1/main.tf` has `lifecycle { prevent_destroy = true }`. The teardown skill handles toggling this — don't forget to restore it to `true` after a `tf-destroy`.
+`libs/infra/modules/neon/postgres/main.tf` has `lifecycle { prevent_destroy = true }` on the `neon_project` resource. The teardown skill handles toggling this — don't forget to restore it to `true` after a `tf-destroy`.
+
+The Hyperdrive config does not need `prevent_destroy` — it's just a binding, no data lost on destroy. The Neon project is the only data-bearing resource in this stack.
 
 ## Deployment flow
 
 ```
-build:staging  →  tf-apply:staging (idempotent)  →  wrangler deploy -e staging
+build:staging  →  tf-apply:staging (idempotent)  →  drizzle-kit migrate (idempotent)  →  wrangler deploy -e staging
 ```
 
-The `deploy:staging` target runs all three steps. After a fresh `tf-apply`, update `wrangler.jsonc` with the new `d1_database_id` before deploying.
+The `deploy:staging` target runs all four steps. After a fresh `tf-apply`, update `wrangler.jsonc` with the new `hyperdrive.id` before deploying (the `/setup-auth-service` skill automates this via `sed`).
 
 ## Secrets management
 
@@ -66,6 +68,7 @@ npx nx run auth:db-migrate:staging
 
 ## Common gotchas
 
+- **`prepare: false` in `db.ts`** — required because Hyperdrive's statement cache and postgres.js's prepared-statement protocol conflict. Leaving `prepare: true` (default) yields intermittent "prepared statement does not exist" errors.
 - **Empty `BETTER_AUTH_SECRETS`**: wrangler secret set to empty string causes a 500 on every request. Check with `npx wrangler secret list -e staging`.
 - **`tsconfig.worker.json`** needs `"resolveJsonModule": true` for the `package.json` import in `auth.generate.ts`.
 - **Auth does not run locally** — session cookies require HTTPS scoped to `.$URL`. Point local apps at staging via `VITE_AUTH_URL`.
