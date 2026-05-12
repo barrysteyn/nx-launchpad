@@ -6,7 +6,18 @@
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 
-A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeScript), and React (Cloudflare Workers) apps — with generators, AWS Lambda infrastructure, and Claude Code skills included.
+A production-ready [Nx](https://nx.dev) monorepo launchpad — fork it once, customise it, and ship apps to AWS Lambda or Cloudflare Workers without writing any of the infrastructure or CI plumbing yourself.
+
+The workspace ships with:
+
+- **Four app generators** — Python (uv), Node.js (TypeScript), React + Hono (Cloudflare Workers), and Astro static sites. Each one scaffolds a complete project with tests, build/serve/deploy targets, and (where applicable) Terraform infrastructure.
+- **Matching Claude Code skills** (`/onboard`, `/dev-onboard`, `/generate-*`, `/setup-auth-service`, `/teardown-onboarding`) that automate the workflows end-to-end.
+- **Shared libraries** in `libs/` — logger, runtime config loader, auth helpers — that any app can import via TypeScript path aliases.
+- **Centralised config** in `config/` — YAML overlays per environment, AWS SSM secret references, deploy-time resolution to DynamoDB (Lambda apps) and Cloudflare KV (Worker apps).
+- **An optional auth service** in `services/auth/` — better-auth on Cloudflare D1, opt-in via `.nxignore`.
+- **CI/CD via GitHub Actions** with `nx affected` so only changed projects build, test, and deploy.
+
+**Naming convention (strict):** every cloud resource is named `${project_name}-${environment}-${app_name}`. `PROJECT_NAME` is set once in `.env` and as a GitHub Actions Variable; everything else (Terraform modules, generator templates, the `/onboard` skill) reads from there. See [CLAUDE.md](CLAUDE.md) for the full rules.
 
 ---
 
@@ -105,112 +116,30 @@ A production-ready Nx monorepo launchpad supporting Python (uv), Node.js (TypeSc
 
 ---
 
-## What to add next
+## Quick Start
 
-This section is the entry point for adding services, apps, and infrastructure to the workspace.
+Once you've onboarded (above), the rest of the workspace is unlocked. The typical workflow:
 
-- **Add a service** (services live under `services/` and are opt-in via `.nxignore`):
-  - `/setup-auth-service` — authentication service (better-auth on Cloudflare D1)
-  - For new services you've added, run the matching `/setup-<svc>` skill
-- **Add an app**:
-  - `/generate-astro-cloudflare-app` — static Astro site
-  - `/generate-react-cloudflare-app` — React + Hono on Cloudflare Workers
-  - `/generate-node-app` — Node.js Lambda (AWS)
-  - `/generate-python-app` — Python (uv) Lambda (AWS)
-- **Re-run onboarding to add more later**: `/onboard` is idempotent
-- **Wipe staging resources** (test loop): `/teardown-onboarding`
+**Generate an app:**
 
----
-
-## Deployments
-
-The deploy workflow (`.github/workflows/deploy.yml`) detects affected projects and deploys only what changed.
-
-### Automatic deploys
-
-| Branch | Environment |
-|---|---|
-| `main` | staging |
-| `production` | production |
-
-### Manual deploys
-
-Trigger from the **Actions** tab in GitHub. You will be prompted for an environment (`staging` or `production`) and an optional app name — leave blank to deploy all affected apps.
-
-### Force-redeploying outside of CI
-
-CI uses `nx affected`, which only deploys projects touched by recent changes. This is the right default — use it always.
-
-There are three situations where you might need to bypass it and deploy manually:
-
-- **After a dependency upgrade** — `affected` does not treat `package.json` changes as a trigger (by design), so a package bump won't auto-redeploy apps.
-- **First deploy of a fresh repo** — no previous commit to diff against.
-- **Recovering a broken environment** — staging is in a bad state and you want to force everything back to a known good state.
-
-In those cases, deploy specific apps directly:
-
-```bash
-npx nx run <app-name>:deploy:staging
-npx nx run <app-name>:deploy:production
+```
+/generate-astro-cloudflare-app    # static Astro site (Cloudflare Workers static assets)
+/generate-react-cloudflare-app    # React + Hono SPA + API on Cloudflare Workers
+/generate-node-app                # Node.js/TypeScript AWS Lambda
+/generate-python-app              # Python (uv) AWS Lambda
 ```
 
-Or redeploy everything at once (use sparingly):
+Each skill prompts for an app name and (where relevant) a description and custom domains, then runs the underlying generator and verifies the scaffold with lint/typecheck/test/build.
 
-```bash
-npx nx run-many -t deploy --configuration=staging
+**Enable a service** (lives in `services/`, opt-in via `.nxignore`):
+
+```
+/setup-auth-service               # authentication (better-auth on Cloudflare D1)
 ```
 
----
+**Add your own logic** to a generated app and commit. CI deploys affected projects automatically — push to `main` for staging, push to `production` for production. See [Deployments.md](Deployments.md) for the full deploy pipeline, manual triggers, and force-redeploy scenarios.
 
-## Shared Libraries
-
-Reusable libraries live in `libs/` and are available to all apps in the monorepo.
-
-| Library | Description | Docs |
-|---|---|---|
-| `libs/utils/` | Shared utilities (logger, etc.) for Node.js and Python | [libs/utils/README.md](libs/utils/README.md) |
-| `config/` | Resolves YAML config + SSM secrets at deploy time and pushes to DynamoDB / Cloudflare KV | [config/README.md](config/README.md) |
-| `libs/config-loader/` | Runtime config loader — reads the pre-resolved blob from DynamoDB (Lambda) or Cloudflare KV | [libs/config-loader/README.md](libs/config-loader/README.md) |
-| `libs/auth/` | Auth helpers — browser auth client factory and Hono JWT middleware for workers | [services/auth/README.md](services/auth/README.md) |
-
----
-
-## Services
-
-Services live in `services/` — shared infrastructure that multiple apps depend on, as opposed to the standalone apps in `apps/`.
-
-### Auth (`services/auth`)
-
-Centralised authentication service built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a D1 database. It handles sign-up, login, magic links, JWT minting, API keys, and JWKS key discovery — so every other app in the monorepo can verify tokens without talking to this service on every request.
-
-See [services/auth/README.md](services/auth/README.md) for full setup and deployment instructions.
-
-**To wire up auth in a React + Cloudflare Worker app:**
-
-1. Add `VITE_AUTH_URL` to the app's build configurations in `project.json`:
-
-   ```bash
-   VITE_AUTH_URL=https://auth.staging.your-domain.com  # staging / preview builds
-   VITE_AUTH_URL=https://auth.your-domain.com          # production build
-   ```
-
-2. Create an auth client in the app:
-
-   ```typescript
-   // src/app/lib/auth-client.ts
-   import { createBrowserAuthClient } from '@nx-launchpad/auth-browser';
-
-   export const AUTH_URL = import.meta.env.VITE_AUTH_URL as string | undefined;
-   export const authClient = createBrowserAuthClient(AUTH_URL);
-   ```
-
-3. Guard pages via `useSession()` in `__root.tsx` and protect API routes with `jwtMiddleware` in the worker.
-
-For local development, point your app at staging auth by adding to `.env.local`:
-
-```bash
-VITE_AUTH_URL=https://auth.staging.your-domain.com
-```
+**Re-run onboarding any time:** `/onboard` is idempotent. Use it to enable additional services or to sync `.env` changes to GitHub Secrets and Variables.
 
 ---
 
@@ -329,3 +258,61 @@ npx nx run <app-name>:deploy:preview     # prints PREVIEW_URL after deploy
 npx nx run <app-name>:deploy:staging
 npx nx run <app-name>:deploy:production
 ```
+
+---
+
+## Shared Libraries
+
+Reusable libraries live in `libs/` and are available to all apps in the monorepo.
+
+| Library | Description | Docs |
+|---|---|---|
+| `libs/utils/` | Shared utilities (logger, etc.) for Node.js and Python | [libs/utils/README.md](libs/utils/README.md) |
+| `config/` | Resolves YAML config + SSM secrets at deploy time and pushes to DynamoDB / Cloudflare KV | [config/README.md](config/README.md) |
+| `libs/config-loader/` | Runtime config loader — reads the pre-resolved blob from DynamoDB (Lambda) or Cloudflare KV | [libs/config-loader/README.md](libs/config-loader/README.md) |
+| `libs/auth/` | Auth helpers — browser auth client factory and Hono JWT middleware for workers | [services/auth/README.md](services/auth/README.md) |
+
+---
+
+## Services
+
+Services live in `services/` — shared infrastructure that multiple apps depend on, as opposed to the standalone apps in `apps/`. They are **opt-in**: each one is listed in `.nxignore` by default, and the matching `/setup-<svc>` skill removes the entry when you provision it.
+
+### Auth (`services/auth`)
+
+Centralised authentication service built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a D1 database. It handles sign-up, login, magic links, JWT minting, API keys, and JWKS key discovery — so every other app in the monorepo can verify tokens without talking to this service on every request.
+
+See [services/auth/README.md](services/auth/README.md) for full setup and deployment instructions.
+
+**To wire up auth in a React + Cloudflare Worker app:**
+
+1. Add `VITE_AUTH_URL` to the app's build configurations in `project.json`:
+
+   ```bash
+   VITE_AUTH_URL=https://auth.staging.your-domain.com  # staging / preview builds
+   VITE_AUTH_URL=https://auth.your-domain.com          # production build
+   ```
+
+2. Create an auth client in the app:
+
+   ```typescript
+   // src/app/lib/auth-client.ts
+   import { createBrowserAuthClient } from '@nx-launchpad/auth-browser';
+
+   export const AUTH_URL = import.meta.env.VITE_AUTH_URL as string | undefined;
+   export const authClient = createBrowserAuthClient(AUTH_URL);
+   ```
+
+3. Guard pages via `useSession()` in `__root.tsx` and protect API routes with `jwtMiddleware` in the worker.
+
+For local development, point your app at staging auth by adding to `.env.local`:
+
+```bash
+VITE_AUTH_URL=https://auth.staging.your-domain.com
+```
+
+---
+
+## Deployments
+
+CI/CD via GitHub Actions handles deploys automatically based on the branch and what's affected. See **[Deployments.md](Deployments.md)** for the full pipeline, manual triggers, and force-redeploy scenarios.

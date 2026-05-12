@@ -579,9 +579,9 @@ Open `README.md`. Locate the onboarding callout block — it begins with:
 > ## Onboarding
 ```
 
-…and ends at the `---` separator that closes that block (the `---` is followed immediately by `## What to add next` or, if `## What to add next` doesn't exist yet, by `## Deployments`).
+…and ends at the `---` separator that closes that block (the `---` is followed immediately by `## Quick Start`).
 
-Delete every line from the opening `> [!IMPORTANT]` through and including that closing `---`. Do not touch `## What to add next` — it stays.
+Delete every line from the opening `> [!IMPORTANT]` through and including that closing `---`. Do not touch `## Quick Start` or any later section — they stay.
 
 Verification:
 
