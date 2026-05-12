@@ -1,6 +1,6 @@
 # Auth Service
 
-Centralised authentication service for all apps in this monorepo. Built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a D1 database.
+Centralised authentication service for all apps in this monorepo. Built on [better-auth](https://better-auth.com), running as a Cloudflare Worker with a Neon Postgres database (via Cloudflare Hyperdrive).
 
 ## What it does
 
@@ -24,8 +24,8 @@ Centralised authentication service for all apps in this monorepo. Built on [bett
 
 Use the Claude Code skills — they handle every step interactively:
 
-- `/setup-auth-service` — provision D1, migrate schema, deploy worker, set secrets
-- `/teardown-auth-service` — delete worker, destroy D1, reset repo to pre-setup state
+- `/setup-auth-service` — provision Neon Postgres + Hyperdrive, migrate schema, deploy worker, set secrets
+- `/teardown-auth-service` — delete worker, destroy Neon project + Hyperdrive, reset repo to pre-setup state
 
 ---
 
@@ -42,11 +42,14 @@ The service supports two mutually exclusive modes, chosen at setup time and bake
 
 Uses better-auth's [admin plugin](https://better-auth.com/docs/plugins/admin). Every user has a `role` field (`admin` or `user`).
 
-**Bootstrap first admin** (write directly to D1):
+**Bootstrap first admin** (write directly to Neon):
 ```bash
-npx wrangler d1 execute DB --remote -e staging \
-  --command "UPDATE user SET role = 'admin' WHERE email = 'your@email.com'"
+# Get the connection URI from Terraform state (single-use; do not commit)
+CONN=$(terraform -chdir=services/auth/infra/environments/staging output -raw connection_uri)
+psql "$CONN" -c "UPDATE \"user\" SET role = 'admin' WHERE email = 'your@email.com'"
 ```
+
+Note: Postgres treats `user` as a reserved keyword, so the table name must be double-quoted in queries.
 
 **Promote/demote via client** (requires an existing admin session):
 ```typescript
@@ -83,7 +86,7 @@ app.get('/api/data', (c) => {
 **Switching modes on an existing database:**
 1. Change `multitenancyEnabled` in `services/auth/package.json`
 2. Run `npx nx run auth:db-generate` to produce a new migration
-3. Apply the migration manually via `db-migrate`
+3. Run `npx nx run auth:db-migrate:<env>` to apply the new migration via drizzle-kit (idempotent — safe to re-run)
 4. Redeploy
 
 ---
@@ -165,7 +168,7 @@ The staging auth service has `http://localhost:5173` in `TRUSTED_ORIGINS`.
 | `build:staging` / `:production` | Build for deployment |
 | `deploy:staging` / `:production` | Terraform + wrangler deploy |
 | `db-generate` | Regenerate schema from better-auth config |
-| `db-migrate:staging` / `:production` | Apply `schema/0000_init.sql` to D1 |
-| `tf-apply:staging` / `:production` | Provision Cloudflare infra (D1) |
-| `tf-destroy:staging` / `:production` | Destroy Cloudflare infra |
+| `db-migrate:staging` / `:production` | Apply schema migrations to Neon via `drizzle-kit migrate` |
+| `tf-apply:staging` / `:production` | Provision Neon project + Hyperdrive (Terraform) |
+| `tf-destroy:staging` / `:production` | Destroy Neon + Hyperdrive |
 | `test` / `lint` / `format` / `typecheck` | Standard quality targets |
