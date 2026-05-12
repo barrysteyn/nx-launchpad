@@ -1,4 +1,4 @@
-Set up the auth service for a fresh fork of this repo. This provisions the required Cloudflare infrastructure, migrates the database, deploys the worker, and configures secrets.
+Set up the auth service for a fresh fork of this repo. This provisions the required cloud infrastructure (Neon Postgres + Cloudflare Hyperdrive), migrates the database, deploys the worker, and configures secrets.
 
 Read `services/auth/README.md` before starting — it is the source of truth for the setup process.
 
@@ -15,7 +15,39 @@ Verify the following are present in the root `.env` file:
 
 If any are missing or still placeholder values, tell the user what to fill in and stop. Do not proceed until all are set.
 
-Also verify that Terraform is installed:
+### Collect `NEON_API_KEY` (lazy — only at auth setup time)
+
+Check whether `.env` contains a real `NEON_API_KEY`:
+
+```bash
+grep '^NEON_API_KEY=' .env | grep -qv 'your-api-key$' && echo "already set, skipping" || echo "needs paste"
+```
+
+If already set, print "NEON_API_KEY already set in .env — skipping" and proceed. Otherwise:
+
+> "Your `NEON_API_KEY` is required to provision the Neon Postgres database for the auth service.
+>
+> 1. Sign in at https://console.neon.tech (free account is fine; staging fits the Free plan)
+> 2. Go to **Account Settings → API Keys** (https://console.neon.tech/app/settings/api-keys)
+> 3. Click **Create new API key**, name it `${PROJECT_NAME}-onboarding`, copy the value
+>
+> Then open `.env` in your editor. Add `NEON_API_KEY=<paste-here>` (or replace the placeholder if one exists). Save and close. Press Enter here when done."
+
+After the user confirms, verify:
+
+```bash
+grep '^NEON_API_KEY=' .env | grep -qv 'your-api-key$'
+```
+
+If still placeholder, halt and re-prompt. Once real, push to GitHub Actions secrets so CI deploys can use it:
+
+```bash
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+gh secret set NEON_API_KEY -R "$REPO" --body "$(grep '^NEON_API_KEY=' .env | cut -d= -f2-)"
+```
+
+### Verify Terraform is installed
+
 ```
 terraform version
 ```
@@ -38,45 +70,42 @@ Ask the user:
 
 **If multi-tenant:**
 
-1. In `services/auth/wrangler.jsonc`, set `MULTITENANCY_ENABLED` to `"true"` in both the `staging` and `production` env blocks.
-2. In `services/auth/src/worker/auth.generate.ts`, set `MULTITENANCY_ENABLED: 'true'` in the stub env.
-3. Regenerate the schema for the chosen mode:
+1. In `services/auth/package.json`, set `"multitenancyEnabled": true`.
+2. Regenerate the schema for the chosen mode:
    ```
    npx nx run auth:db-generate
    ```
-   This regenerates `src/worker/schema.ts` and `schema/0000_init.sql` with the organisation plugin's tables instead of the admin plugin's tables.
+   This regenerates `src/worker/schema.ts` and `schema/0000_init.sql` with the organization plugin's tables instead of the admin plugin's tables.
+3. Commit the regenerated files:
+   ```
+   git add services/auth/package.json services/auth/src/worker/schema.ts services/auth/schema/
+   git commit -m "feat(auth): enable multi-tenant mode and regenerate schema"
+   ```
 
 Warn the user: **switching modes after the database has been migrated requires a manual DB migration** — it is not safe to simply flip the flag on an existing populated database.
 
-## Step 4 — Provision infrastructure (D1 database)
+## Step 4 — Provision infrastructure (Neon Postgres + Hyperdrive)
 
 ```
 npx nx run auth:tf-apply:<env>
 ```
 
 Wait for it to complete. Read the output and extract:
-- `d1_database_id`
-- `d1_database_name`
+- `hyperdrive_id`
+- `neon_project_id`
 
 Tell the user these values and proceed to the next step.
 
-## Step 5 — Update wrangler.jsonc
+## Step 5 — Update wrangler.jsonc with the Hyperdrive id
 
-Open `services/auth/wrangler.jsonc`. Find the `<env>` block inside `"env"` and fill in the real values from Terraform output:
+Open `services/auth/wrangler.jsonc`. Find the `<env>` block inside `"env"` and replace the placeholder Hyperdrive id with the real value from Terraform output:
 
-```jsonc
-"<env>": {
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "<d1_database_name from terraform>",
-      "database_id": "<d1_database_id from terraform>"
-    }
-  ]
-}
+```bash
+HYPERDRIVE_ID=$(terraform -chdir=services/auth/infra/environments/<env> output -raw hyperdrive_id)
+sed -i.bak "s|\"<placeholder-hyperdrive-id>\"|\"$HYPERDRIVE_ID\"|" services/auth/wrangler.jsonc && rm services/auth/wrangler.jsonc.bak
 ```
 
-Only update the values that are still placeholders. If they already contain real IDs (non-placeholder strings), leave them alone.
+If the placeholder isn't present (because someone already substituted it), the `sed` is a no-op. Verify the final file contains the real id — search for `<placeholder-hyperdrive-id>` and confirm zero matches.
 
 ## Step 6 — Run database migration
 
@@ -84,7 +113,7 @@ Only update the values that are still placeholders. If they already contain real
 npx nx run auth:db-migrate:<env>
 ```
 
-This applies `schema/0000_init.sql` to the remote D1 database. If it fails, check that `CLOUDFLARE_API_TOKEN` has `Account / D1 / Edit`. The full permissions table for the token is in the root `README.md` onboarding section.
+This pulls the connection URI from Terraform state and runs `drizzle-kit migrate` against the Neon database. If it fails with `permission denied`, check that the Neon role has `CREATE` permission on the database (Neon roles default to project-owner permissions, so this should be automatic).
 
 ## Step 7 — Deploy the worker
 
@@ -92,7 +121,7 @@ This applies `schema/0000_init.sql` to the remote D1 database. If it fails, chec
 npx nx run auth:deploy:<env>
 ```
 
-This builds the app, runs Terraform (idempotent), and deploys to Cloudflare. The worker must be deployed before secrets can be set in the next step.
+This builds the app, runs Terraform (idempotent), runs `drizzle-kit migrate` (idempotent), and deploys to Cloudflare. The worker must be deployed before secrets can be set in the next step.
 
 ## Step 8 — Set secrets
 
@@ -118,7 +147,7 @@ else
   SECRET=$(openssl rand -base64 256 | tr -d '\n')
   aws ssm put-parameter \
     --name "$SSM_PATH" \
-    --value "$SECRET" \
+    --value "1:$SECRET" \
     --type SecureString \
     --description "BetterAuth signing secret for <env>"
 fi
@@ -136,8 +165,6 @@ aws ssm get-parameter \
   --output text \
 | (cd services/auth && npx wrangler secret put BETTER_AUTH_SECRETS -e <env>)
 ```
-
-The subshell wrapper groups the `cd` and `wrangler` together on the right side of the pipe, and (more importantly for the standalone commands below) preserves the parent shell's cwd.
 
 ### AWS SES secrets (optional)
 
@@ -168,7 +195,7 @@ Remove `services/auth` from `.nxignore` at the repo root. Once removed, Nx will 
 Run these checks to confirm everything is working:
 
 1. Visit `https://auth.<env-prefix><URL>/api/auth/get-session` — should return `{"session":null,"user":null}` (not an error)
-2. Visit `https://auth.<env-prefix><URL>/api/auth/.well-known/jwks.json` — should return a JSON object with a `keys` array
+2. Visit `https://auth.<env-prefix><URL>/.well-known/jwks.json` — should return a JSON object with a `keys` array
 
 Where `<env-prefix>` is `staging.` for staging and empty for production.
 
