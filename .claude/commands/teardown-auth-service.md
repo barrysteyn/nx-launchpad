@@ -1,4 +1,4 @@
-Tear down the auth service for a given environment. This deletes the Cloudflare Worker, destroys the D1 database, and resets the repo back to a state where `/setup-auth-service` can be run again from scratch.
+Tear down the auth service for a given environment. This deletes the Cloudflare Worker, destroys the Neon Postgres project and Cloudflare Hyperdrive config, and resets the repo back to a state where `/setup-auth-service` can be run again from scratch.
 
 > [!WARNING]
 > This is **irreversible**. All user accounts, sessions, and API keys in the target database will be permanently deleted.
@@ -19,17 +19,20 @@ Do not proceed unless the user explicitly confirms.
 (cd services/auth && npx wrangler delete -e <env>)
 ```
 
-When prompted to confirm deletion, enter `y`. This removes the Worker from Cloudflare but leaves the infrastructure (D1) intact.
+When prompted to confirm deletion, enter `y`. This removes the Worker from Cloudflare but leaves the infrastructure (Neon project + Hyperdrive) intact.
 
 ## Step 3 — Destroy Terraform infrastructure
 
-The D1 module has `prevent_destroy = true` as a safety guard. You must temporarily disable it before running `tf-destroy`, then restore it afterwards.
+The Neon project module has `prevent_destroy = true` as a safety guard. You must temporarily disable it before running `tf-destroy`, then restore it afterwards.
 
-**3a.** In `libs/infra/modules/cloudflare/d1/main.tf`, change `prevent_destroy` to `false`:
+**3a.** In `libs/infra/modules/neon/postgres/main.tf`, change the `lifecycle` block on `neon_project.this` from `prevent_destroy = true` to `prevent_destroy = false`:
 
 ```hcl
-lifecycle {
-  prevent_destroy = false
+resource "neon_project" "this" {
+  # ... other args ...
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 ```
 
@@ -39,27 +42,29 @@ lifecycle {
 npx nx run auth:tf-destroy:<env>
 ```
 
-**3c.** Restore `prevent_destroy` to `true` in `libs/infra/modules/cloudflare/d1/main.tf`:
+This destroys the Neon project (and everything inside it — branches, databases, roles) and the Cloudflare Hyperdrive config in one shot.
+
+**3c.** Restore `prevent_destroy` to `true` in `libs/infra/modules/neon/postgres/main.tf`:
 
 ```hcl
-lifecycle {
-  prevent_destroy = true
+resource "neon_project" "this" {
+  # ... other args ...
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 ```
 
-This destroys the D1 database and any other Cloudflare resources provisioned by Terraform for this environment.
-
 ## Step 4 — Reset wrangler.jsonc
 
-Open `services/auth/wrangler.jsonc` and reset the `<env>` block's `d1_databases` entry back to its placeholder value:
+Open `services/auth/wrangler.jsonc` and reset the `<env>` block's `hyperdrive` entry back to its placeholder value:
 
 ```jsonc
 "<env>": {
-  "d1_databases": [
+  "hyperdrive": [
     {
-      "binding": "DB",
-      "database_name": "placeholder",
-      "database_id": "<placeholder-d1-id>"
+      "binding": "HYPERDRIVE",
+      "id": "<placeholder-hyperdrive-id>"
     }
   ]
 }
