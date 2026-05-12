@@ -86,10 +86,10 @@
       },
       "configurations": {
         "staging": {
-          "command": "npx wrangler d1 execute DB --remote -e staging --file=schema/0000_init.sql"
+          "command": "DATABASE_URL=$(terraform -chdir=infra/environments/staging output -raw connection_uri) npx drizzle-kit migrate"
         },
         "production": {
-          "command": "npx wrangler d1 execute DB --remote -e production --file=schema/0000_init.sql"
+          "command": "DATABASE_URL=$(terraform -chdir=infra/environments/production output -raw connection_uri) npx drizzle-kit migrate"
         }
       }
     },
@@ -138,11 +138,11 @@
       "executor": "nx:run-commands",
       "configurations": {
         "staging": {
-          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform plan",
           "cwd": "{projectRoot}/infra/environments/staging"
         },
         "production": {
-          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform plan",
+          "command": "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform plan",
           "cwd": "{projectRoot}/infra/environments/production"
         }
       }
@@ -154,7 +154,7 @@
           "cwd": "{projectRoot}/infra/environments/staging",
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform destroy -auto-approve"
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform destroy -auto-approve"
           ],
           "parallel": false
         },
@@ -162,7 +162,7 @@
           "cwd": "{projectRoot}/infra/environments/production",
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform destroy -auto-approve"
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform destroy -auto-approve"
           ],
           "parallel": false
         }
@@ -175,7 +175,7 @@
           "cwd": "{projectRoot}/infra/environments/staging",
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform apply -auto-approve"
           ],
           "parallel": false
         },
@@ -183,7 +183,7 @@
           "cwd": "{projectRoot}/infra/environments/production",
           "commands": [
             "terraform init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve"
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform apply -auto-approve"
           ],
           "parallel": false
         }
@@ -204,14 +204,16 @@
         "staging": {
           "commands": [
             "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/staging apply -auto-approve",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform -chdir=infra/environments/staging apply -auto-approve",
+            "DATABASE_URL=$(terraform -chdir=infra/environments/staging output -raw connection_uri) npx drizzle-kit migrate",
             "npx wrangler deploy -e staging --var PROJECT_NAME:$PROJECT_NAME --var MULTITENANCY_ENABLED:$(node -e \"process.stdout.write(require('./package.json').multitenancyEnabled?'true':'false')\")"
           ]
         },
         "production": {
           "commands": [
             "terraform -chdir=infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
-            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform -chdir=infra/environments/production apply -auto-approve",
+            "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN NEON_API_KEY=$NEON_API_KEY terraform -chdir=infra/environments/production apply -auto-approve",
+            "DATABASE_URL=$(terraform -chdir=infra/environments/production output -raw connection_uri) npx drizzle-kit migrate",
             "npx wrangler deploy -e production --var PROJECT_NAME:$PROJECT_NAME --var MULTITENANCY_ENABLED:$(node -e \"process.stdout.write(require('./package.json').multitenancyEnabled?'true':'false')\")"
           ]
         }
