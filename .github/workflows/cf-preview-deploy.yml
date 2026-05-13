@@ -62,7 +62,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          npx nx affected -t deploy --configuration=preview 2>&1 | tee deploy-output.txt
+          # Exclude services that are explicitly NOT preview-deployable
+          # (the auth service is a shared identity provider; consumer apps in
+          # preview point at staging auth, so no preview-instance is needed).
+          npx nx affected -t deploy --configuration=preview --exclude=auth 2>&1 | tee deploy-output.txt
 
           # Strip ANSI escape codes so regexes match reliably
           sed 's/\x1b\[[0-9;]*m//g' deploy-output.txt > deploy-clean.txt
