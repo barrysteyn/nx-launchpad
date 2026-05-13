@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1033.0",
-    "@aws-sdk/client-ses": "^3.1041.0",
     "@aws-sdk/client-ssm": "^3.1032.0",
     "@aws-sdk/lib-dynamodb": "^3.1033.0",
     "@better-auth/api-key": "^1.6.9",
