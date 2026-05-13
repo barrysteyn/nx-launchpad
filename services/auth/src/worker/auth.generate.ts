@@ -1,9 +1,12 @@
-import { getAuth } from './auth';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { createAuth } from './auth';
+import * as schema from './schema';
 import type { Bindings } from './types';
 import pkg from '../../package.json';
 
-// Stub env used only by `npx @better-auth/cli generate` for schema generation.
-// Never imported by the worker at runtime.
+// Stub env + stub Drizzle instance used only by `npx @better-auth/cli generate`
+// for schema generation. The CLI introspects the auth config in memory and never
+// opens a real DB connection, so the stubs only need to type-check.
 const stubEnv: Bindings = {
   ENVIRONMENT: 'local',
   PROJECT_NAME: 'stub',
@@ -18,4 +21,7 @@ const stubEnv: Bindings = {
   HYPERDRIVE: {} as Hyperdrive,
 };
 
-export default getAuth(stubEnv);
+// Empty drizzle instance — CLI generate only inspects schema shape, never executes.
+const stubDb = drizzle.mock({ schema });
+
+export default createAuth(stubEnv, stubDb);

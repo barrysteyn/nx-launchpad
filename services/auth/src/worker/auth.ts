@@ -3,13 +3,15 @@ import { jwt, magicLink, admin, organization } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { eq } from 'drizzle-orm';
-import { db } from './db';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 import { sendSESEmail } from './email';
 import type { Bindings } from './types';
 
-let _auth: ReturnType<typeof betterAuth> | null = null;
-let _cacheKey = '';
+// Per-request factory. Cloudflare Workers' I/O isolation rule forbids reusing
+// an I/O object across requests, and the better-auth instance holds a reference
+// to the Drizzle adapter which holds a reference to the postgres.js client.
+// So the entire auth instance must be rebuilt for every request.
 
 function activeOrgId(session: unknown): string | null {
   return (
@@ -23,14 +25,13 @@ function userRole(user: unknown): string | null {
   return ((user as Record<string, unknown>).role as string | undefined) ?? null;
 }
 
-export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
+export function createAuth(
+  env: Bindings,
+  dbInstance: PostgresJsDatabase<typeof schema>,
+): ReturnType<typeof betterAuth> {
   const isMultiTenant = env.MULTITENANCY_ENABLED === 'true';
-  const cacheKey = `${env.BETTER_AUTH_URL}|${env.MULTITENANCY_ENABLED ?? ''}|${env.BETTER_AUTH_SECRETS ?? ''}|${env.HYPERDRIVE.connectionString}`;
-  if (_auth && _cacheKey === cacheKey) return _auth;
 
-  const dbInstance = db(env);
-
-  _auth = betterAuth({
+  return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: env.TRUSTED_ORIGINS.split(','),
     secrets: env.BETTER_AUTH_SECRETS
@@ -116,10 +117,8 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
       autoSignInAfterVerification: true,
     },
 
-    // ── social providers — add here when needed ──────────────────
     socialProviders: {},
 
-    // ── plugins ──────────────────────────────────────────────────
     plugins: [
       ...(isMultiTenant
         ? [
@@ -179,7 +178,4 @@ export function getAuth(env: Bindings): ReturnType<typeof betterAuth> {
       crossSubDomainCookies: { enabled: true },
     },
   }) as unknown as ReturnType<typeof betterAuth>;
-
-  _cacheKey = cacheKey;
-  return _auth;
 }
