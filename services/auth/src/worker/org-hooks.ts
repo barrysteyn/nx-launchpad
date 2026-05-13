@@ -19,10 +19,7 @@ export function createAfterAddMember(
   return async ({ user, organization }) => {
     await db
       .update(schema.session)
-      .set({ activeOrganizationId: organization.id } as Record<
-        string,
-        unknown
-      >)
+      .set({ activeOrganizationId: organization.id } as Record<string, unknown>)
       .where(eq(schema.session.userId, user.id));
   };
 }
