@@ -10,7 +10,7 @@
     "run_worker_first": ["/api/*", "/.well-known/*"]
   },
   "observability": {
-    "enabled": false
+    "enabled": true
   },
   "env": {
     "staging": {
