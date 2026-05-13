@@ -14,7 +14,7 @@ Always use these skills for setup and teardown — they handle every step:
 | `src/worker/auth.ts` | Core better-auth config — plugins, JWT payload, secrets parsing |
 | `src/worker/index.ts` | Hono entry point — routes all `/api/auth/*` and `/.well-known/*` to better-auth |
 | `src/worker/schema.ts` | Drizzle schema (auto-generated — do not edit manually) |
-| `src/worker/db.ts` | postgres.js client over Hyperdrive (with `prepare: false`); module-scoped cache keyed on `HYPERDRIVE.connectionString` |
+| `src/worker/db.ts` | `createDb(env)` factory — fresh postgres.js client + Drizzle instance per request (Workers I/O isolation forbids reuse across requests). Returns `{ client, db }` so the caller can `ctx.waitUntil(client.end())`. |
 | `src/worker/types.ts` | `Bindings` interface — declares the `HYPERDRIVE` binding (the Hyperdrive config exposed to the Worker) and all other Cloudflare Worker env bindings |
 | `src/worker/auth.generate.ts` | Stub env for `npx @better-auth/cli generate` — reads `multitenancyEnabled` from `package.json` |
 | `package.json` | Single source of truth for `multitenancyEnabled` (boolean) |

@@ -206,7 +206,7 @@ Remind the user of required permissions:
 >
 > - Account / Workers Scripts / **Edit** (worker deploys)
 > - Account / Workers KV Storage / **Edit** (config KV)
-> - Account / D1 / **Edit** (auth service, if you opt in)
+> - Account / Hyperdrive / **Edit** (auth service, if you opt in)
 >
 > Optional Zone-level (only if using custom domains): Workers Routes / Edit, DNS / Edit.
 >
