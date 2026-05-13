@@ -16,7 +16,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "resolveJsonModule": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "utils-node": ["../../libs/utils/node/src/index.ts"]
+    }
   },
   "include": ["src/worker"]
 }

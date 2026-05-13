@@ -3,11 +3,17 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { existsSync } from 'fs';
+import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
 
 const hasAppRoutes = existsSync('./src/app/routes/__root.tsx');
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      'utils-node': resolve(__dirname, '../../libs/utils/node/src/index.ts'),
+    },
+  },
   plugins: [
     cloudflare(),
     ...(hasAppRoutes
