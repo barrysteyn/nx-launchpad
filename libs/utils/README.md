@@ -10,6 +10,9 @@ Shared utility libraries for use across all apps in this monorepo. Utilities are
 
 ## Utilities
 
+- [Logger](#logger) — pino-based structured logging
+- [Email](#email--nodejs--cloudflare-workers) — SES v2 send via aws4fetch + mimetext (Workers-compatible)
+
 ### Logger
 
 A structured logger built on [pino](https://getpino.io/). All log output is JSON-structured, making it compatible with any log aggregation backend.
@@ -49,7 +52,7 @@ The service name attached to all log records is read from the `SERVICE_NAME` env
 Import the singleton `logger` instance directly:
 
 ```typescript
-import { logger } from '@nx-launchpad/utils-node';
+import { logger } from 'utils-node';
 
 logger.info('Server started');
 logger.warn('Retrying request');
@@ -89,7 +92,7 @@ Pino buffers writes to stdout. In AWS Lambda the execution environment freezes a
 Always call `flushLogger()` in a `finally` block so every invocation flushes before the process freezes:
 
 ```typescript
-import { logger, flushLogger } from '@nx-launchpad/utils-node';
+import { logger, flushLogger } from 'utils-node';
 
 export const handler = async (event: unknown) => {
   try {
@@ -108,7 +111,7 @@ export const handler = async (event: unknown) => {
 ```json
 {
   "paths": {
-    "@nx-launchpad/utils-node": ["../../libs/utils/node/src/index.ts"]
+    "utils-node": ["../../libs/utils/node/src/index.ts"]
   }
 }
 ```
@@ -116,7 +119,78 @@ export const handler = async (event: unknown) => {
 2. Import and use:
 
 ```typescript
-import { logger, flushLogger } from '@nx-launchpad/utils-node';
+import { logger, flushLogger } from 'utils-node';
 ```
 
 3. Set `SERVICE_NAME` in your environment (`.env` for local, Lambda env vars for deployed environments).
+
+---
+
+### Email — Node.js / Cloudflare Workers
+
+**Location:** `libs/utils/node/src/email.ts`
+
+Sends transactional email via Amazon SES v2 (JSON API) using [`aws4fetch`](https://github.com/mhart/aws4fetch) for signing and [`mimetext`](https://github.com/muratgozel/MIMEText) for RFC 5322-compliant MIME construction. Both deps are zero-Node-only — they run unmodified in Cloudflare Workers and in standard Node.
+
+#### What it handles for you
+
+- **Header injection safe.** Subject, From, To and any header values go through `mimetext`, which rejects/escapes CRLF.
+- **Non-ASCII subjects** are RFC 2047-encoded automatically (`=?UTF-8?B?...?=`).
+- **Non-ASCII bodies** are quoted-printable encoded with correct `Content-Transfer-Encoding`.
+- **Plain-text + HTML alternative parts** are wired up if you pass `html`.
+- **Attachments** are added as base64 `multipart/mixed` parts.
+- **`List-Unsubscribe` + one-click `POST`** headers added when you pass `listUnsubscribe`.
+- **Size guard** — throws before calling SES if the raw message exceeds ~9.5 MB.
+
+#### Usage
+
+```typescript
+import { sendEmail } from 'utils-node';
+
+const { messageId } = await sendEmail({
+  from: '"DV Photo Tool" <photos@dvphototool.com>',
+  to: 'user@example.com',
+  subject: 'Your photos',
+  text: 'Hi there — your photos are attached.',
+  html: '<p>Hi there — your photos are attached.</p>', // optional
+  attachments: [                                        // optional
+    {
+      filename: 'photo1.jpg',
+      contentType: 'image/jpeg',
+      content: '<base64 string, no data: prefix>',
+    },
+  ],
+  listUnsubscribe: 'mailto:unsubscribe@dvphototool.com', // optional
+  aws: {
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    region: 'us-east-1', // optional, defaults to us-east-1
+  },
+});
+```
+
+#### Attachments
+
+`Attachment` is a minimal shape — the caller is responsible for sourcing the bytes and base64-encoding them. The library has no opinion about where attachments come from (R2, S3, the filesystem, in-memory).
+
+```typescript
+interface Attachment {
+  filename: string;
+  contentType: string;
+  content: string; // base64, no `data:` prefix
+}
+```
+
+#### What it does NOT do
+
+- **No content scrubbing.** If you need to rewrite words for deliverability or compliance, do it in the caller before passing `text` / `html` / `subject`.
+- **No retries.** SES throttling, transient 5xx, network failures — handle at the call site if needed.
+- **No SES configuration set / tags.** Add them if you need them.
+
+#### Errors
+
+`sendEmail` throws on:
+
+- non-2xx response from SES (message includes status code and body),
+- a 2xx response that doesn't contain a `MessageId`,
+- a raw MIME larger than ~9.5 MB.
