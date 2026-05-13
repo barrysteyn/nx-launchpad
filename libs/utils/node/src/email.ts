@@ -1,5 +1,7 @@
 import { AwsClient } from 'aws4fetch';
 
+const mimetextPromise = import('mimetext');
+
 export interface Attachment {
   filename: string;
   contentType: string;
@@ -33,15 +35,6 @@ export interface SendEmailResult {
 const DEFAULT_REGION = 'us-east-1';
 const SES_MAX_RAW_BYTES = 9_500_000;
 
-const bytesToBase64 = (bytes: Uint8Array): string => {
-  let bin = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin);
-};
-
 export const sendEmail = async (
   opts: SendEmailOptions,
 ): Promise<SendEmailResult> => {
@@ -57,7 +50,7 @@ export const sendEmail = async (
   } = opts;
   const region = aws.region ?? DEFAULT_REGION;
 
-  const { createMimeMessage } = await import('mimetext');
+  const { createMimeMessage } = await mimetextPromise;
   const msg = createMimeMessage();
   msg.setSender(from);
   msg.setRecipient(to);
@@ -78,13 +71,16 @@ export const sendEmail = async (
     msg.setHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
   }
 
-  const rawBytes = new TextEncoder().encode(msg.asRaw());
-  if (rawBytes.byteLength > SES_MAX_RAW_BYTES) {
+  // mimetext's asRaw() output is pure ASCII (subject/attachments/non-ASCII
+  // bodies are base64- or quoted-printable-encoded internally), so byte
+  // length equals string length and `btoa` works directly.
+  const raw = msg.asRaw();
+  if (raw.length > SES_MAX_RAW_BYTES) {
     throw new Error(
-      `Email too large for SES (raw ~${Math.round(rawBytes.byteLength / 1024)} KB)`,
+      `Email too large for SES (raw ~${Math.round(raw.length / 1024)} KB)`,
     );
   }
-  const rawBase64 = bytesToBase64(rawBytes);
+  const rawBase64 = btoa(raw);
 
   const sender = msg.getSender();
   const fromEmail = sender ? sender.addr : from;
