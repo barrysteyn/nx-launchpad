@@ -27,6 +27,8 @@ export const createDb = (env: Bindings) => {
     // Single connection per Worker request (Workers limit concurrent outbound
     // subrequests to 6 anyway; auth queries are short and sequential).
     max: 1,
+    // Silence Postgres NOTICE messages (default postgres.js behaviour is to
+    // console.log them, which clutters worker logs with non-actionable info).
     onnotice: () => {},
   });
   const db = drizzle(client, { schema });

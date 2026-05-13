@@ -12,7 +12,37 @@ import type { Bindings } from './types';
 // Per-request factory. Cloudflare Workers' I/O isolation rule forbids reusing
 // an I/O object across requests, and the better-auth instance holds a reference
 // to the Drizzle adapter which holds a reference to the postgres.js client.
-// So the entire auth instance must be rebuilt for every request.
+// So the entire auth instance must be rebuilt for every request. The env-string
+// parsers below are still safe to cache at module scope because they hold no
+// I/O — only static derived data.
+
+type ParsedSecret = { version: number; value: string };
+
+const secretsCache = new Map<string, ParsedSecret[] | undefined>();
+const trustedOriginsCache = new Map<string, string[]>();
+
+function parseSecrets(raw: string | undefined): ParsedSecret[] | undefined {
+  if (!raw) return undefined;
+  const cached = secretsCache.get(raw);
+  if (cached) return cached;
+  const parsed = raw.split(',').map((entry) => {
+    const colonIdx = entry.indexOf(':');
+    return {
+      version: parseInt(entry.slice(0, colonIdx), 10),
+      value: entry.slice(colonIdx + 1).trim(),
+    };
+  });
+  secretsCache.set(raw, parsed);
+  return parsed;
+}
+
+function parseTrustedOrigins(raw: string): string[] {
+  const cached = trustedOriginsCache.get(raw);
+  if (cached) return cached;
+  const parsed = raw.split(',');
+  trustedOriginsCache.set(raw, parsed);
+  return parsed;
+}
 
 function activeOrgId(session: unknown): string | null {
   return (
@@ -34,16 +64,8 @@ export function createAuth(
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: env.TRUSTED_ORIGINS.split(','),
-    secrets: env.BETTER_AUTH_SECRETS
-      ? env.BETTER_AUTH_SECRETS.split(',').map((entry) => {
-          const colonIdx = entry.indexOf(':');
-          return {
-            version: parseInt(entry.slice(0, colonIdx), 10),
-            value: entry.slice(colonIdx + 1).trim(),
-          };
-        })
-      : undefined,
+    trustedOrigins: parseTrustedOrigins(env.TRUSTED_ORIGINS),
+    secrets: parseSecrets(env.BETTER_AUTH_SECRETS),
 
     database: drizzleAdapter(dbInstance, { provider: 'pg', schema }),
 

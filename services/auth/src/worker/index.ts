@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { createAuth } from './auth';
 import { createDb } from './db';
@@ -6,10 +7,18 @@ import type { Bindings, Variables } from './types';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+const originsCache = new Map<string, Set<string>>();
+function getTrustedOrigins(raw: string): Set<string> {
+  let cached = originsCache.get(raw);
+  if (!cached) {
+    cached = new Set(raw.split(',').filter(Boolean));
+    originsCache.set(raw, cached);
+  }
+  return cached;
+}
+
 app.use('*', (c, next) => {
-  const origins = new Set(
-    (c.env.TRUSTED_ORIGINS ?? '').split(',').filter(Boolean),
-  );
+  const origins = getTrustedOrigins(c.env.TRUSTED_ORIGINS);
   return cors({
     origin: (origin) => (origins.has(origin) ? origin : null),
     allowHeaders: ['Content-Type', 'Authorization'],
@@ -23,11 +32,9 @@ app.use('*', (c, next) => {
 // db client (and the auth instance that holds it) must be rebuilt every time.
 // `ctx.waitUntil(client.end())` lets postgres.js close cleanly after the
 // response is returned, so Hyperdrive can recycle the upstream connection.
-const handleAuth = async (c: {
-  env: Bindings;
-  req: { raw: Request };
-  executionCtx: { waitUntil: (p: Promise<unknown>) => void };
-}) => {
+const handleAuth = async (
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+) => {
   const { client, db } = createDb(c.env);
   try {
     return await createAuth(c.env, db).handler(c.req.raw);
