@@ -49,9 +49,6 @@
         "cwd": "{projectRoot}"
       },
       "configurations": {
-        "preview": {
-          "command": "echo 'Auth service is not deployed in preview — consumer apps use staging auth directly'"
-        },
         "staging": {
           "command": "CLOUDFLARE_ENV=staging VITE_AUTH_URL=https://auth.staging.$URL VITE_TRUSTED_ORIGINS=https://staging.$URL,http://localhost:5173 npx vite build"
         },
@@ -198,9 +195,6 @@
         "forwardAllArgs": false
       },
       "configurations": {
-        "preview": {
-          "command": "echo 'Auth service is not deployed in preview — consumer apps use staging auth directly'"
-        },
         "staging": {
           "commands": [
             "terraform -chdir=infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl -backend-config=../../../../../libs/infra/backend.local.hcl",
