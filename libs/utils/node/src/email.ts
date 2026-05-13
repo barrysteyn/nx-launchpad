@@ -1,6 +1,10 @@
 import { AwsClient } from 'aws4fetch';
 
-const mimetextPromise = import('mimetext');
+// `mimetext/browser` is the pure-JS variant (js-base64 + hardcoded `\r\n`).
+// The default `mimetext` entry imports `node:os` and uses `Buffer`, which
+// require `nodejs_compat` in Cloudflare Workers. Browser entry is functionally
+// identical for our use and works in any JS runtime without flags.
+const mimetextPromise = import('mimetext/browser');
 
 export interface Attachment {
   filename: string;
