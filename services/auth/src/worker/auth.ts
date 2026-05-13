@@ -2,10 +2,11 @@ import { betterAuth } from 'better-auth';
 import { jwt, magicLink, admin, organization } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 import { sendSESEmail } from './email';
+import { pbkdf2Password } from './password-pbkdf2';
+import { createAfterAddMember } from './org-hooks';
 import type { Bindings } from './types';
 
 // Per-request factory. Cloudflare Workers' I/O isolation rule forbids reusing
@@ -49,51 +50,7 @@ export function createAuth(
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
-      // PBKDF2 via Web Crypto avoids scrypt's CPU cost on CF Workers Bundled plan.
-      // Remove this block once the worker is on the Unbound usage model.
-      ...(env.ENVIRONMENT !== 'production' && {
-        password: {
-          hash: async (password) => {
-            const enc = new TextEncoder();
-            const salt = crypto.getRandomValues(new Uint8Array(16));
-            const key = await crypto.subtle.importKey(
-              'raw',
-              enc.encode(password),
-              'PBKDF2',
-              false,
-              ['deriveBits'],
-            );
-            const bits = await crypto.subtle.deriveBits(
-              { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
-              key,
-              256,
-            );
-            const b64 = (buf: ArrayBuffer) =>
-              btoa(String.fromCharCode(...new Uint8Array(buf)));
-            return `pbkdf2:${b64(salt.buffer)}:${b64(bits)}`;
-          },
-          verify: async ({ hash, password }) => {
-            const [, saltB64, hashB64] = hash.split(':');
-            const enc = new TextEncoder();
-            const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
-            const key = await crypto.subtle.importKey(
-              'raw',
-              enc.encode(password),
-              'PBKDF2',
-              false,
-              ['deriveBits'],
-            );
-            const bits = await crypto.subtle.deriveBits(
-              { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
-              key,
-              256,
-            );
-            const b64 = (buf: ArrayBuffer) =>
-              btoa(String.fromCharCode(...new Uint8Array(buf)));
-            return b64(bits) === hashB64;
-          },
-        },
-      }),
+      ...(env.ENVIRONMENT !== 'production' && { password: pbkdf2Password }),
       ...(env.AWS_SES_ACCESS_KEY && {
         sendResetPassword: async ({ user, url }) => {
           void sendSESEmail(
@@ -124,15 +81,7 @@ export function createAuth(
         ? [
             organization({
               organizationHooks: {
-                afterAddMember: async ({ user, organization: org }) => {
-                  await dbInstance
-                    .update(schema.session)
-                    .set({ activeOrganizationId: org.id } as Record<
-                      string,
-                      unknown
-                    >)
-                    .where(eq(schema.session.userId, user.id));
-                },
+                afterAddMember: createAfterAddMember(dbInstance),
               },
             }),
           ]
