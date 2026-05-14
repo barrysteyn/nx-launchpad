@@ -8,6 +8,8 @@
 //
 // Output format: `pbkdf2:<base64-salt>:<base64-derived-bits>`.
 
+import { timingSafeEqual } from 'node:crypto';
+
 const ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const HASH_BITS = 256;
@@ -15,20 +17,11 @@ const PREFIX = 'pbkdf2:';
 
 const encoder = new TextEncoder();
 
-const b64 = (buf: ArrayBuffer): string =>
+const b64Encode = (buf: ArrayBuffer): string =>
   btoa(String.fromCharCode(...new Uint8Array(buf)));
 
-// Length-checked constant-time comparison. We split the cookie/hash check into
-// a length compare (allowed to short-circuit; length itself isn't secret) and
-// a fixed-iteration XOR-accumulate over the byte content.
-function timingSafeEqualB64(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
+const b64Decode = (s: string): Uint8Array =>
+  Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 async function deriveBits(
   password: string,
@@ -52,7 +45,7 @@ export const pbkdf2Password = {
   hash: async (password: string): Promise<string> => {
     const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
     const bits = await deriveBits(password, salt);
-    return `${PREFIX}${b64(salt.buffer)}:${b64(bits)}`;
+    return `${PREFIX}${b64Encode(salt.buffer)}:${b64Encode(bits)}`;
   },
   verify: async ({
     hash,
@@ -68,8 +61,9 @@ export const pbkdf2Password = {
     const parts = hash.slice(PREFIX.length).split(':');
     if (parts.length !== 2) return false;
     const [saltB64, hashB64] = parts;
-    const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
-    const bits = await deriveBits(password, salt);
-    return timingSafeEqualB64(b64(bits), hashB64);
+    const stored = b64Decode(hashB64);
+    const derived = new Uint8Array(await deriveBits(password, b64Decode(saltB64)));
+    if (stored.length !== derived.length) return false;
+    return timingSafeEqual(stored, derived);
   },
 };

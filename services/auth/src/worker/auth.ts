@@ -7,6 +7,7 @@ import * as schema from './schema';
 import { sendEmail } from './email';
 import { pbkdf2Password } from './password-pbkdf2';
 import { createAfterAddMember } from './org-hooks';
+import { parseSecrets } from './secrets-parser';
 import type { Bindings } from './types';
 
 // Per-request factory. Cloudflare Workers' I/O isolation rule forbids reusing
@@ -16,25 +17,7 @@ import type { Bindings } from './types';
 // parsers below are still safe to cache at module scope because they hold no
 // I/O — only static derived data.
 
-type ParsedSecret = { version: number; value: string };
-
-const secretsCache = new Map<string, ParsedSecret[] | undefined>();
 const trustedOriginsCache = new Map<string, string[]>();
-
-function parseSecrets(raw: string | undefined): ParsedSecret[] | undefined {
-  if (!raw) return undefined;
-  const cached = secretsCache.get(raw);
-  if (cached) return cached;
-  const parsed = raw.split(',').map((entry) => {
-    const colonIdx = entry.indexOf(':');
-    return {
-      version: parseInt(entry.slice(0, colonIdx), 10),
-      value: entry.slice(colonIdx + 1).trim(),
-    };
-  });
-  secretsCache.set(raw, parsed);
-  return parsed;
-}
 
 function parseTrustedOrigins(raw: string): string[] {
   const cached = trustedOriginsCache.get(raw);
