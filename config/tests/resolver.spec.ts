@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const getSecretsMap = vi.hoisted(() => vi.fn());
 
-vi.mock('@nx-launchpad/utils-node', () => ({
+vi.mock('utils-node', () => ({
   Secrets: vi.fn().mockImplementation(() => ({ getSecretsMap })),
   isJsonObjectOrArray: (val: unknown): boolean => typeof val === 'object' && val !== null,
   logger: {

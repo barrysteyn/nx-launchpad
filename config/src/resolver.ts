@@ -4,7 +4,7 @@ import path from 'path';
 import YAML from 'yaml';
 import type { AwsCredentialIdentity } from '@smithy/types';
 
-import { Secrets, isJsonObjectOrArray } from '@nx-launchpad/utils-node';
+import { Secrets, isJsonObjectOrArray } from 'utils-node';
 
 const ensureScreamingSnake = (key: string) => {
   if (!/^[A-Z0-9_]+$/.test(key)) {

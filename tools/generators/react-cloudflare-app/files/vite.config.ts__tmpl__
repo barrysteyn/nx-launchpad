@@ -17,10 +17,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@nx-launchpad/config-loader-node': resolve(
+      'config-loader-node': resolve(
         __dirname,
         '../../libs/config-loader/node/src/cloudflare.ts',
       ),
+      'auth-browser': resolve(__dirname, '../../libs/auth/browser/src/index.ts'),
+      'auth-node': resolve(__dirname, '../../libs/auth/node/src/index.ts'),
     },
   },
   test: {

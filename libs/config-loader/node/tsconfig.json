@@ -16,7 +16,7 @@
     "declaration": true,
     "declarationMap": true,
     "paths": {
-      "@nx-launchpad/utils-node": ["../../utils/node/src/index.ts"]
+      "utils-node": ["../../utils/node/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

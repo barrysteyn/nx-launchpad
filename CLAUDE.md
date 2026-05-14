@@ -123,7 +123,7 @@ Language-specific utility libraries. See [libs/utils/README.md](libs/utils/READM
 |---|---|---|
 | `utils-node` | `libs/utils/node/` | Logger (OTEL + BetterStack), `isJsonObjectOrArray`, `chunkArray` |
 
-**Logger:** import from `@nx-launchpad/utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
+**Logger:** import from `utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
 
 ### libs/config-loader
 
