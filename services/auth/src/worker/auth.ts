@@ -4,7 +4,7 @@ import { apiKey } from '@better-auth/api-key';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
-import { sendSESEmail } from './email';
+import { sendEmail } from './email';
 import { pbkdf2Password } from './password-pbkdf2';
 import { createAfterAddMember } from './org-hooks';
 import type { Bindings } from './types';
@@ -75,7 +75,7 @@ export function createAuth(
       ...(env.ENVIRONMENT !== 'production' && { password: pbkdf2Password }),
       ...(env.AWS_SES_ACCESS_KEY && {
         sendResetPassword: async ({ user, url }) => {
-          void sendSESEmail(
+          void sendEmail(
             { to: user.email, subject: 'Reset your password', url },
             env,
           );
@@ -86,7 +86,7 @@ export function createAuth(
     emailVerification: {
       ...(env.AWS_SES_ACCESS_KEY && {
         sendVerificationEmail: async ({ user, url }) => {
-          void sendSESEmail(
+          void sendEmail(
             { to: user.email, subject: 'Verify your email address', url },
             env,
           );
@@ -134,7 +134,7 @@ export function createAuth(
         ? [
             magicLink({
               sendMagicLink: async ({ email, url }) => {
-                void sendSESEmail(
+                void sendEmail(
                   { to: email, subject: 'Your magic link', url },
                   env,
                 );

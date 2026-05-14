@@ -1,22 +1,22 @@
-import { sendEmail, type SendEmailResult } from 'utils-node';
+import { sendEmail as utilSendEmail, type SendEmailResult } from 'utils-node';
 import type { Bindings } from './types';
 
-interface SendEmailOptions {
+interface SendEmailArgs {
   to: string;
   subject: string;
   url: string;
 }
 
-export function sendSESEmail(
-  opts: SendEmailOptions,
+export function sendEmail(
+  args: SendEmailArgs,
   env: Bindings,
 ): Promise<SendEmailResult> {
-  return sendEmail({
+  return utilSendEmail({
     from: env.FROM_EMAIL,
-    to: opts.to,
-    subject: opts.subject,
-    text: opts.url,
-    html: `<p>Click the link below to continue:</p><p><a href="${opts.url}">${opts.url}</a></p>`,
+    to: args.to,
+    subject: args.subject,
+    text: args.url,
+    html: `<p>Click the link below to continue:</p><p><a href="${args.url}">${args.url}</a></p>`,
     aws: {
       accessKeyId: env.AWS_SES_ACCESS_KEY,
       secretAccessKey: env.AWS_SES_SECRET_KEY,
