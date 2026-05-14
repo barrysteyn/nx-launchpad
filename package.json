@@ -1,5 +1,5 @@
 {
-  "name": "@nx-launchpad/source",
+  "name": "nx-launchpad",
   "version": "0.0.0",
   "license": "MIT",
   "private": true,

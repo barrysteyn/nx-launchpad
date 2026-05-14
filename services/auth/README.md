@@ -97,7 +97,7 @@ app.get('/api/data', (c) => {
 
 ```typescript
 // src/app/lib/auth-client.ts
-import { createBrowserAuthClient } from '@nx-launchpad/auth-browser';
+import { createBrowserAuthClient } from 'auth-browser';
 export const authClient = createBrowserAuthClient(import.meta.env.VITE_AUTH_URL);
 ```
 
@@ -111,7 +111,7 @@ await authClient.signOut();
 ### Worker (Hono API)
 
 ```typescript
-import { jwtMiddleware } from '@nx-launchpad/auth-node';
+import { jwtMiddleware } from 'auth-node';
 
 const PUBLIC_API_ROUTES = new Set(['/api/health']);
 
