@@ -39,12 +39,20 @@ After the user confirms, verify:
 grep '^NEON_API_KEY=' .env | grep -qv 'your-api-key$'
 ```
 
-If still placeholder, halt and re-prompt. Once real, push to GitHub Actions secrets so CI deploys can use it:
+If still placeholder, halt and re-prompt. Once real, sync to GitHub Actions secrets so CI deploys can use it. Skip the push if the secret is already set:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-gh secret set NEON_API_KEY -R "$REPO" --body "$(grep '^NEON_API_KEY=' .env | cut -d= -f2-)"
+
+if gh api "/repos/$REPO/actions/secrets/NEON_API_KEY" --silent 2>/dev/null; then
+  echo "NEON_API_KEY already set in GitHub Actions secrets — skipping push."
+else
+  echo "Pushing NEON_API_KEY to GitHub Actions secrets..."
+  gh secret set NEON_API_KEY -R "$REPO" --body "$(grep '^NEON_API_KEY=' .env | cut -d= -f2-)"
+fi
 ```
+
+> **Rotated your Neon API key?** This check is existence-only — `gh` never exposes secret values, so a stale-but-present GitHub secret looks the same as a fresh one. Force-refresh with: `gh secret delete NEON_API_KEY -R "$REPO"`, then re-run this skill.
 
 ### Verify Terraform is installed
 
