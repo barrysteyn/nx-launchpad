@@ -104,16 +104,30 @@ Wait for it to complete. Read the output and extract:
 
 Tell the user these values and proceed to the next step.
 
-## Step 5 — Update wrangler.jsonc with the Hyperdrive id
+## Step 5 — Substitute placeholders in wrangler.jsonc
 
-Open `services/auth/wrangler.jsonc`. Find the `<env>` block inside `"env"` and replace the placeholder Hyperdrive id with the real value from Terraform output:
+`services/auth/wrangler.jsonc` ships with two placeholder tokens: `<placeholder-domain>` (for `BETTER_AUTH_URL`, `TRUSTED_ORIGINS`, `FROM_EMAIL`, and `route.pattern` in both env blocks) and `<placeholder-hyperdrive-id>` (one per env block). Both must be replaced with concrete values before deploy.
+
+First substitute the domain from `.env`:
+
+```bash
+URL=$(grep '^URL=' .env | cut -d= -f2-)
+if [ -z "$URL" ] || echo "$URL" | grep -q 'your-domain.com'; then
+  echo "ERROR: URL not set in .env (or still placeholder)"; exit 1
+fi
+sed -i.bak "s|<placeholder-domain>|$URL|g" services/auth/wrangler.jsonc && rm services/auth/wrangler.jsonc.bak
+```
+
+Then substitute the Hyperdrive id from Terraform output:
 
 ```bash
 HYPERDRIVE_ID=$(terraform -chdir=services/auth/infra/environments/<env> output -raw hyperdrive_id)
 sed -i.bak "s|\"<placeholder-hyperdrive-id>\"|\"$HYPERDRIVE_ID\"|" services/auth/wrangler.jsonc && rm services/auth/wrangler.jsonc.bak
 ```
 
-If the placeholder isn't present (because someone already substituted it), the `sed` is a no-op. Verify the final file contains the real id — search for `<placeholder-hyperdrive-id>` and confirm zero matches.
+The URL substitution is global (`g` flag) because both env blocks reference `<placeholder-domain>` and they should all resolve to the same domain. The Hyperdrive substitution is per-env because the placeholder string is identical across blocks but the id differs — the env-scoped path-based replacement above already handles that (this Step 5 runs once per `<env>`, so each invocation substitutes only that env's id and leaves the other env's placeholder in place until that env is set up).
+
+If either placeholder isn't present (because someone already substituted it), the corresponding `sed` is a no-op — re-runs are idempotent. Verify the final file contains the real values — search for `<placeholder-domain>` and `<placeholder-hyperdrive-id>` and confirm zero matches for the env you just set up.
 
 ## Step 6 — Run database migration
 

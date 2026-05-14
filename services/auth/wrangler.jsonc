@@ -17,9 +17,9 @@
       "name": "auth-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "BETTER_AUTH_URL": "https://auth.staging.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@staging.nimrox.ai"
+        "BETTER_AUTH_URL": "https://auth.staging.<placeholder-domain>",
+        "TRUSTED_ORIGINS": "https://staging.<placeholder-domain>",
+        "FROM_EMAIL": "noreply@staging.<placeholder-domain>"
       },
       "hyperdrive": [
         {
@@ -28,7 +28,7 @@
         }
       ],
       "route": {
-        "pattern": "auth.staging.nimrox.ai",
+        "pattern": "auth.staging.<placeholder-domain>",
         "custom_domain": true
       }
     },
@@ -36,9 +36,9 @@
       "name": "auth-production",
       "vars": {
         "ENVIRONMENT": "production",
-        "BETTER_AUTH_URL": "https://auth.nimrox.ai",
-        "TRUSTED_ORIGINS": "https://nimrox.ai,https://staging.nimrox.ai",
-        "FROM_EMAIL": "noreply@nimrox.ai"
+        "BETTER_AUTH_URL": "https://auth.<placeholder-domain>",
+        "TRUSTED_ORIGINS": "https://<placeholder-domain>,https://staging.<placeholder-domain>",
+        "FROM_EMAIL": "noreply@<placeholder-domain>"
       },
       "hyperdrive": [
         {
@@ -47,7 +47,7 @@
         }
       ],
       "route": {
-        "pattern": "auth.nimrox.ai",
+        "pattern": "auth.<placeholder-domain>",
         "custom_domain": true
       }
     }
