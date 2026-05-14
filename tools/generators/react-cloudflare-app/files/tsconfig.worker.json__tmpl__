@@ -17,8 +17,8 @@
     "noUncheckedSideEffectImports": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "config-loader-node": ["../../libs/config-loader/node/src/cloudflare.ts"],
-      "auth-node": ["../../libs/auth/node/src/index.ts"]
+      "auth-node": ["../../libs/auth/node/src/index.ts"],
+      "config-loader-node": ["../../libs/config-loader/node/src/cloudflare.ts"]
     }
   },
   "include": ["src/worker"]
