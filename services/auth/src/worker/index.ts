@@ -3,24 +3,15 @@ import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { createAuth } from './auth';
 import { createDb } from './db';
+import { getOriginMatcher } from './origin-matcher';
 import type { Bindings, Variables } from './types';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-const originsCache = new Map<string, Set<string>>();
-function getTrustedOrigins(raw: string): Set<string> {
-  let cached = originsCache.get(raw);
-  if (!cached) {
-    cached = new Set(raw.split(',').filter(Boolean));
-    originsCache.set(raw, cached);
-  }
-  return cached;
-}
-
 app.use('*', (c, next) => {
-  const origins = getTrustedOrigins(c.env.TRUSTED_ORIGINS);
+  const matchOrigin = getOriginMatcher(c.env.TRUSTED_ORIGINS);
   return cors({
-    origin: (origin) => (origins.has(origin) ? origin : null),
+    origin: (origin) => (matchOrigin(origin) ? origin : null),
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
