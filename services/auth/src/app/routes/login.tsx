@@ -30,7 +30,11 @@ function LoginPage() {
       password,
       callbackURL,
     });
-    if (err) setError(err.message ?? 'Sign-in failed');
+    if (err) {
+      setError(err.message ?? 'Sign-in failed');
+      return;
+    }
+    window.location.href = callbackURL;
   }
 
   async function handleMagicLink(e: React.FormEvent) {
