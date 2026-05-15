@@ -1,5 +1,10 @@
 # Claude Code Instructions
 
+VERY IMPORTANT:
+ - DO NOT OVER ENGINEER THINGS. Always opt for the most simple solution possible.
+ - When asked a question, NEVER EVER think it is an instruction to take action. Always answer, and then only ask before you take action.
+ - Never push to remote git without first asking.
+
 ## Git Commits
 
 Always use [Conventional Commits](https://www.conventionalcommits.org/) format for all commit messages:
