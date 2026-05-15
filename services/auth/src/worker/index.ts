@@ -50,6 +50,27 @@ const handleJwksAlias = (
   return dispatchToAuth(c, new Request(url, c.req.raw));
 };
 
+// JWKS publishers conventionally send Cache-Control so JOSE clients cache
+// the key set between verifications. better-auth doesn't set one today.
+const ensureJwksCacheHeader = async (
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+  next: () => Promise<void>,
+) => {
+  await next();
+  if (!c.res.headers.has('cache-control')) {
+    const headers = new Headers(c.res.headers);
+    headers.set('cache-control', 'public, max-age=3600');
+    c.res = new Response(c.res.body, {
+      status: c.res.status,
+      statusText: c.res.statusText,
+      headers,
+    });
+  }
+};
+
+app.use('/.well-known/jwks.json', ensureJwksCacheHeader);
+app.use('/api/auth/.well-known/jwks.json', ensureJwksCacheHeader);
+
 app.on(['GET', 'POST'], '/api/auth/*', handleAuth);
 app.get('/.well-known/jwks.json', handleJwksAlias);
 
