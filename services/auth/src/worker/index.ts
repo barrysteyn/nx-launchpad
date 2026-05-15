@@ -29,7 +29,7 @@ async function dispatchToAuth(
 ) {
   const { client, db } = createDb(c.env);
   try {
-    return await createAuth(c.env, db).handler(request);
+    return await createAuth(c.env, db, c.executionCtx).handler(request);
   } finally {
     c.executionCtx.waitUntil(client.end());
   }

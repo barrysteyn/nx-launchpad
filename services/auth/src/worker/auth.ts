@@ -42,6 +42,7 @@ function userRole(user: unknown): string | null {
 export function createAuth(
   env: Bindings,
   dbInstance: PostgresJsDatabase<typeof schema>,
+  ctx: ExecutionContext,
 ): ReturnType<typeof betterAuth> {
   const isMultiTenant = env.MULTITENANCY_ENABLED === 'true';
 
@@ -58,9 +59,11 @@ export function createAuth(
       ...(env.ENVIRONMENT !== 'production' && { password: pbkdf2Password }),
       ...(env.AWS_SES_ACCESS_KEY && {
         sendResetPassword: async ({ user, url }) => {
-          void sendEmail(
-            { to: user.email, subject: 'Reset your password', url },
-            env,
+          ctx.waitUntil(
+            sendEmail(
+              { to: user.email, subject: 'Reset your password', url },
+              env,
+            ),
           );
         },
       }),
@@ -69,9 +72,11 @@ export function createAuth(
     emailVerification: {
       ...(env.AWS_SES_ACCESS_KEY && {
         sendVerificationEmail: async ({ user, url }) => {
-          void sendEmail(
-            { to: user.email, subject: 'Verify your email address', url },
-            env,
+          ctx.waitUntil(
+            sendEmail(
+              { to: user.email, subject: 'Verify your email address', url },
+              env,
+            ),
           );
         },
       }),
@@ -117,9 +122,11 @@ export function createAuth(
         ? [
             magicLink({
               sendMagicLink: async ({ email, url }) => {
-                void sendEmail(
-                  { to: email, subject: 'Your magic link', url },
-                  env,
+                ctx.waitUntil(
+                  sendEmail(
+                    { to: email, subject: 'Your magic link', url },
+                    env,
+                  ),
                 );
               },
             }),
