@@ -24,8 +24,7 @@ const stubEnv: Bindings = {
 // Empty drizzle instance — CLI generate only inspects schema shape, never executes.
 const stubDb = drizzle.mock({ schema });
 
-// Stub ExecutionContext for the CLI — schema generation never fires email
-// handlers, so waitUntil is never actually invoked.
+// CLI generate never invokes email handlers.
 const stubCtx = { waitUntil: () => {} } as unknown as ExecutionContext;
 
 export default createAuth(stubEnv, stubDb, stubCtx);
