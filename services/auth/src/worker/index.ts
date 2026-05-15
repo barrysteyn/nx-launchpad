@@ -23,18 +23,34 @@ app.use('*', (c, next) => {
 // db client (and the auth instance that holds it) must be rebuilt every time.
 // `ctx.waitUntil(client.end())` lets postgres.js close cleanly after the
 // response is returned, so Hyperdrive can recycle the upstream connection.
-const handleAuth = async (
+async function dispatchToAuth(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
-) => {
+  request: Request,
+) {
   const { client, db } = createDb(c.env);
   try {
-    return await createAuth(c.env, db).handler(c.req.raw);
+    return await createAuth(c.env, db).handler(request);
   } finally {
     c.executionCtx.waitUntil(client.end());
   }
+}
+
+const handleAuth = (
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+) => dispatchToAuth(c, c.req.raw);
+
+// better-auth interprets its `jwksPath` config as relative to the auth base
+// (`/api/auth`), so the standards-compliant /.well-known/jwks.json path
+// needs a URL rewrite before forwarding into better-auth's internal router.
+const handleJwksAlias = (
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+) => {
+  const url = new URL(c.req.url);
+  url.pathname = '/api/auth/.well-known/jwks.json';
+  return dispatchToAuth(c, new Request(url, c.req.raw));
 };
 
 app.on(['GET', 'POST'], '/api/auth/*', handleAuth);
-app.on(['GET', 'POST'], '/.well-known/jwks.json', handleAuth);
+app.get('/.well-known/jwks.json', handleJwksAlias);
 
 export default app;
