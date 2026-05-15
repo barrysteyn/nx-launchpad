@@ -130,6 +130,9 @@ export function createAuth(
 
     advanced: {
       crossSubDomainCookies: { enabled: true },
+      ...(env.ENVIRONMENT !== 'production' && {
+        defaultCookieAttributes: { sameSite: 'none' },
+      }),
     },
   }) as unknown as ReturnType<typeof betterAuth>;
 }
