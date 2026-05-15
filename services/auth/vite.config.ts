@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   plugins: [
-    cloudflare(),
+    ...(process.env.VITEST ? [] : [cloudflare()]),
     ...(hasAppRoutes
       ? [
           TanStackRouterVite({

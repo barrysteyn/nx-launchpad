@@ -7,7 +7,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [
-    cloudflare(),
+    ...(process.env.VITEST ? [] : [cloudflare()]),
     TanStackRouterVite({
       routesDirectory: './src/app/routes',
       generatedRouteTree: './src/app/routeTree.gen.ts',
