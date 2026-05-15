@@ -86,6 +86,12 @@ info "Installing node modules (also registers husky pre-commit hooks via prepare
 cd "$REPO_ROOT"
 npm ci --legacy-peer-deps
 
+# ── 'ours' merge driver ───────────────────────────────────────────────────────
+# Used by .gitattributes for libs/infra/backend.hcl so upstream merges don't
+# clobber the fork-specific bucket name. Idempotent.
+info "Registering 'ours' merge driver..."
+git config merge.ours.driver true
+
 # ── VSCode extensions ─────────────────────────────────────────────────────────
 if command -v code &>/dev/null && [ -f "$REPO_ROOT/.vscode/extensions.json" ]; then
   info "Installing VSCode extensions..."
