@@ -20,7 +20,7 @@ function SignupPage() {
       name,
       email,
       password,
-      callbackURL: '/verify-email',
+      callbackURL: '/',
     });
     if (err) setError(err.message ?? 'Sign-up failed');
     else setDone(true);
