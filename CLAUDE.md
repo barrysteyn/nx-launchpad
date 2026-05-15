@@ -93,6 +93,10 @@ Nx targets that run Terraform automatically derive `TF_VAR_project_name` from `P
 
 In CI/CD, `PROJECT_NAME` must be set as a GitHub Actions variable (`vars.PROJECT_NAME`) — see the deploy workflow.
 
+### Terraform backend config
+
+The remote-state S3 bucket name is committed in `libs/infra/backend.hcl` (single source of truth — no `.local` overlay). A fresh fork ships with `bucket = "<placeholder-bucket>"`; `/onboard` Step 2.5 replaces it with the fork's real bucket. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`, with the driver registered by `scripts/setup.sh` (`git config merge.ours.driver true`).
+
 ### Passing env vars to Terraform
 
 Terraform only reads environment variables that have the `TF_VAR_` prefix — it will not pick up `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_API_TOKEN` directly. Any Nx target that runs `terraform plan` or `terraform apply` must map these inline:

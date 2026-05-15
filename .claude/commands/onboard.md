@@ -310,25 +310,27 @@ count=$(gh secret list -R "$REPO" --json name --jq '.[].name' | grep -cE '^(AWS_
 
 If the count is not 2, halt with: "AWS access key secrets still missing from GitHub. Set them and re-run `/onboard`."
 
-### 2.5 — Terraform state bucket (find-or-create) and per-fork backend.local.hcl
+### 2.5 — Terraform state bucket (find-or-create)
 
-The bucket name lives in `libs/infra/backend.local.hcl` (gitignored). The committed `libs/infra/backend.hcl` only has shared config (region, versioning, encryption). This separation keeps `git reset --hard upstream/main` from clobbering the bucket name on each iteration.
+The bucket name lives in `libs/infra/backend.hcl`. Fresh forks ship with the placeholder value `<placeholder-bucket>`; this step replaces it. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`.
 
-Determine the bucket to use, in priority order:
-
-1. **If `libs/infra/backend.local.hcl` already exists**, parse the bucket name from it and verify the bucket is reachable:
+1. **Parse the bucket from `libs/infra/backend.hcl`**:
 
    ```bash
-   if [ -f libs/infra/backend.local.hcl ]; then
-     BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.local.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
-     echo "Configured bucket (from backend.local.hcl): $BUCKET"
-     aws s3api head-bucket --bucket "$BUCKET" || { echo "Bucket $BUCKET is configured in backend.local.hcl but is not reachable. Delete the file and re-run /onboard, or fix manually."; exit 1; }
+   BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+   ```
+
+   If `$BUCKET` is anything other than `<placeholder-bucket>`, verify it's reachable:
+
+   ```bash
+   if [ "$BUCKET" != "<placeholder-bucket>" ]; then
+     aws s3api head-bucket --bucket "$BUCKET" || { echo "Bucket $BUCKET in backend.hcl is not reachable. Fix the name there, or set it back to <placeholder-bucket> and re-run /onboard."; exit 1; }
+     echo "Bucket reachable — skipping the rest of Step 2.5."
+     # (skip to Step 2.6)
    fi
    ```
 
-   If `head-bucket` succeeds, skip the rest of Step 2.5 — bucket is already wired up.
-
-2. **If `backend.local.hcl` doesn't exist**, look for an existing fork bucket matching the project prefix:
+2. **If the bucket is still the placeholder**, look for an existing fork bucket matching the project prefix:
 
    ```bash
    PROJECT_NAME=$(grep '^PROJECT_NAME=' .env | cut -d= -f2)
@@ -337,24 +339,23 @@ Determine the bucket to use, in priority order:
      --output text | head -1)
    ```
 
-   - If `$EXISTING` is non-empty, the user has already created a fork bucket (likely from a prior `/onboard` run before `backend.local.hcl` was reset). Reuse it:
+   - If `$EXISTING` is non-empty, reuse it:
 
      ```bash
      BUCKET="$EXISTING"
      echo "Found existing fork bucket: $BUCKET (reusing)"
      ```
 
-3. **If neither file nor existing bucket was found**, create a new one:
+3. **If no existing bucket was found**, create one:
 
    ```bash
    PROPOSED="terraform-state-${PROJECT_NAME}-$(openssl rand -hex 4)"
-   echo "Proposed bucket name: $PROPOSED"
    ```
 
    - If `$AUTO` is `true`: use `$PROPOSED` directly. Print `Auto-accepting bucket name: $PROPOSED`.
    - Otherwise, ask:
 
-     > "No backend.local.hcl found and no existing fork bucket detected. I can create one now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
+     > "No bucket configured. I can create one now. Proposed name: `<PROPOSED>`. Region: `us-east-1`. Versioning will be enabled.
      >
      > Press Enter to accept, type a custom name to override, or `n` to halt."
 
@@ -363,7 +364,7 @@ Determine the bucket to use, in priority order:
      > "Create the bucket yourself:
      >     aws s3api create-bucket --bucket <unique-name> --region us-east-1
      >     aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled
-     > Then write the name into libs/infra/backend.local.hcl and re-run /onboard."
+     > Then update the `bucket = "..."` line in libs/infra/backend.hcl and re-run /onboard."
 
    - Otherwise, set `BUCKET` to the chosen value and create it:
 
@@ -376,16 +377,12 @@ Determine the bucket to use, in priority order:
 
      If `BucketAlreadyOwnedByYou`: proceed. If `BucketAlreadyExists`: ask for a different name (or halt if `$AUTO`).
 
-4. **Write `libs/infra/backend.local.hcl`** with the chosen `$BUCKET` (whether reused or newly created):
+4. **Write the chosen `$BUCKET` into `libs/infra/backend.hcl`** (replace the placeholder):
 
    ```bash
-   cat > libs/infra/backend.local.hcl <<EOF
-   bucket = "${BUCKET}"
-   EOF
-   echo "Wrote libs/infra/backend.local.hcl"
+   sed -i.bak -E "s|<placeholder-bucket>|${BUCKET}|" libs/infra/backend.hcl && rm libs/infra/backend.hcl.bak
+   echo "Updated bucket in libs/infra/backend.hcl"
    ```
-
-   The file is in `.gitignore`, so it stays across `git reset --hard upstream/main` and won't be committed.
 
 ### 2.6 — Cocogitto bot installed
 

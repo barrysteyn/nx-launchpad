@@ -194,7 +194,7 @@ for ENV in staging production; do
   echo "=== Destroying config infra for $ENV ==="
   (
     cd config/infra/environments/$ENV
-    terraform init -backend-config=../../../../libs/infra/backend.hcl -backend-config=../../../../libs/infra/backend.local.hcl -reconfigure
+    terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
 
     TF_VAR_environment=$ENV \
     TF_VAR_project_name="$PROJECT_NAME" \
@@ -219,7 +219,7 @@ lifecycle {
 
 If 5b fails partway through, you should still run 5c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
 
-If `terraform init` fails because the backend config is wrong, check `libs/infra/backend.local.hcl` exists and has the right bucket name (the committed `backend.hcl` only holds region/versioning/encryption settings).
+If `terraform init` fails because the backend config is wrong, check the `bucket = "..."` line in `libs/infra/backend.hcl` matches a bucket your AWS credentials can reach.
 
 ## Step 6 — Reset hardcoded KV namespace IDs back to placeholders
 
