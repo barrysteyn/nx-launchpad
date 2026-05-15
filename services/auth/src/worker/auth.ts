@@ -55,7 +55,8 @@ export function createAuth(
 
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: false,
+      requireEmailVerification:
+        env.ENVIRONMENT === 'production' || !!env.AWS_SES_ACCESS_KEY,
       ...(env.ENVIRONMENT !== 'production' && { password: pbkdf2Password }),
       ...(env.AWS_SES_ACCESS_KEY && {
         sendResetPassword: async ({ user, url }) => {
