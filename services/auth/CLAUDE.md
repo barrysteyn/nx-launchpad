@@ -29,7 +29,7 @@ Controlled by `"multitenancyEnabled"` in `package.json` (boolean). This is the *
 - `false` (default) → `admin` plugin → JWT: `{ id, email, role }`
 - `true` → `organization` plugin → JWT: `{ id, email, orgId }`
 
-After changing the flag, run `npx nx run auth:db-generate` to regenerate the schema, then `db-migrate` to apply it. **Do not flip this on an existing populated database without a manual migration.**
+After changing the flag, run `npx nx run services/auth:db-generate` to regenerate the schema, then `db-migrate` to apply it. **Do not flip this on an existing populated database without a manual migration.**
 
 The deploy targets inject `MULTITENANCY_ENABLED` at runtime via `--var MULTITENANCY_ENABLED:$(node -e "...")` — never hardcode it in `wrangler.jsonc`.
 
@@ -62,8 +62,8 @@ Optional secrets (enable email features): `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_
 
 When switching modes or after changing plugins:
 ```bash
-npx nx run auth:db-generate   # regenerates schema.ts and schema/0000_init.sql
-npx nx run auth:db-migrate:staging
+npx nx run services/auth:db-generate   # regenerates schema.ts and schema/0000_init.sql
+npx nx run services/auth:db-migrate:staging
 ```
 
 ## Common gotchas

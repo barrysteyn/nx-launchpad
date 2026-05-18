@@ -1,4 +1,4 @@
-import { sendEmail as utilSendEmail, type SendEmailResult } from 'utils-node';
+import { sendEmail as utilSendEmail, type SendEmailResult } from 'libs/utils-node';
 import type { Bindings } from './types';
 
 interface SendEmailArgs {

@@ -81,7 +81,7 @@ Ask the user:
 1. In `services/auth/package.json`, set `"multitenancyEnabled": true`.
 2. Regenerate the schema for the chosen mode:
    ```
-   npx nx run auth:db-generate
+   npx nx run services/auth:db-generate
    ```
    This regenerates `src/worker/schema.ts` and `schema/0000_init.sql` with the organization plugin's tables instead of the admin plugin's tables.
 3. Commit the regenerated files:
@@ -95,7 +95,7 @@ Warn the user: **switching modes after the database has been migrated requires a
 ## Step 4 — Provision infrastructure (Neon Postgres + Hyperdrive)
 
 ```
-npx nx run auth:tf-apply:<env>
+npx nx run services/auth:tf-apply:<env>
 ```
 
 Wait for it to complete. Read the output and extract:
@@ -130,7 +130,7 @@ The URL substitution is global (`g` flag) because both env blocks reference `<pl
 ## Step 6 — Run database migration
 
 ```
-npx nx run auth:db-migrate:<env>
+npx nx run services/auth:db-migrate:<env>
 ```
 
 This pulls the connection URI from Terraform state and runs `drizzle-kit migrate` against the Neon database. If it fails with `permission denied`, check that the Neon role has `CREATE` permission on the database (Neon roles default to project-owner permissions, so this should be automatic).
@@ -138,7 +138,7 @@ This pulls the connection URI from Terraform state and runs `drizzle-kit migrate
 ## Step 7 — Deploy the worker
 
 ```
-npx nx run auth:deploy:<env>
+npx nx run services/auth:deploy:<env>
 ```
 
 This builds the app, runs Terraform (idempotent), runs `drizzle-kit migrate` (idempotent), and deploys to Cloudflare. The worker must be deployed before secrets can be set in the next step.

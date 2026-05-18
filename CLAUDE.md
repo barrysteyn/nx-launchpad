@@ -53,6 +53,52 @@ Valid profiles:
 
 If `metadata.ci.profile` is absent, the pipeline defaults to `"default"`. Always set it explicitly so the project's requirements are clear.
 
+## Nx Project Naming Convention
+
+Every Nx project's `name` field must be prefixed with its top-level folder, separated by `/`. The Nx project name is the single source of truth — it doubles as the TypeScript path alias and the import specifier, so the same string appears everywhere a project is referenced.
+
+| Project root | Project name |
+|---|---|
+| `apps/<name>` | `apps/<name>` |
+| `services/<name>` | `services/<name>` |
+| `libs/<single>` | `libs/<single>` |
+| `libs/<group>/<leaf>` | `libs/<group>-<leaf>` (single `libs/` prefix, group + leaf joined with `-`) |
+| `config` | `config` (sole exception — repo-root project) |
+
+Examples in this repo:
+
+| Root | Name |
+|---|---|
+| `services/auth` | `services/auth` |
+| `libs/infra` | `libs/infra` |
+| `libs/utils/node` | `libs/utils-node` |
+| `libs/auth/browser` | `libs/auth-browser` |
+| `libs/config-loader/node` | `libs/config-loader-node` |
+
+**This name is used in every reference site — keep them in sync:**
+
+1. `project.json` `name` field
+2. TypeScript `tsconfig*.json` `paths` keys (e.g. `"libs/utils-node": ["..."]`)
+3. Vitest/Vite `resolve.alias` keys
+4. `import` statements in source (e.g. `import { logger } from 'libs/utils-node'`)
+5. `vi.mock(...)` calls
+6. CLI invocations: `npx nx run libs/utils-node:test`, `npx nx run services/auth:deploy:staging`
+
+The npm `package.json` `name` field (when present, e.g. `services/auth/package.json`) is **not** governed by this convention — it stays npm-valid (no slashes outside `@scope/name`) and is only used for npm workspace identity, never for imports.
+
+### Rule for new generators
+
+When creating a generator under `tools/generators/`, the first argument to `addProjectConfiguration(...)` must be the folder-prefixed name:
+
+```ts
+addProjectConfiguration(tree, `apps/${appName}`, {
+  name: `apps/${appName}`,
+  // ...
+});
+```
+
+Generated templates that wire path aliases (in `tsconfig*.json`, `vite.config.ts`, `vitest.config.ts`) must use the same folder-prefixed form for the alias key.
+
 ## Environment Configuration
 
 ### ENVIRONMENT
@@ -130,9 +176,9 @@ Language-specific utility libraries. See [libs/utils/README.md](libs/utils/READM
 
 | Project | Path | Contents |
 |---|---|---|
-| `utils-node` | `libs/utils/node/` | Logger (OTEL + BetterStack), `isJsonObjectOrArray`, `chunkArray` |
+| `libs/utils-node` | `libs/utils/node/` | Logger (OTEL + BetterStack), `isJsonObjectOrArray`, `chunkArray` |
 
-**Logger:** import from `utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
+**Logger:** import from `libs/utils-node`. Requires `BETTERSTACK_TOKEN` env var in non-local environments, `SERVICE_NAME` for log attribution. Always call `flushLogger()` at the end of Lambda handlers.
 
 ### libs/config-loader
 
@@ -140,8 +186,8 @@ Per-language runtime loaders. Reads the pre-resolved config blob from DynamoDB (
 
 | Project | Path |
 |---|---|
-| `config-loader-node` | `libs/config-loader/node/` |
-| `config-loader-python` | `libs/config-loader/python/` |
+| `libs/config-loader-node` | `libs/config-loader/node/` |
+| `libs/config-loader-python` | `libs/config-loader/python/` |
 
 ## Generating Apps
 

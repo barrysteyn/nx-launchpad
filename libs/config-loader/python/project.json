@@ -1,5 +1,5 @@
 {
-  "name": "config-loader-python",
+  "name": "libs/config-loader-python",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "root": "libs/config-loader/python",

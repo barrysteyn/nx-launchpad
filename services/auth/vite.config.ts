@@ -11,7 +11,7 @@ const hasAppRoutes = existsSync('./src/app/routes/__root.tsx');
 export default defineConfig({
   resolve: {
     alias: {
-      'utils-node': resolve(__dirname, '../../libs/utils/node/src/index.ts'),
+      'libs/utils-node': resolve(__dirname, '../../libs/utils/node/src/index.ts'),
     },
   },
   plugins: [

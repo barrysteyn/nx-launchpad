@@ -13,8 +13,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "config-loader-node": ["../libs/config-loader/node/src/index.ts"],
-      "utils-node": ["../libs/utils/node/src/index.ts"]
+      "libs/config-loader-node": ["../libs/config-loader/node/src/index.ts"],
+      "libs/utils-node": ["../libs/utils/node/src/index.ts"]
     }
   },
   "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],

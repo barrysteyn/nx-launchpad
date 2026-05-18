@@ -1,5 +1,5 @@
 {
-  "name": "utils-node",
+  "name": "libs/utils-node",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "root": "libs/utils/node",

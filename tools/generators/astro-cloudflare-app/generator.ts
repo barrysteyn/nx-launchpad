@@ -55,8 +55,8 @@ export async function astroCloudflareAppGenerator(
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
-  addProjectConfiguration(tree, appName, {
-    name: appName,
+  addProjectConfiguration(tree, `apps/${appName}`, {
+    name: `apps/${appName}`,
     projectType: 'application',
     root: appDir,
     sourceRoot: `${appDir}/src`,

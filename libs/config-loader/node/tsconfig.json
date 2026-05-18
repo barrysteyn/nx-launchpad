@@ -16,7 +16,7 @@
     "declaration": true,
     "declarationMap": true,
     "paths": {
-      "utils-node": ["../../utils/node/src/index.ts"]
+      "libs/utils-node": ["../../utils/node/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

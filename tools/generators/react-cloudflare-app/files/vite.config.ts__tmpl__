@@ -17,9 +17,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'auth-browser': resolve(__dirname, '../../libs/auth/browser/src/index.ts'),
-      'auth-node': resolve(__dirname, '../../libs/auth/node/src/index.ts'),
-      'config-loader-node': resolve(
+      'libs/auth-browser': resolve(__dirname, '../../libs/auth/browser/src/index.ts'),
+      'libs/auth-node': resolve(__dirname, '../../libs/auth/node/src/index.ts'),
+      'libs/config-loader-node': resolve(
         __dirname,
         '../../libs/config-loader/node/src/cloudflare.ts',
       ),
