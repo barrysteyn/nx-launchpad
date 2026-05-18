@@ -25,7 +25,7 @@ When prompted to confirm deletion, enter `y`. This removes the Worker from Cloud
 
 The Neon project module has `prevent_destroy = true` as a safety guard. You must temporarily disable it before running `tf-destroy`, then restore it afterwards.
 
-**3a.** In `libs/infra/modules/neon/postgres/main.tf`, change the `lifecycle` block on `neon_project.this` from `prevent_destroy = true` to `prevent_destroy = false`:
+**3a.** In `libs/infra/terraform/modules/neon/postgres/main.tf`, change the `lifecycle` block on `neon_project.this` from `prevent_destroy = true` to `prevent_destroy = false`:
 
 ```hcl
 resource "neon_project" "this" {
@@ -44,7 +44,7 @@ npx nx run auth:tf-destroy:<env>
 
 This destroys the Neon project (and everything inside it — branches, databases, roles) and the Cloudflare Hyperdrive config in one shot.
 
-**3c.** Restore `prevent_destroy` to `true` in `libs/infra/modules/neon/postgres/main.tf`:
+**3c.** Restore `prevent_destroy` to `true` in `libs/infra/terraform/modules/neon/postgres/main.tf`:
 
 ```hcl
 resource "neon_project" "this" {

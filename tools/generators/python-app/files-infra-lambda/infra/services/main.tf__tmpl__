@@ -1,6 +1,6 @@
 <% if (includeApiGateway) { %>
 module "api_gateway" {
-  source = "../../../../libs/infra/modules/aws/api-gateway"
+  source = "../../../../libs/infra/terraform/modules/aws/api-gateway"
 
   project_name         = var.project_name
   app_name             = "<%= name %>"
@@ -17,7 +17,7 @@ module "api_gateway" {
 
 <% } %>
 module "lambda" {
-  source = "../../../../libs/infra/modules/aws/lambda"
+  source = "../../../../libs/infra/terraform/modules/aws/lambda"
 
   project_name = var.project_name
   app_name     = "<%= name %>"

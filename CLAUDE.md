@@ -75,7 +75,7 @@ In CI/CD, `ENVIRONMENT` is set by the deploy pipeline to match the target enviro
 
 ### PROJECT_NAME
 
-`PROJECT_NAME` is the universal variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/modules/aws/lambda`, `libs/infra/modules/aws/api-gateway`, `libs/infra/modules/cloudflare/kv`) uses it to compute resource names following the convention:
+`PROJECT_NAME` is the universal variable that namespaces all AWS and Cloudflare resources. It must be set once — every shared Terraform module (`libs/infra/terraform/modules/aws/lambda`, `libs/infra/terraform/modules/aws/api-gateway`, `libs/infra/terraform/modules/cloudflare/kv`) uses it to compute resource names following the convention:
 
 ```
 ${project_name}-${environment}-${app_name}
@@ -95,7 +95,7 @@ In CI/CD, `PROJECT_NAME` must be set as a GitHub Actions variable (`vars.PROJECT
 
 ### Terraform backend config
 
-The remote-state S3 bucket name is committed in `libs/infra/backend.hcl` (single source of truth — no `.local` overlay). A fresh fork ships with `bucket = "<placeholder-bucket>"`; `/onboard` Step 2.5 replaces it with the fork's real bucket. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`, with the driver registered by `scripts/setup.sh` (`git config merge.ours.driver true`).
+The remote-state S3 bucket name is committed in `libs/infra/terraform/backend.hcl` (single source of truth — no `.local` overlay). A fresh fork ships with `bucket = "<placeholder-bucket>"`; `/onboard` Step 2.5 replaces it with the fork's real bucket. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`, with the driver registered by `scripts/setup.sh` (`git config merge.ours.driver true`).
 
 ### Passing env vars to Terraform
 
@@ -252,7 +252,7 @@ Every runnable (Lambda, Cloudflare Worker) **must** have `ENVIRONMENT` and `PROJ
 
 ### AWS Lambda
 
-`ENVIRONMENT` and `PROJECT_NAME` are injected automatically by the shared `libs/infra/modules/aws/lambda` module — no app-level Terraform needed. They are merged last, so they cannot be accidentally overridden by caller-supplied `environment_variables`.
+`ENVIRONMENT` and `PROJECT_NAME` are injected automatically by the shared `libs/infra/terraform/modules/aws/lambda` module — no app-level Terraform needed. They are merged last, so they cannot be accidentally overridden by caller-supplied `environment_variables`.
 
 ### Cloudflare Workers
 
@@ -268,18 +268,18 @@ Set `ENVIRONMENT` as a plain `var` in each environment block in `wrangler.jsonc`
 
 `PROJECT_NAME` is injected via `--var PROJECT_NAME:$PROJECT_NAME` on every `wrangler deploy` call. The generated Nx deploy targets do this automatically.
 
-## Shared Terraform Modules (`libs/infra/modules`)
+## Shared Terraform Modules (`libs/infra/terraform/modules`)
 
-Every module in `libs/infra/modules` **requires** `project_name`, `app_name`, and `environment`. The module computes the resource name internally — callers must never construct or hard-code the name themselves.
+Every module in `libs/infra/terraform/modules` **requires** `project_name`, `app_name`, and `environment`. The module computes the resource name internally — callers must never construct or hard-code the name themselves.
 
 | Module | Path | Resource named |
 |---|---|---|
-| `aws/lambda` | `libs/infra/modules/aws/lambda` | `${project_name}-${environment}-${app_name}` |
-| `aws/api-gateway` | `libs/infra/modules/aws/api-gateway` | `${project_name}-${environment}-${app_name}` |
-| `aws/dynamodb` | `libs/infra/modules/aws/dynamodb` | `${project_name}-${environment}-${app_name}` |
-| `cloudflare/kv` | `libs/infra/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
-| `cloudflare/hyperdrive` | `libs/infra/modules/cloudflare/hyperdrive` | `${project_name}-${environment}-${app_name}` |
-| `neon/postgres` | `libs/infra/modules/neon/postgres` | `${project_name}-${environment}-${app_name}` (project) |
+| `aws/lambda` | `libs/infra/terraform/modules/aws/lambda` | `${project_name}-${environment}-${app_name}` |
+| `aws/api-gateway` | `libs/infra/terraform/modules/aws/api-gateway` | `${project_name}-${environment}-${app_name}` |
+| `aws/dynamodb` | `libs/infra/terraform/modules/aws/dynamodb` | `${project_name}-${environment}-${app_name}` |
+| `cloudflare/kv` | `libs/infra/terraform/modules/cloudflare/kv` | `${project_name}-${environment}-${app_name}` |
+| `cloudflare/hyperdrive` | `libs/infra/terraform/modules/cloudflare/hyperdrive` | `${project_name}-${environment}-${app_name}` |
+| `neon/postgres` | `libs/infra/terraform/modules/neon/postgres` | `${project_name}-${environment}-${app_name}` (project) |
 
 ## Universal naming convention — `${project_name}-${environment}-${app_name}`
 
@@ -287,7 +287,7 @@ This is the **strict** naming convention for every cloud resource in the workspa
 
 **Hard rules (must follow):**
 
-1. **Shared Terraform modules** (`libs/infra/modules/*`): accept `project_name`, `app_name`, `environment` as input variables and compute the resource name internally. Never accept a pre-composed name string.
+1. **Shared Terraform modules** (`libs/infra/terraform/modules/*`): accept `project_name`, `app_name`, `environment` as input variables and compute the resource name internally. Never accept a pre-composed name string.
 
 2. **Cloudflare Worker names in `wrangler.jsonc`** (apps and services): every `env.<env>.name` field uses the pattern `${project_name}-${environment}-${app_name}`. The top-level (root) `"name"` field is **intentionally** bare (`${app_name}` only) — it's used only by `wrangler dev` for local development, where the environment prefix would be misleading.
 
@@ -311,12 +311,12 @@ When adding a new generator under `tools/generators/`, it **must**:
 - Read `PROJECT_NAME` from the root `.env` at generate time. Hard-error if missing or still placeholder — the entire naming convention falls apart without it. See `tools/generators/astro-cloudflare-app/generator.ts` (`readProjectNameFromEnv()`) for the reference pattern.
 - Pass `projectName` (and the resolved value, not the env-var reference) into `generateFiles(...)` so every templated file can substitute it.
 - For Cloudflare apps: the generated `wrangler.jsonc` template must use `<%= projectName %>-<env>-<%= name %>` for `env.<env>.name` and leave the top-level `"name"` bare.
-- For AWS-deploying apps: use the shared `libs/infra/modules/aws/*` modules — they handle naming for you. Never name AWS resources directly inside generator templates.
-- For Cloudflare-deploying apps that use KV: use `libs/infra/modules/cloudflare/kv` and let it name the namespace.
+- For AWS-deploying apps: use the shared `libs/infra/terraform/modules/aws/*` modules — they handle naming for you. Never name AWS resources directly inside generator templates.
+- For Cloudflare-deploying apps that use KV: use `libs/infra/terraform/modules/cloudflare/kv` and let it name the namespace.
 
 **Rules for new shared modules:**
 
-When adding a module to `libs/infra/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.
+When adding a module to `libs/infra/terraform/modules`, it must accept `project_name`, `app_name`, and `environment` as input variables and compute its resource name as `${project_name}-${environment}-${app_name}`. Never accept a pre-composed name string.
 
 ### Useful Terraform targets
 

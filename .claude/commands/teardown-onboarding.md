@@ -162,7 +162,7 @@ The state-file `key` is hard-coded in `config/infra/environments/<env>/backend.t
 
 ### 5a — Temporarily disable `prevent_destroy` on the KV module
 
-`libs/infra/modules/cloudflare/kv/main.tf` has `lifecycle { prevent_destroy = true }` to protect against accidental KV deletion. Flip it to `false` before the destroy, then restore it afterwards (Step 5c). Without this flip, `terraform destroy` errors out with `Instance cannot be destroyed`.
+`libs/infra/terraform/modules/cloudflare/kv/main.tf` has `lifecycle { prevent_destroy = true }` to protect against accidental KV deletion. Flip it to `false` before the destroy, then restore it afterwards (Step 5c). Without this flip, `terraform destroy` errors out with `Instance cannot be destroyed`.
 
 Use the Edit tool to change:
 
@@ -180,7 +180,7 @@ lifecycle {
 }
 ```
 
-in `libs/infra/modules/cloudflare/kv/main.tf`.
+in `libs/infra/terraform/modules/cloudflare/kv/main.tf`.
 
 ### 5b — Destroy (both envs)
 
@@ -194,7 +194,7 @@ for ENV in staging production; do
   echo "=== Destroying config infra for $ENV ==="
   (
     cd config/infra/environments/$ENV
-    terraform init -backend-config=../../../../libs/infra/backend.hcl -reconfigure
+    terraform init -backend-config=../../../../libs/infra/terraform/backend.hcl -reconfigure
 
     TF_VAR_environment=$ENV \
     TF_VAR_project_name="$PROJECT_NAME" \
@@ -209,7 +209,7 @@ This destroys both Cloudflare KV namespaces and both AWS DynamoDB tables that `/
 
 ### 5c — Restore `prevent_destroy`
 
-Always restore the guard so future `terraform apply` calls (e.g. a fresh `/onboard`) re-create the namespace with the safety in place. Use the Edit tool to revert `libs/infra/modules/cloudflare/kv/main.tf`:
+Always restore the guard so future `terraform apply` calls (e.g. a fresh `/onboard`) re-create the namespace with the safety in place. Use the Edit tool to revert `libs/infra/terraform/modules/cloudflare/kv/main.tf`:
 
 ```hcl
 lifecycle {
@@ -219,7 +219,7 @@ lifecycle {
 
 If 5b fails partway through, you should still run 5c — leaving `prevent_destroy = false` in source control is a footgun for the next user.
 
-If `terraform init` fails because the backend config is wrong, check the `bucket = "..."` line in `libs/infra/backend.hcl` matches a bucket your AWS credentials can reach.
+If `terraform init` fails because the backend config is wrong, check the `bucket = "..."` line in `libs/infra/terraform/backend.hcl` matches a bucket your AWS credentials can reach.
 
 ## Step 6 — Reset hardcoded KV namespace IDs back to placeholders
 

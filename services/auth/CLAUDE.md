@@ -39,7 +39,7 @@ The secret is versioned: `<version>:<base64-value>` (e.g. `1:abc...==`). Multipl
 
 ## Neon `prevent_destroy`
 
-`libs/infra/modules/neon/postgres/main.tf` has `lifecycle { prevent_destroy = true }` on the `neon_project` resource. The teardown skill handles toggling this — don't forget to restore it to `true` after a `tf-destroy`.
+`libs/infra/terraform/modules/neon/postgres/main.tf` has `lifecycle { prevent_destroy = true }` on the `neon_project` resource. The teardown skill handles toggling this — don't forget to restore it to `true` after a `tf-destroy`.
 
 The Hyperdrive config does not need `prevent_destroy` — it's just a binding, no data lost on destroy. The Neon project is the only data-bearing resource in this stack.
 

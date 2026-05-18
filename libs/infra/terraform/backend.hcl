@@ -1,5 +1,5 @@
 # Terraform backend config. Passed to every `terraform init` in this workspace
-# via `-backend-config=libs/infra/backend.hcl`.
+# via `-backend-config=libs/infra/terraform/backend.hcl`.
 #
 # The bucket below ships as `<placeholder-bucket>`; `/onboard` Step 2.5 replaces
 # it with the fork's real bucket name. This file is protected from upstream

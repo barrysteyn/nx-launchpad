@@ -312,12 +312,12 @@ If the count is not 2, halt with: "AWS access key secrets still missing from Git
 
 ### 2.5 — Terraform state bucket (find-or-create)
 
-The bucket name lives in `libs/infra/backend.hcl`. Fresh forks ship with the placeholder value `<placeholder-bucket>`; this step replaces it. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`.
+The bucket name lives in `libs/infra/terraform/backend.hcl`. Fresh forks ship with the placeholder value `<placeholder-bucket>`; this step replaces it. The file is protected from upstream overwrites by a `merge=ours` rule in `.gitattributes`.
 
-1. **Parse the bucket from `libs/infra/backend.hcl`**:
+1. **Parse the bucket from `libs/infra/terraform/backend.hcl`**:
 
    ```bash
-   BUCKET=$(grep -E '^bucket\s*=' libs/infra/backend.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+   BUCKET=$(grep -E '^bucket\s*=' libs/infra/terraform/backend.hcl | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
    ```
 
    If `$BUCKET` is anything other than `<placeholder-bucket>`, verify it's reachable:
@@ -364,7 +364,7 @@ The bucket name lives in `libs/infra/backend.hcl`. Fresh forks ship with the pla
      > "Create the bucket yourself:
      >     aws s3api create-bucket --bucket <unique-name> --region us-east-1
      >     aws s3api put-bucket-versioning --bucket <unique-name> --versioning-configuration Status=Enabled
-     > Then update the `bucket = "..."` line in libs/infra/backend.hcl and re-run /onboard."
+     > Then update the `bucket = "..."` line in libs/infra/terraform/backend.hcl and re-run /onboard."
 
    - Otherwise, set `BUCKET` to the chosen value and create it:
 
@@ -377,11 +377,11 @@ The bucket name lives in `libs/infra/backend.hcl`. Fresh forks ship with the pla
 
      If `BucketAlreadyOwnedByYou`: proceed. If `BucketAlreadyExists`: ask for a different name (or halt if `$AUTO`).
 
-4. **Write the chosen `$BUCKET` into `libs/infra/backend.hcl`** (replace the placeholder):
+4. **Write the chosen `$BUCKET` into `libs/infra/terraform/backend.hcl`** (replace the placeholder):
 
    ```bash
-   sed -i.bak -E "s|<placeholder-bucket>|${BUCKET}|" libs/infra/backend.hcl && rm libs/infra/backend.hcl.bak
-   echo "Updated bucket in libs/infra/backend.hcl"
+   sed -i.bak -E "s|<placeholder-bucket>|${BUCKET}|" libs/infra/terraform/backend.hcl && rm libs/infra/terraform/backend.hcl.bak
+   echo "Updated bucket in libs/infra/terraform/backend.hcl"
    ```
 
 ### 2.6 — Cocogitto bot installed

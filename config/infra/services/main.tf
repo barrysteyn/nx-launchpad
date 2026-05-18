@@ -1,5 +1,5 @@
 module "dynamodb" {
-  source       = "../../../libs/infra/modules/aws/dynamodb"
+  source       = "../../../libs/infra/terraform/modules/aws/dynamodb"
   project_name = var.project_name
   app_name     = "config"
   environment  = var.environment
@@ -11,7 +11,7 @@ module "dynamodb" {
 }
 
 module "kv" {
-  source       = "../../../libs/infra/modules/cloudflare/kv"
+  source       = "../../../libs/infra/terraform/modules/cloudflare/kv"
   account_id   = var.cloudflare_account_id
   project_name = var.project_name
   app_name     = "config"
