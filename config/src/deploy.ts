@@ -2,7 +2,7 @@ import path from 'path';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import Cloudflare from 'cloudflare';
-import { logger } from 'utils-node';
+import { logger } from 'libs/utils-node';
 import { resolveConfig } from './resolver';
 
 async function getKvNamespaceId(cf: Cloudflare, accountId: string, title: string): Promise<string> {

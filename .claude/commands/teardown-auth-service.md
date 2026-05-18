@@ -39,7 +39,7 @@ resource "neon_project" "this" {
 **3b.** Run the destroy:
 
 ```
-npx nx run auth:tf-destroy:<env>
+npx nx run services/auth:tf-destroy:<env>
 ```
 
 This destroys the Neon project (and everything inside it — branches, databases, roles) and the Cloudflare Hyperdrive config in one shot.

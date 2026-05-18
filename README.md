@@ -259,7 +259,7 @@ See [services/auth/README.md](services/auth/README.md) for full setup and deploy
 
    ```typescript
    // src/app/lib/auth-client.ts
-   import { createBrowserAuthClient } from 'auth-browser';
+   import { createBrowserAuthClient } from 'libs/auth-browser';
 
    export const AUTH_URL = import.meta.env.VITE_AUTH_URL as string | undefined;
    export const authClient = createBrowserAuthClient(AUTH_URL);

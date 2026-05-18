@@ -4,7 +4,7 @@ Shared utility libraries for use across all apps in this monorepo. Utilities are
 
 | Folder | Language | Nx project |
 |---|---|---|
-| `node/` | TypeScript / Node.js | `utils-node` |
+| `node/` | TypeScript / Node.js | `libs/utils-node` |
 
 ---
 
@@ -52,7 +52,7 @@ The service name attached to all log records is read from the `SERVICE_NAME` env
 Import the singleton `logger` instance directly:
 
 ```typescript
-import { logger } from 'utils-node';
+import { logger } from 'libs/utils-node';
 
 logger.info('Server started');
 logger.warn('Retrying request');
@@ -92,7 +92,7 @@ Pino buffers writes to stdout. In AWS Lambda the execution environment freezes a
 Always call `flushLogger()` in a `finally` block so every invocation flushes before the process freezes:
 
 ```typescript
-import { logger, flushLogger } from 'utils-node';
+import { logger, flushLogger } from 'libs/utils-node';
 
 export const handler = async (event: unknown) => {
   try {
@@ -111,7 +111,7 @@ export const handler = async (event: unknown) => {
 ```json
 {
   "paths": {
-    "utils-node": ["../../libs/utils/node/src/index.ts"]
+    "libs/utils-node": ["../../libs/utils/node/src/index.ts"]
   }
 }
 ```
@@ -119,7 +119,7 @@ export const handler = async (event: unknown) => {
 2. Import and use:
 
 ```typescript
-import { logger, flushLogger } from 'utils-node';
+import { logger, flushLogger } from 'libs/utils-node';
 ```
 
 3. Set `SERVICE_NAME` in your environment (`.env` for local, Lambda env vars for deployed environments).
@@ -145,7 +145,7 @@ Sends transactional email via Amazon SES v2 (JSON API) using [`aws4fetch`](https
 #### Usage
 
 ```typescript
-import { sendEmail } from 'utils-node';
+import { sendEmail } from 'libs/utils-node';
 
 const { messageId } = await sendEmail({
   from: '"DV Photo Tool" <photos@dvphototool.com>',

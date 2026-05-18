@@ -6,7 +6,7 @@ Loaders are organised by language runtime — each language has its own folder w
 
 | Folder | Language | Nx project |
 |---|---|---|
-| `node/` | TypeScript / Node.js | `config-loader-node` |
+| `node/` | TypeScript / Node.js | `libs/config-loader-node` |
 
 ---
 
@@ -88,7 +88,7 @@ This runs `terraform apply` (to ensure the DynamoDB table and Cloudflare KV name
 #### Usage
 
 ```typescript
-import { loadConfig } from 'config-loader-node';
+import { loadConfig } from 'libs/config-loader-node';
 
 const config = await loadConfig();
 
@@ -109,8 +109,8 @@ The result is cached — call `loadConfig()` freely throughout your app without 
 Call `loadConfig()` outside the handler so the result is cached across warm invocations:
 
 ```typescript
-import { loadConfig } from 'config-loader-node';
-import { flushLogger } from 'utils-node';
+import { loadConfig } from 'libs/config-loader-node';
+import { flushLogger } from 'libs/utils-node';
 
 const configPromise = loadConfig();
 
@@ -130,7 +130,7 @@ export const handler = async (event: unknown) => {
 ```json
 {
   "paths": {
-    "config-loader-node": ["../../libs/config-loader/node/src/index.ts"]
+    "libs/config-loader-node": ["../../libs/config-loader/node/src/index.ts"]
   }
 }
 ```
@@ -138,7 +138,7 @@ export const handler = async (event: unknown) => {
 2. Import and call:
 
 ```typescript
-import { loadConfig } from 'config-loader-node';
+import { loadConfig } from 'libs/config-loader-node';
 ```
 
 3. For local development, generate the resolved config file first (see above). For deployed environments, `PROJECT_NAME` must be set and the config must have been deployed via `config:deploy-config`.

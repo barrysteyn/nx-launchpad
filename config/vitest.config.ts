@@ -5,7 +5,7 @@ export default defineConfig({
   test: { environment: 'node' },
   resolve: {
     alias: {
-      'utils-node': path.resolve(__dirname, '../libs/utils/node/src/index.ts'),
+      'libs/utils-node': path.resolve(__dirname, '../libs/utils/node/src/index.ts'),
     },
   },
 });

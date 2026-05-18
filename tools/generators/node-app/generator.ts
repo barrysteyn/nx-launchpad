@@ -10,8 +10,8 @@ export async function nodeAppGenerator(tree: Tree, options: NodeAppGeneratorSche
   const includeInfra = options.includeInfra ?? true;
   const includeApiGateway = options.includeApiGateway ?? true;
 
-  addProjectConfiguration(tree, appName, {
-    name: appName,
+  addProjectConfiguration(tree, `apps/${appName}`, {
+    name: `apps/${appName}`,
     projectType: 'application',
     root: appDir,
     sourceRoot: `${appDir}/src`,

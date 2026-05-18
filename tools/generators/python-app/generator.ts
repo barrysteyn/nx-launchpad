@@ -15,8 +15,8 @@ export async function pythonAppGenerator(tree: Tree, options: PythonAppGenerator
   const infrastructureType = options.infrastructureType ?? 'lambda';
   const includeApiGateway = options.includeApiGateway ?? true;
 
-  addProjectConfiguration(tree, appName, {
-    name: appName,
+  addProjectConfiguration(tree, `apps/${appName}`, {
+    name: `apps/${appName}`,
     projectType: 'application',
     root: appDir,
     sourceRoot: `${appDir}/src`,

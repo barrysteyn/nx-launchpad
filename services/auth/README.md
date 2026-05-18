@@ -85,8 +85,8 @@ app.get('/api/data', (c) => {
 
 **Switching modes on an existing database:**
 1. Change `multitenancyEnabled` in `services/auth/package.json`
-2. Run `npx nx run auth:db-generate` to produce a new migration
-3. Run `npx nx run auth:db-migrate:<env>` to apply the new migration via drizzle-kit (idempotent — safe to re-run)
+2. Run `npx nx run services/auth:db-generate` to produce a new migration
+3. Run `npx nx run services/auth:db-migrate:<env>` to apply the new migration via drizzle-kit (idempotent — safe to re-run)
 4. Redeploy
 
 ---
@@ -97,7 +97,7 @@ app.get('/api/data', (c) => {
 
 ```typescript
 // src/app/lib/auth-client.ts
-import { createBrowserAuthClient } from 'auth-browser';
+import { createBrowserAuthClient } from 'libs/auth-browser';
 export const authClient = createBrowserAuthClient(import.meta.env.VITE_AUTH_URL);
 ```
 
@@ -111,7 +111,7 @@ await authClient.signOut();
 ### Worker (Hono API)
 
 ```typescript
-import { jwtMiddleware } from 'auth-node';
+import { jwtMiddleware } from 'libs/auth-node';
 
 const PUBLIC_API_ROUTES = new Set(['/api/health']);
 
