@@ -1,0 +1,70 @@
+name: "Run Nx target and record per-project results"
+description: "Runs an Nx target across one or more projects. For each project, writes a JSON result file ({project, target, status}) to the results directory."
+
+inputs:
+  target:
+    description: "Nx target to run (e.g. deploy, deploy-config)."
+    required: true
+  configuration:
+    description: "Nx configuration to use (e.g. staging, production)."
+    required: true
+  projects:
+    description: "JSON array of project names to run against. If empty, all affected projects with the given target are used."
+    required: false
+    default: ""
+  results_dir:
+    description: "Directory where per-project result JSON files are written. Created if missing."
+    required: false
+    default: ".deploy-results"
+  fail_fast:
+    description: "Stop on first failure (matches `nx affected` default). Set to false to run every project and surface any failure at the end."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run target across projects and record results
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        CONFIGURATION: ${{ inputs.configuration }}
+        PROJECTS_JSON: ${{ inputs.projects }}
+        RESULTS_DIR: ${{ inputs.results_dir }}
+        FAIL_FAST: ${{ inputs.fail_fast }}
+      run: |
+        set -o pipefail
+        mkdir -p "$RESULTS_DIR"
+
+        if [ -n "$PROJECTS_JSON" ]; then
+          PROJECTS=$(echo "$PROJECTS_JSON" | jq -r '.[]')
+        else
+          PROJECTS=$(npx nx show projects --affected --with-target "$TARGET" --json | jq -r '.[]')
+        fi
+
+        if [ -z "$PROJECTS" ]; then
+          echo "No projects to run target '$TARGET'."
+          exit 0
+        fi
+
+        OVERALL=0
+        while IFS= read -r proj; do
+          [ -z "$proj" ] && continue
+          echo "::group::nx run $proj:$TARGET --configuration=$CONFIGURATION"
+          SAFE=$(echo "$proj" | tr '/' '-')
+          set +e
+          npx nx run "$proj:$TARGET" --configuration="$CONFIGURATION"
+          STATUS=$?
+          set -e
+          if [ $STATUS -eq 0 ]; then RESULT=success; else RESULT=failure; fi
+          jq -n --arg p "$proj" --arg t "$TARGET" --arg s "$RESULT" \
+            '{project: $p, target: $t, status: $s}' > "$RESULTS_DIR/${SAFE}.json"
+          echo "::endgroup::"
+          if [ $STATUS -ne 0 ]; then
+            OVERALL=$STATUS
+            if [ "$FAIL_FAST" = "true" ]; then
+              exit $STATUS
+            fi
+          fi
+        done <<< "$PROJECTS"
+        exit $OVERALL

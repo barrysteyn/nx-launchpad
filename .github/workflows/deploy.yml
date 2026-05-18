@@ -179,14 +179,33 @@ jobs:
       - name: Deploy config
         if: needs.plan.outputs.config_affected == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.app == 'deploy-config')
         timeout-minutes: 15
-        run: npx nx run config:deploy-config --configuration=${{ needs.plan.outputs.environment }}
+        uses: ./.github/actions/nx-run-and-record
+        with:
+          projects: '["config"]'
+          target: deploy-config
+          configuration: ${{ needs.plan.outputs.environment }}
 
       - name: Deploy single app
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != '' && github.event.inputs.app != 'deploy-config'
         timeout-minutes: 30
-        run: npx nx run ${{ github.event.inputs.app }}:deploy --configuration=${{ needs.plan.outputs.environment }}
+        uses: ./.github/actions/nx-run-and-record
+        with:
+          projects: '["${{ github.event.inputs.app }}"]'
+          target: deploy
+          configuration: ${{ needs.plan.outputs.environment }}
 
       - name: Deploy all affected
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.app == ''
         timeout-minutes: 30
-        run: npx nx affected -t deploy --configuration=${{ needs.plan.outputs.environment }}
+        uses: ./.github/actions/nx-run-and-record
+        with:
+          target: deploy
+          configuration: ${{ needs.plan.outputs.environment }}
+
+      - name: Upload deploy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-results
+          path: .deploy-results/
+          if-no-files-found: ignore
