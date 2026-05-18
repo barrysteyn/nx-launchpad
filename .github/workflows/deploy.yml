@@ -207,5 +207,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: deploy-results
-          path: .deploy-results/
+          path: deploy-results/
           if-no-files-found: ignore

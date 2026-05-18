@@ -15,7 +15,7 @@ inputs:
   results_dir:
     description: "Directory where per-project result JSON files are written. Created if missing."
     required: false
-    default: ".deploy-results"
+    default: "deploy-results"
   fail_fast:
     description: "Stop on first failure (matches `nx affected` default). Set to false to run every project and surface any failure at the end."
     required: false
