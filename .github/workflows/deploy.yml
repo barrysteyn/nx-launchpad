@@ -19,6 +19,10 @@ on:
         description: "App to deploy (leave blank to deploy all affected apps)"
         required: false
         type: string
+      pr_number:
+        description: "PR number to update with post-merge results (testing only — leave blank in normal use)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -104,6 +108,59 @@ jobs:
         with:
           nx_command: ${{ steps.nx_cmd.outputs.command }}
           summary_title: "## 🚀 Nx deploy targets"
+
+  find-pr:
+    name: Find originating PR
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      pr: ${{ steps.resolve.outputs.pr }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+      - name: Look up PR from merge commit
+        id: from_commit
+        if: github.event_name == 'push'
+        uses: jwalton/gh-find-current-pr@v1
+        with:
+          state: closed
+      - name: Resolve PR number
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR="${{ github.event.inputs.pr_number }}"
+          else
+            PR="${{ steps.from_commit.outputs.pr }}"
+          fi
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "Resolved PR: ${PR:-<none>}"
+
+  post-placeholder:
+    name: Post placeholder comment to PR
+    needs: find-pr
+    if: needs.find-pr.outputs.pr != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          number: ${{ needs.find-pr.outputs.pr }}
+          header: post-merge-results
+          only_create: true
+          message: |
+            ## 🚀 Post Merge Results
+
+            ⏳ Deploying to staging — this comment will update when the deploy finishes.
+
+            [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
   deploy:
     name: deploy (${{ needs.plan.outputs.environment }})
@@ -209,3 +266,53 @@ jobs:
           name: deploy-results
           path: deploy-results/
           if-no-files-found: ignore
+
+  post-results:
+    name: Post final results to PR
+    needs: [find-pr, post-placeholder, deploy]
+    if: always() && needs.find-pr.outputs.pr != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Download deploy results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: deploy-results
+          path: deploy-results/
+      - name: Compose comment body
+        id: compose
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          {
+            echo 'body<<COMMENT_EOF'
+            echo '## 🚀 Post Merge Results'
+            echo
+            echo "**Environment:** staging  "
+            echo "**Commit:** [\`${SHORT_SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})  "
+            echo "**Workflow run:** [view](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo
+            COUNT=0
+            for f in deploy-results/*.json; do
+              [ -f "$f" ] || continue
+              COUNT=$((COUNT+1))
+            done
+            if [ "$COUNT" -eq 0 ]; then
+              echo "_No projects were deployed in this run._"
+            else
+              echo '| Project | Target | Status |'
+              echo '|---|---|---|'
+              for f in deploy-results/*.json; do
+                [ -f "$f" ] || continue
+                jq -r '"| \(.project) | \(.target) | \(if .status == "success" then "✅" else "❌" end) \(.status) |"' "$f"
+              done
+            fi
+            echo COMMENT_EOF
+          } >> "$GITHUB_OUTPUT"
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          number: ${{ needs.find-pr.outputs.pr }}
+          header: post-merge-results
+          message: ${{ steps.compose.outputs.body }}
