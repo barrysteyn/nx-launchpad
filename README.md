@@ -30,7 +30,7 @@ A production-ready [Nx](https://nx.dev) monorepo launchpad — fork it once, cus
 >   aws s3api put-bucket-versioning --bucket your-bucket-name \
 >     --versioning-configuration Status=Enabled
 >   ```
->   Replace the `<placeholder-bucket>` value in `libs/infra/backend.hcl` with your new bucket name. The file is committed but protected from upstream overwrites by a `merge=ours` rule in `.gitattributes` (registered automatically by `scripts/setup.sh`). `/onboard` Step 2.5 handles this automatically.
+>   Replace the `<placeholder-bucket>` value in `libs/infra/terraform/backend.hcl` with your new bucket name. The file is committed but protected from upstream overwrites by a `merge=ours` rule in `.gitattributes` (registered automatically by `scripts/setup.sh`). `/onboard` Step 2.5 handles this automatically.
 >
 > - [ ] **Add to your root `.env` file** (copy from `.env.example`):
 >   ```bash

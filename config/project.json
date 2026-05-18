@@ -46,10 +46,10 @@
       "executor": "nx:run-commands",
       "configurations": {
         "staging": {
-          "command": "terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../libs/infra/backend.hcl"
+          "command": "terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../libs/infra/terraform/backend.hcl"
         },
         "production": {
-          "command": "terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../libs/infra/backend.hcl"
+          "command": "terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../libs/infra/terraform/backend.hcl"
         }
       }
     },
@@ -96,7 +96,7 @@
         "staging": {
           "cwd": "{projectRoot}/infra/environments/staging",
           "commands": [
-            "terraform init -backend-config=../../../../libs/infra/backend.hcl",
+            "terraform init -backend-config=../../../../libs/infra/terraform/backend.hcl",
             "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=staging TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve",
             "ENVIRONMENT=staging node ../../../dist/deploy.js staging"
           ],
@@ -105,7 +105,7 @@
         "production": {
           "cwd": "{projectRoot}/infra/environments/production",
           "commands": [
-            "terraform init -backend-config=../../../../libs/infra/backend.hcl",
+            "terraform init -backend-config=../../../../libs/infra/terraform/backend.hcl",
             "TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=production TF_VAR_cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID TF_VAR_cloudflare_api_token=$CLOUDFLARE_API_TOKEN terraform apply -auto-approve",
             "ENVIRONMENT=production node ../../../dist/deploy.js production"
           ],

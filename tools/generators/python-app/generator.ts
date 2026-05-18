@@ -96,11 +96,11 @@ function buildInfraTargets() {
       configurations: {
         staging: {
           command:
-            'terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../../libs/infra/backend.hcl',
+            'terraform -chdir={projectRoot}/infra/environments/staging init -backend-config=../../../../../libs/infra/terraform/backend.hcl',
         },
         production: {
           command:
-            'terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../../libs/infra/backend.hcl',
+            'terraform -chdir={projectRoot}/infra/environments/production init -backend-config=../../../../../libs/infra/terraform/backend.hcl',
         },
       },
     },
@@ -151,7 +151,7 @@ function buildInfraTargets() {
         staging: {
           cwd: '{projectRoot}/infra/environments/staging',
           commands: [
-            'terraform init -backend-config=../../../../../libs/infra/backend.hcl',
+            'terraform init -backend-config=../../../../../libs/infra/terraform/backend.hcl',
             'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan',
             'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve',
           ],
@@ -160,7 +160,7 @@ function buildInfraTargets() {
         production: {
           cwd: '{projectRoot}/infra/environments/production',
           commands: [
-            'terraform init -backend-config=../../../../../libs/infra/backend.hcl',
+            'terraform init -backend-config=../../../../../libs/infra/terraform/backend.hcl',
             'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform plan',
             'TF_VAR_project_name=$PROJECT_NAME TF_VAR_environment=$ENVIRONMENT terraform apply -auto-approve',
           ],

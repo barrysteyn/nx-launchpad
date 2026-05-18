@@ -87,7 +87,7 @@ cd "$REPO_ROOT"
 npm ci --legacy-peer-deps
 
 # ── 'ours' merge driver ───────────────────────────────────────────────────────
-# Used by .gitattributes for libs/infra/backend.hcl so upstream merges don't
+# Used by .gitattributes for libs/infra/terraform/backend.hcl so upstream merges don't
 # clobber the fork-specific bucket name. Idempotent.
 info "Registering 'ours' merge driver..."
 git config merge.ours.driver true

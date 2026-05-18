@@ -1,5 +1,5 @@
 module "postgres" {
-  source                  = "../../../../libs/infra/modules/neon/postgres"
+  source                  = "../../../../libs/infra/terraform/modules/neon/postgres"
   project_name            = var.project_name
   app_name                = "auth"
   environment             = var.environment
@@ -10,7 +10,7 @@ module "postgres" {
 }
 
 module "hyperdrive" {
-  source       = "../../../../libs/infra/modules/cloudflare/hyperdrive"
+  source       = "../../../../libs/infra/terraform/modules/cloudflare/hyperdrive"
   account_id   = var.cloudflare_account_id
   project_name = var.project_name
   app_name     = "auth"
