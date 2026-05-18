@@ -19,10 +19,6 @@ on:
         description: "App to deploy (leave blank to deploy all affected apps)"
         required: false
         type: string
-      pr_number:
-        description: "PR number to update with post-merge results (testing only — leave blank in normal use)"
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -111,36 +107,22 @@ jobs:
 
   find-pr:
     name: Find originating PR
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       contents: read
     outputs:
-      pr: ${{ steps.resolve.outputs.pr }}
+      pr: ${{ steps.from_commit.outputs.pr }}
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name == 'push'
         with:
           fetch-depth: 0
       - name: Look up PR from merge commit
         id: from_commit
-        if: github.event_name == 'push'
         uses: jwalton/gh-find-current-pr@v1
         with:
           state: closed
-      - name: Resolve PR number
-        id: resolve
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            PR="${{ github.event.inputs.pr_number }}"
-          else
-            PR="${{ steps.from_commit.outputs.pr }}"
-          fi
-          echo "pr=$PR" >> "$GITHUB_OUTPUT"
-          echo "Resolved PR: ${PR:-<none>}"
 
   post-placeholder:
     name: Post placeholder comment to PR
@@ -286,22 +268,38 @@ jobs:
         id: compose
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          COMMIT_LINK="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          RUN_LINK="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          SUCCEEDED=0
+          FAILED=0
+          for f in deploy-results/*.json; do
+            [ -f "$f" ] || continue
+            if [ "$(jq -r '.status' "$f")" = "success" ]; then
+              SUCCEEDED=$((SUCCEEDED+1))
+            else
+              FAILED=$((FAILED+1))
+            fi
+          done
+          TOTAL=$((SUCCEEDED + FAILED))
+
+          if [ "$TOTAL" -eq 0 ]; then
+            HEADLINE="_No projects were deployed in this run._"
+          elif [ "$FAILED" -eq 0 ]; then
+            HEADLINE="✅ **All ${TOTAL} deploys succeeded**"
+          elif [ "$SUCCEEDED" -eq 0 ]; then
+            HEADLINE="❌ **All ${TOTAL} deploys failed**"
+          else
+            HEADLINE="❌ **${FAILED} failed** · ✅ **${SUCCEEDED} succeeded**"
+          fi
+
           {
             echo 'body<<COMMENT_EOF'
             echo '## 🚀 Post Merge Results'
             echo
-            echo "**Environment:** staging  "
-            echo "**Commit:** [\`${SHORT_SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})  "
-            echo "**Workflow run:** [view](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-            echo
-            COUNT=0
-            for f in deploy-results/*.json; do
-              [ -f "$f" ] || continue
-              COUNT=$((COUNT+1))
-            done
-            if [ "$COUNT" -eq 0 ]; then
-              echo "_No projects were deployed in this run._"
-            else
+            echo "${HEADLINE} · staging · [\`${SHORT_SHA}\`](${COMMIT_LINK}) · [Workflow run](${RUN_LINK})"
+            if [ "$TOTAL" -gt 0 ]; then
+              echo
               echo '| Project | Target | Status |'
               echo '|---|---|---|'
               for f in deploy-results/*.json; do
