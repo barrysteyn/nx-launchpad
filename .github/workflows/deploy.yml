@@ -177,7 +177,7 @@ jobs:
           enable-cache: true
 
       - name: Deploy config
-        if: needs.plan.outputs.config_affected == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.app == 'deploy-config')
+        if: needs.plan.outputs.config_affected == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.app == 'config')
         timeout-minutes: 15
         uses: ./.github/actions/nx-run-and-record
         with:
@@ -186,7 +186,7 @@ jobs:
           configuration: ${{ needs.plan.outputs.environment }}
 
       - name: Deploy single app
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != '' && github.event.inputs.app != 'deploy-config'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.app != '' && github.event.inputs.app != 'config'
         timeout-minutes: 30
         uses: ./.github/actions/nx-run-and-record
         with:
